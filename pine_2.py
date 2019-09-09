@@ -31,6 +31,8 @@ import math
 import igraph
 import traceback
 import collections
+import tkinter as tk
+from tkinter import filedialog as fd
 
 def setup_logger(name, log_file, level=logging.DEBUG):
   handler = logging.FileHandler(log_file,mode='w')
@@ -710,6 +712,7 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
       sys.exit()
     except:
       print("Error: Cytoscape must be open")
+      print(e)
       sys.exit()
       
   for each_node in node_info['rows']:
@@ -2005,6 +2008,182 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
     os.remove(cy_cluego_out)
     
 def main(argv):
+  Gui().start()
+
+class Gui:
+  def __init__(self):
+    self.root = tk.Tk()
+    
+    self.cy_in = tk.StringVar()
+    self.cy_out = tk.StringVar()
+    self.cy_map = tk.StringVar()
+    self.select_terms = tk.StringVar()
+    self.cy_type = tk.StringVar()
+    self.cy_species = tk.StringVar()
+    self.cy_score = tk.StringVar()
+    self.cy_cluego_grouping = tk.StringVar()
+    self.cy_debug = tk.BooleanVar()
+    self.cluego_pval = tk.StringVar()
+    
+    # no interface yet
+    self.cy_lim = 0
+    self.logging = ""
+    self.merged_out_dict = {}
+    self.help = False
+    self.cy_pval = 0
+    self.cy_fc_cutoff = 0
+    self.cy_pval_cutoff = 1
+    self.leading_term_selection = "no. of genes per term"
+    self.cluego_reference_file = ""
+    self.cy_cluego_inp_file = ""
+    self.cy_session = "PINE_" + str(datetime.now().strftime("%d%b%Y_%H%M%S")) + ".cys"
+    self.cy_run = "both"
+    
+  def start(self):   
+    frame = tk.Frame(self.root, relief=tk.SUNKEN)
+    frame.grid(row=0, column=0, padx=5, pady=5)
+    tk.Button(frame, text="Choose an input file", command=self.get_input_filename).pack()
+    tk.Label(frame, text="Input file:").pack()
+    tk.Label(frame, textvariable=self.cy_in).pack()
+    
+    frame = tk.Frame(self.root, relief=tk.SUNKEN)
+    frame.grid(row=0,column=1, padx=5, pady=5)
+    tk.Button(frame, text="Choose an output directory", command=self.get_output_directory).pack()
+    tk.Label(frame, text="Output directory:").pack()
+    tk.Label(frame, textvariable=self.cy_out).pack()
+    
+    frame = tk.Frame(self.root, bd=1)
+    frame.grid(row=0, column=2, padx=5, pady=5)
+    tk.Button(frame, text="Choose the ClueGO mapping file", command=self.get_cluego_mapping_filename).pack()
+    tk.Label(frame, text="ClueGO mapping file:").pack()
+    tk.Label(frame, textvariable=self.cy_map).pack()
+    
+    frame = tk.Frame(self.root, bd=1)
+    frame.grid(row=1, column=0)
+    allowed_select_terms = ["biological process", "subcellular location", "molecular function", "pathways", "all"]
+    self.select_terms.set(allowed_select_terms[3])
+    tk.Label(frame, text="Select term:").pack()
+    tk.OptionMenu(frame, self.select_terms, *allowed_select_terms).pack()
+    
+    allowed_types = ["noFC", "singleFC", "multiFC", "category"]
+    self.cy_type.set(allowed_types[2])
+    tk.Label(frame, text="Select type:").pack()
+    tk.OptionMenu(frame, self.cy_type, *allowed_types).pack()
+    
+    allowed_species = ["human", "mouse", "rat"]
+    self.cy_species.set(allowed_types[1])
+    tk.Label(frame, text="Select species:").pack()
+    tk.OptionMenu(frame, self.cy_species, *allowed_species).pack()
+    
+    frame = tk.Frame(self.root, bd=1)
+    frame.grid(row=1, column=1)
+    tk.Label(frame, text="Enter an interaction confidence score").pack()
+    tk.Entry(frame, textvariable=self.cy_score).pack()
+    
+    allowed_cluego_grouping = ["global", "medium", "detailed"]
+    self.cy_cluego_grouping.set(allowed_cluego_grouping[1])
+    tk.Label(frame, text="Select ClueGO grouping:").pack()
+    tk.OptionMenu(frame, self.cy_cluego_grouping, *allowed_cluego_grouping).pack()
+    
+    tk.Checkbutton(frame, text="Debug mode", variable=self.cy_debug).pack()
+    
+    tk.Label(frame, text="Enter a ClueGO p-value").pack()
+    tk.Entry(frame, textvariable=self.cluego_pval).pack()
+    
+    frame = tk.Frame(self.root)
+    frame.grid(row=2, column=0)
+    tk.Button(frame, text="Save session", command=self.save_session).pack()
+    tk.Button(frame, text="Load session", command=self.load_session).pack()
+    
+    frame = tk.Frame(self.root, bd=1)
+    frame.grid(row=2, column=1)
+    tk.Button(frame, text="Run", command=self.run).pack()
+    
+    self.root.mainloop()
+    
+  def get_input_filename(self):
+    filename = fd.askopenfilename()
+    self.cy_in.set(filename)
+    
+  def get_output_directory(self):
+    filename = fd.askdirectory()
+    self.cy_out.set(filename)
+    
+  def get_cluego_mapping_filename(self):
+    filename = fd.askopenfilename()
+    self.cy_map.set(filename)
+    
+  def save_session(self):
+    filename = fd.asksaveasfilename(filetypes=[("Session files", "*.session")])
+    if not filename:
+      return
+    if not filename.endswith(".session"):
+      filename += ".session"
+    
+    session_data = {
+      "cy_in": self.cy_in.get(),
+      "cy_out": self.cy_out.get(),
+      "cy_map": self.cy_map.get(),
+      "select_terms": self.select_terms.get(),
+      "cy_type": self.cy_type.get(),
+      "cy_species": self.cy_species.get(),
+      "cy_score": self.cy_score.get(),
+      "cy_cluego_grouping": self.cy_cluego_grouping.get(),
+      "cy_debug": self.cy_debug.get(),
+      "cluego_pval": self.cluego_pval.get(),
+    }    
+    
+    with open(filename, "w") as f:
+      f.write(json.dumps(session_data))
+      
+  def load_session(self):
+    filename = fd.askopenfilename(filetypes=[("Session files", "*.session")])
+    if not filename:
+      return
+    
+    with open(filename) as f:
+      session_data = json.loads(f.read())
+      self.cy_in.set(session_data["cy_in"])
+      self.cy_out.set(session_data["cy_out"])
+      self.cy_map.set(session_data["cy_map"])
+      self.select_terms.set(session_data["select_terms"])
+      self.cy_type.set(session_data["cy_type"])
+      self.cy_species.set(session_data["cy_species"])
+      self.cy_score.set(session_data["cy_score"])
+      self.cy_cluego_grouping.set(session_data["cy_cluego_grouping"])
+      self.cy_debug.set(session_data["cy_debug"])
+      self.cluego_pval.set(session_data["cluego_pval"])
+    
+  def run(self):
+    if self.cy_debug.get():
+      self.logging = setup_logger("cytoscape","Cytoscape.log")
+    run(
+      self.cy_in.get(),
+      self.cy_species.get(),
+      self.cy_lim,
+      self.cy_score.get(),
+      self.cy_debug.get(),
+      self.logging,
+      self.cy_map.get(),
+      self.cy_out.get() + "/Merged_Input.csv", # cy_out
+      self.cy_out.get() + "/ClueGo_Output.txt", # cy_cluego_out
+      self.merged_out_dict,
+      self.help,
+      self.cy_type.get(),
+      self.cy_pval,
+      self.cy_cluego_grouping.get(),
+      self.cy_fc_cutoff,
+      self.cy_pval_cutoff,
+      self.select_terms.get(),
+      self.leading_term_selection,
+      self.cluego_reference_file,
+      self.cy_cluego_inp_file,
+      self.cy_out.get() + "/PINE_" + str(datetime.now().strftime("%d%b%Y_%H%M%S")) + ".cys", # cy_session
+      self.cluego_pval.get(),
+      self.cy_run
+    )
+    
+def main_(argv):
   cy_in = ""
   cy_species = ""
   cy_lim = 0
@@ -2105,7 +2284,10 @@ def main(argv):
     print("Argument(opt): -d [--debug]: generate logging file called cytoscape.log")
     print("Argument(opt): -h [--help]: display help")
     sys.exit()
-       
+    
+  run(cy_in, cy_species, cy_lim, cy_score, cy_debug, logging, cy_map, cy_out, cy_cluego_out, merged_out_dict, help, cy_type, cy_pval, cy_cluego_grouping, cy_fc_cutoff, cy_pval_cutoff, select_terms, leading_term_selection, cluego_reference_file, cy_cluego_inp_file, cy_session, cluego_pval, cy_run)
+
+def run(cy_in, cy_species, cy_lim, cy_score, cy_debug, logging, cy_map, cy_out, cy_cluego_out, merged_out_dict, help, cy_type, cy_pval, cy_cluego_grouping, cy_fc_cutoff, cy_pval_cutoff, select_terms, leading_term_selection, cluego_reference_file, cy_cluego_inp_file, cy_session, cluego_pval, cy_run):
   if cy_species.lower() == "human":
     tax_id = "9606"
     organism_name = "Homo Sapiens"
@@ -2434,6 +2616,7 @@ def main(argv):
     cytoscape_not_responding_msg = "Expecting value: line 1 column 1 (char 0)"
     if cytoscape_not_open_msg in str(e) or cytoscape_not_open_msg2 in str(e):
       print("Error: Cytoscape must be open")
+      traceback.print_exc()
     elif cytoscape_not_responding_msg in str(e):
       print("Error: Cytoscape not responding. Please restart and wait for it to fully load")
     else:
