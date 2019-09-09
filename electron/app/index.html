@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <link href="./index.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div id="app">
+      <section>
+        Enter an input file:
+        <input v-model="input.input" type="file" />
+      </section>
+      <section>
+        Choose an output directory
+        <input type="file" v-model="input.output" webkitdirectory />
+      </section>
+      <section>
+        Choose the ClueGO mapping file
+        <input type="file" v-model="input.cluego_mapping" />
+      </section>
+      <section>
+        Select a term
+        <select v-model="input.term">
+          <option v-for="at in allowed_terms" v-bind:value="at">{{ at }}</option>
+        </select>
+      </section>
+      <section>
+        Select type
+        <select v-model="input.type">
+          <option v-for="at in allowed_types" v-bind:value="at">{{ at }}</option>
+        </select>
+      </section>
+      <section>
+        Select a species
+        <select v-model="input.species">
+          <option v-for="as in allowed_species" v-bind:value="as">{{ as }}</option>
+        </select>
+      </section>
+      <section>
+        Enter an interaction confidence score
+        <input v-model="input.interaction_confidence_score" type="number" step="0.1" min="0.0" max="1.0" />
+      </section>
+      <section>
+        Select ClueGO grouping
+        <select v-model="input.cluego_grouping">
+          <option v-for="acg in allowed_cluego_grouping" v-bind:value="acg">{{ acg }}</option>
+        </select>
+      </section>
+      <section>
+        Debug mode: <input type="checkbox" v-model="input.debug" />
+      </section>
+      <section>
+        Enter a ClueGo p-value
+        <input type="number" step="0.1" min="0.0" max="1.0" v-model="input.cluego_p_value" />
+      </section>
+      <section>
+        <input type="button" value="Run" />
+      </section>
+    </div>
+
+    <script src="./index.js"></script>
+  </body>
+</html>
