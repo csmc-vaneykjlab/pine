@@ -244,10 +244,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         each_protein_list = list(set(unique_each_protein_list))
         print(each_protein_list)
         
+      all_dropped = dropping_repeats + retain_prot_ids
+      all_dropped = sorted(all_dropped)
       if cy_debug:
         logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
-        all_dropped = dropping_repeats + retain_prot_ids
-        all_dropped = sorted(all_dropped)
         logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
       for each_dupe_query in all_dropped:
         line = each_dupe_query + ",,,,," + "Duplicate query;\n"
@@ -295,9 +295,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if len(prot_list[each_prot_2]) == 0:
                     del prot_list[each_prot_2]                
         
+        list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
+        list_of_duplicates = sorted(list_of_duplicates)
         if cy_debug:
-          list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
-          list_of_duplicates = sorted(list_of_duplicates)
           logging.debug("Duplicate query: " + str(len(list_of_duplicates)))
           logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
         
@@ -2007,7 +2007,7 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
   if cy_cluego_out and path.exists(cy_cluego_out):
     os.remove(cy_cluego_out)
     
-def main(argv):
+def main_(argv):
   Gui().start()
 
 class Gui:
@@ -2183,7 +2183,7 @@ class Gui:
       self.cy_run
     )
     
-def main_(argv):
+def main(argv):
   cy_in = ""
   cy_species = ""
   cy_lim = 0
