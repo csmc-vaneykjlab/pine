@@ -30,7 +30,7 @@ let vm = new Vue({
         allowed_cluego_grouping: ["global", "medium", "detailed"],
         input: {
             cytoscape_path: "",
-            cluego_path: "",
+            cluego_base_path: "",
             in: "",
             output: "",
             mapping: "",
@@ -44,7 +44,7 @@ let vm = new Vue({
         },
         automatic_input: { // for messaging the user that the paths were found automatically
             cytoscape_path: false,
-            cluego_path: false,
+            cluego_base_path: false,
         },
         stdout: "",
         stderr: "",
@@ -95,8 +95,8 @@ let vm = new Vue({
             this.input[name] = e.target.files[0].path;
             if(name === "cytoscape_path") {
                 this.automatic_input.cytoscape_path = false;
-            } else if (name === "cluego_path") {
-                this.automatic_input.cluego_path = false;
+            } else if (name === "cluego_base_path") {
+                this.automatic_input.cluego_base_path = false;
             }
             this.refreshTab();
         },
@@ -160,20 +160,23 @@ let vm = new Vue({
                 }
             }
 
-            if(!this.input.cluego_path) {
-                const cluego_path = path.join(os.homedir(), "ClueGOConfiguration");
-                if(fs.existsSync(cluego_path)) {
-                    this.input.cluego_path = cluego_path;
-                    this.automatic_input.cluego_path = true;
+            if(!this.input.cluego_base_path) {
+                const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
+                if(fs.existsSync(cluego_base_path)) {
+                    //this.setCluegoBasePath(cluego_base_path);
+                    this.input.cluego_base_path = cluego_base_path;
+                    this.automatic_input.cluego_base_path = true;
                 }
             }
 
             this.refreshTab();
         },
         refreshTab: function() {
-            if(this.current_tab === TABS.PATH_LOCATION && this.input.cytoscape_path && this.input.cluego_path) {
+            if(this.current_tab === TABS.PATH_LOCATION && this.input.cytoscape_path && this.input.cluego_base_path) {
                 this.current_tab = TABS.INPUT;
             }
+        },
+        setCluegoBasePath: function(path) {
         },
     },
     mounted: function() {
