@@ -2184,6 +2184,10 @@ class Gui:
     )
     
 def main(argv):
+  import subprocess
+  cytoscape_file = 'C:\\Program Files\\Cytoscape_v3.7.1\\cytoscape.exe'
+  subprocess.call([cytoscape_file])
+
   cy_in = ""
   cy_species = ""
   cy_lim = 0
