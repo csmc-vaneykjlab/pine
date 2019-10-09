@@ -46,7 +46,7 @@ let vm = new Vue({
             run: "both", // must be in allowed_runs --
             fccutoff: 0.0, // range [0-inf) --
             pvalcutoff: 1.0, // TODO: Ask Niveda - seems to not be used
-            leading_term: "no. genes per term", // must be in allowed_leading_terms --
+            leading_term: "no. of genes per term", // must be in allowed_leading_terms --
             visualize: "pathways", // must be in allowed_visualize --
             cluego_pval: 0.05, // range [0-1] --
             reference_path: "", // custom cluego reference path --
@@ -146,13 +146,21 @@ let vm = new Vue({
             fs.writeFileSync(session_file, JSON.stringify(this.input));
         },
         loadSession: function() {
-            let session_file = this.getSessionFile();
+            const session_file = this.getSessionFile();
             if(!fs.existsSync(session_file)) {
                 return;
             }
-            let raw = fs.readFileSync(session_file, "utf8");
-            let input = JSON.parse(raw);
-            Vue.set(this, "input", input);
+            const raw = fs.readFileSync(session_file, "utf8");
+            const saved_input = JSON.parse(raw);
+            for(const key in saved_input) {
+                if(key in this.input) {
+                    if(key === "cluego_base_path") {
+                        this.setCluegoBasePath(saved_input[key]);
+                    } else {
+                        Vue.set(this.input, key, saved_input[key]);
+                    }
+                }
+            }
         },
         getSessionFile: function() {
             let app_dir = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : process.env.HOME + "/.local/share");
