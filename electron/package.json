@@ -4,8 +4,9 @@
   "description": "A minimal Electron application",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "set NODE_ENV=dev&& electron ."
+    "start": "npm run-script sass && electron .",
+    "dev": "npm run-script sass && set NODE_ENV=dev&& electron .",
+    "sass": "sass app/index.scss app/index.css"
   },
   "repository": "https://github.com/electron/electron-quick-start",
   "keywords": [

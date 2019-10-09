@@ -20,27 +20,38 @@ const TABS = {
     PATHWAY_SELECTION: "pathway-selection",
     COMPLETE: "complete",
 };
+const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
 
 let vm = new Vue({
     el: "#app",
     data: {
-        allowed_terms: ["pathways", "biological process", "subcellular location", "molecular function", "all"],
         allowed_types: ["noFC", "singleFC", "multiFC", "category"],
         allowed_species: ["human", "mouse", "rat"],
-        allowed_cluego_grouping: ["global", "medium", "detailed"],
+        allowed_runs: ["string", "genemania", "both"],
+        allowed_leading_terms: ["highest significance", "no. of genes per term", "percent of genes per term", "percent genes per term vs cluster"],
+        allowed_visualize: ["biological process","subcellular location","molecular function","pathways","all"],
+        allowed_grouping: ["global", "medium", "detailed"],
+
         input: {
             cytoscape_path: "",
             cluego_base_path: "",
-            in: "",
-            output: "",
-            mapping: "",
-            term: "",
-            type: "",
-            species: "",
-            interaction_confidence_score: 0.0,
-            cluego_grouping: "",
-            debug: false,
-            cluego_p_value: 1.0,
+            in: "", // --
+            output: "", // --
+            mapping: "", // --
+            type: "", // --
+            species: "", // --
+            limit: 0, // range [0-100] - number of interactors --
+            score: 0.4, // range [0-1] - interaction confidence score --
+            significant: false, // switch - outline significant pvals --
+            run: "both", // must be in allowed_runs --
+            fccutoff: 0.0, // range [0-inf) --
+            pvalcutoff: 1.0, // TODO: Ask Niveda - seems to not be used
+            leading_term: "no. genes per term", // must be in allowed_leading_terms --
+            visualize: "pathways", // must be in allowed_visualize --
+            cluego_pval: 0.05, // range [0-1] --
+            reference_path: "", // custom cluego reference path --
+            grouping: "medium", // must be in allowed grouping --
+            debug: false, // switch --
         },
         automatic_input: { // for messaging the user that the paths were found automatically
             cytoscape_path: false,
@@ -48,9 +59,11 @@ let vm = new Vue({
         },
         stdout: "",
         stderr: "",
+        error: "",
         running: false,
         tabs: TABS,
         current_tab: TABS.PATH_LOCATION,
+        cluego_versions: null,
     },
     methods: {
         run: function() {
@@ -58,13 +71,36 @@ let vm = new Vue({
             if(this.running) {
                 return;
             }
+            this.running = true;
 
             this.stdout = "";
             this.stderr = "";
 
             this.saveSession();
 
-            let args = ["-i", this.input.in, "-o", path.join(this.input.output, "Merged_Input.csv"), "-t", this.input.type, "-s", this.input.species, "-m", this.input.mapping, "-v", path.join(this.input.output, "PINE.cys")];
+            let args = [
+                "--in", this.input.in,
+                "--output", path.join(this.input.output, "Merged_Input.csv"),
+                "--type", this.input.type,
+                "--species", this.input.species,
+                "--mapping", this.input.mapping,
+                "--save-session", path.join(this.input.output, "PINE.cys"),
+                "--limit", this.limit,
+                "--score", this.score,
+                "--run", this.run,
+                "--fccutoff", this.fccutoff,
+                "--leading-term", this.leading_term,
+                "--visualize", this.visualize,
+                "--cluego-pval", this.cluego_pval,
+                "--reference-path", this.reference_path,
+                "--grouping", this.grouping,
+            ];
+            if(this.significant) {
+                args.push("--significant");
+            }
+            if(this.debug) {
+                args.push("--debug");
+            }
             if(process.env.NODE_ENV === "dev") {
                 var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", [path.join(__dirname, "/../../pine_2.py")].concat(args));
             } else {
@@ -92,11 +128,16 @@ let vm = new Vue({
             if(!e.target.files[0].path) {
                 return;
             }
-            this.input[name] = e.target.files[0].path;
+
+            let val = e.target.files[0].path;
             if(name === "cytoscape_path") {
+                this.input[name] = path;
                 this.automatic_input.cytoscape_path = false;
             } else if (name === "cluego_base_path") {
+                this.setCluegoBasePath(path);
                 this.automatic_input.cluego_base_path = false;
+            } else {
+                this.input[name] = path;
             }
             this.refreshTab();
         },
@@ -163,8 +204,7 @@ let vm = new Vue({
             if(!this.input.cluego_base_path) {
                 const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
                 if(fs.existsSync(cluego_base_path)) {
-                    //this.setCluegoBasePath(cluego_base_path);
-                    this.input.cluego_base_path = cluego_base_path;
+                    this.setCluegoBasePath(cluego_base_path);
                     this.automatic_input.cluego_base_path = true;
                 }
             }
@@ -176,7 +216,82 @@ let vm = new Vue({
                 this.current_tab = TABS.INPUT;
             }
         },
-        setCluegoBasePath: function(path) {
+        setCluegoBasePath: function(cluego_path) {
+            this.error = "";
+
+            if(!fs.existsSync(cluego_path)) {
+                this.error = "ClueGO configuration file path does not exist";
+                return;
+            }
+
+            const path_split = cluego_path.split(path.sep);
+            const path_index = path_split.indexOf(CLUEGO_CONFIGURATION_BASE_NAME);
+            if(path_index === -1) {
+                this.error = "ClueGO configuration directory must be named " + CLUEGO_CONFIGURATION_BASE_NAME;
+                return;
+            }
+
+            cluego_path = path_split.slice(0, path_index + 1).join(path.sep);
+            if(!fs.statSync(cluego_path).isDirectory()) {
+                this.error = CLUEGO_CONFIGURATION_BASE_NAME + " must be a directory";
+                return;
+            }
+
+            // find all valid versions of cluego to use
+            let version_dirs = [];
+            let sub_dirs = fs.readdirSync(cluego_path);
+            for(const version of sub_dirs) {
+                const sd = path.join(cluego_path, version);
+                if(!fs.statSync(sd).isDirectory()) {
+                    continue;
+                }
+                let source_file_dir = path.join(sd, "ClueGOSourceFiles");
+                if(!fs.existsSync(source_file_dir) || !fs.statSync(source_file_dir).isDirectory()) {
+                    /* source files must exist and be a directory */
+                    continue;
+                }
+
+                let mapping_files = []
+                let source_files_list = fs.readdirSync(source_file_dir);
+                for(const sf of source_files_list) {
+                    if(!sf.startsWith("Organism_")) {
+                        continue;
+                    }
+                    let species_name = sf.replace("Organism_", "");
+                    const sf_full = path.join(source_file_dir, sf);
+                    if(!fs.statSync(sf_full).isDirectory()) {
+                        continue;
+                    }
+
+                    const accession_files = fs.readdirSync(sf_full);
+                    let accession_file = null;
+                    for(const af of accession_files) {
+                        if(af.includes("gene2accession") && af.endsWith(".txt.gz") && !fs.statSync(path.join(sf_full, af)).isDirectory()) {
+                            accession_file = af;
+                            break;
+                        }
+                    }
+                    if(accession_file !== null) {
+                        mapping_files.push({
+                            species: species_name,
+                            filename: accession_file,
+                            fullpath: path.join(sf_full, accession_file),
+                        });
+                    }
+                }
+
+                if(mapping_files.length > 0) {
+                    version_dirs.push({
+                        version: version,
+                        mapping_files: mapping_files,
+                    });
+                }
+            }
+
+            if(version_dirs.length > 0) {
+                this.input.cluego_base_path = cluego_path;
+                this.cluego_versions = version_dirs;
+            }
         },
     },
     mounted: function() {
