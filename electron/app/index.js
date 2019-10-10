@@ -25,8 +25,8 @@ const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
 let vm = new Vue({
     el: "#app",
     data: {
-        allowed_types: ["noFC", "singleFC", "multiFC", "category"],
-        allowed_species: ["human", "mouse", "rat"],
+        allowed_types: {"noFC": "No fold change", "singleFC": "Single fold change", "multiFC": "Multi fold change", "category": "Category"},
+        species_map: {"Homo Sapiens": "human", "Mus Musculus": "mouse", "Rattus Norvegicus": "rat"},
         allowed_runs: ["string", "genemania", "both"],
         allowed_leading_terms: ["highest significance", "no. of genes per term", "percent of genes per term", "percent genes per term vs cluster"],
         allowed_visualize: ["biological process","subcellular location","molecular function","pathways","all"],
@@ -35,23 +35,22 @@ let vm = new Vue({
         input: {
             cytoscape_path: "",
             cluego_base_path: "",
-            in: "", // --
-            output: "", // --
-            mapping: "", // --
-            type: "", // --
-            species: "", // --
-            limit: 0, // range [0-100] - number of interactors --
-            score: 0.4, // range [0-1] - interaction confidence score --
-            significant: false, // switch - outline significant pvals --
-            run: "both", // must be in allowed_runs --
-            fccutoff: 0.0, // range [0-inf) --
-            pvalcutoff: 1.0, // TODO: Ask Niveda - seems to not be used
-            leading_term: "no. of genes per term", // must be in allowed_leading_terms --
-            visualize: "pathways", // must be in allowed_visualize --
-            cluego_pval: 0.05, // range [0-1] --
-            reference_path: "", // custom cluego reference path --
-            grouping: "medium", // must be in allowed grouping --
-            debug: false, // switch --
+            in: "",
+            output: "",
+            type: "",
+            species: "",
+            limit: 0,
+            score: 0.4,
+            significant: false,
+            run: "both",
+            fccutoff: 0.0,
+            pvalcutoff: 1.0,
+            leading_term: "no. of genes per term",
+            visualize: "pathways",
+            cluego_pval: 0.05,
+            reference_path: "",
+            grouping: "medium",
+            debug: false,
         },
         automatic_input: { // for messaging the user that the paths were found automatically
             cytoscape_path: false,
@@ -64,14 +63,19 @@ let vm = new Vue({
         tabs: TABS,
         current_tab: TABS.PATH_LOCATION,
         cluego_versions: null,
+        cluego_picked_version: null,
     },
     methods: {
         run: function() {
             let that = this;
+            if(!this.runnable()) {
+                return;
+            }
             if(this.running) {
                 return;
             }
             this.running = true;
+            this.current_tab = TABS.PROGRESS;
 
             this.stdout = "";
             this.stderr = "";
@@ -83,12 +87,14 @@ let vm = new Vue({
                 "--output", path.join(this.input.output, "Merged_Input.csv"),
                 "--type", this.input.type,
                 "--species", this.input.species,
-                "--mapping", this.input.mapping,
+                "--mapping", this.get_cluego_mapping(),
                 "--save-session", path.join(this.input.output, "PINE.cys"),
                 "--limit", this.limit,
                 "--score", this.score,
                 "--run", this.run,
                 "--fccutoff", this.fccutoff,
+                "--pvalcutoff", this.pvalcutoff,
+                "--output_cluego", path.join(this.input.output, "output_cluego.txt"),
                 "--leading-term", this.leading_term,
                 "--visualize", this.visualize,
                 "--cluego-pval", this.cluego_pval,
@@ -124,16 +130,34 @@ let vm = new Vue({
                 that.running = false;
             });
         },
+        runnable: function() {
+            if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type) {
+                return true;
+            }
+            return false;
+        },
+        get_cluego_mapping: function() {
+            if(!this.cluego_picked_version) {
+                return null;
+            }
+
+            for(const mapping of this.cluego_picked_version.mapping_files) {
+                if(this.species_map[mapping.species] === this.input.species) {
+                    return mapping.fullpath;
+                }
+            }
+            return null;
+        },
         inputFileChange: function(e, name) {
             if(!e.target.files[0].path) {
                 return;
             }
 
-            let val = e.target.files[0].path;
+            let path = e.target.files[0].path;
             if(name === "cytoscape_path") {
-                this.input[name] = path;
+                this.setCluegoBasePath(path);
                 this.automatic_input.cytoscape_path = false;
-            } else if (name === "cluego_base_path") {
+            } else if(name === "cluego_base_path") {
                 this.setCluegoBasePath(path);
                 this.automatic_input.cluego_base_path = false;
             } else {
@@ -156,6 +180,8 @@ let vm = new Vue({
                 if(key in this.input) {
                     if(key === "cluego_base_path") {
                         this.setCluegoBasePath(saved_input[key]);
+                    } else if(key === "cytoscape_path") {
+                        this.setCytoscapePath(saved_input[key]);
                     } else {
                         Vue.set(this.input, key, saved_input[key]);
                     }
@@ -199,9 +225,9 @@ let vm = new Vue({
                     });
 
                     for(const fd of found_dirs) {
-                        const cyto_path = path.join(fd, "cytoscape.exe");
+                        const cyto_path = path.join(fd, "Cytoscape.exe");
                         if(fs.existsSync(cyto_path)) {
-                            this.input.cytoscape_path = cyto_path;
+                            this.setCytoscapePath(cyto_path);
                             this.automatic_input.cytoscape_path = true;
                             break;
                         }
@@ -266,6 +292,9 @@ let vm = new Vue({
                         continue;
                     }
                     let species_name = sf.replace("Organism_", "");
+                    if(!(species_name in this.species_map)) {
+                        continue;
+                    }
                     const sf_full = path.join(source_file_dir, sf);
                     if(!fs.statSync(sf_full).isDirectory()) {
                         continue;
@@ -292,6 +321,7 @@ let vm = new Vue({
                     version_dirs.push({
                         version: version,
                         mapping_files: mapping_files,
+                        latest: false,
                     });
                 }
             }
@@ -299,6 +329,16 @@ let vm = new Vue({
             if(version_dirs.length > 0) {
                 this.input.cluego_base_path = cluego_path;
                 this.cluego_versions = version_dirs;
+                this.cluego_versions.sort(function(a, b) {
+                    return -1 * a.localeCompare(b);
+                });
+                this.cluego_picked_version = this.cluego_versions[0];
+                this.cluego_picked_version.latest = true;
+            }
+        },
+        setCytoscapePath: function(path) {
+            if(fs.existsSync(path) && fs.statSync(path).isFile()) {
+                this.input.cytoscape_path = path;
             }
         },
     },
@@ -306,4 +346,9 @@ let vm = new Vue({
         this.loadSession();
         this.searchForPaths();
     },
+    filters: {
+        filename: function(v) {
+            return path.basename(v);
+        }
+    }
 });

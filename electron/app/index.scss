@@ -1,6 +1,52 @@
-section.full-section {
-    display: block;
+$color1: #2c945d;
+$color-dark: #483D3F;
+$color-light: #F8F4E3;
+
+.full-section {
     margin: 1rem;
     padding: 1rem;
     border: 1px solid black;
+}
+
+.run-section {
+    margin: 1rem;
+}
+
+input.file-button {
+    display: none;
+}
+
+.success-button {
+    cursor: pointer;
+    background-color: $color1;
+    padding: 0.25rem;
+    border-radius: 5px;
+    color: $color-light;
+
+    &.disabled {
+        background-color: desaturate($color1, 50%);
+        cursor: not-allowed;
+    }
+}
+
+.grid-options {
+    display: grid;
+    grid-template-columns: 2fr 2fr 3fr;
+    row-gap: 1rem;
+    //font-size: 1.25rem;
+}
+
+.grid-additional-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    row-gap: 0.5rem;
+    column-gap: 0.5rem;
+}
+
+.vertical-sep {
+    height: 2rem;
+}
+
+.align-right {
+    text-align: right;
 }

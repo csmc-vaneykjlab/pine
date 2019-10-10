@@ -1,8 +1,48 @@
-section.full-section {
-  display: block;
+.full-section {
   margin: 1rem;
   padding: 1rem;
   border: 1px solid black;
+}
+
+.run-section {
+  margin: 1rem;
+}
+
+input.file-button {
+  display: none;
+}
+
+.success-button {
+  cursor: pointer;
+  background-color: #2c945d;
+  padding: 0.25rem;
+  border-radius: 5px;
+  color: #F8F4E3;
+}
+.success-button.disabled {
+  background-color: #5c6460;
+  cursor: not-allowed;
+}
+
+.grid-options {
+  display: grid;
+  grid-template-columns: 2fr 2fr 3fr;
+  row-gap: 1rem;
+}
+
+.grid-additional-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: 0.5rem;
+  column-gap: 0.5rem;
+}
+
+.vertical-sep {
+  height: 2rem;
+}
+
+.align-right {
+  text-align: right;
 }
 
 /*# sourceMappingURL=index.css.map */
