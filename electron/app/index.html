@@ -7,6 +7,12 @@
   </head>
   <body>
     <div id="app">
+      <ul class="tab-selector">
+        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Start</li>
+        <li v-on:click="switchTab(tabs.PROGRESS)" v-bind:class="{'disabled': !tabReachable(tabs.PROGRESS), 'active': current_tab === tabs.PROGRESS}">Log</li>
+        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway filtering</li>
+      </ul>
+
       <div v-if="current_tab === tabs.PATH_LOCATION">
         <section class="full-section">
           Enter the full path of the Cytoscape executable:
@@ -23,7 +29,6 @@
       </div>
 
       <div v-if="current_tab === tabs.INPUT">
-        {{ input.cytoscape_path }}
         <div class="grid-options full-section">
 
           <div>Input file:</div>

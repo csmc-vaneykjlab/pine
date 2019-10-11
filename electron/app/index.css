@@ -28,7 +28,7 @@ input.file-button {
 
 .grid-options {
   display: grid;
-  grid-template-columns: 2fr 2fr 3fr;
+  grid-template-columns: 100px 200px auto;
   row-gap: 1rem;
 }
 
@@ -67,6 +67,21 @@ input.file-button {
 }
 .pathway-picker tr:nth-child(even) {
   background-color: #F8F4E3;
+}
+
+ul.tab-selector li {
+  display: inline-block;
+  margin: 0.25rem 2rem;
+  cursor: pointer;
+}
+ul.tab-selector li.disabled {
+  cursor: not-allowed;
+  color: #b0a1a4;
+}
+ul.tab-selector li.active {
+  cursor: default;
+  text-decoration: underline;
+  font-weight: bold;
 }
 
 /*# sourceMappingURL=index.css.map */

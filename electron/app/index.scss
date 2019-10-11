@@ -33,7 +33,7 @@ input.file-button {
 
 .grid-options {
     display: grid;
-    grid-template-columns: 2fr 2fr 3fr;
+    grid-template-columns: 100px 200px auto;
     row-gap: 1rem;
 }
 
@@ -74,5 +74,24 @@ input.file-button {
 
     tr:nth-child(even) {
         background-color: $color-light;
+    }
+}
+
+ul.tab-selector {
+    li {
+        display: inline-block;
+        margin: 0.25rem 2rem;
+        cursor: pointer;
+
+        &.disabled {
+            cursor: not-allowed;
+            color: lighten($color-dark, 40%);
+        }
+
+        &.active {
+            cursor: default;
+            text-decoration: underline;
+            font-weight: bold;
+        }
     }
 }

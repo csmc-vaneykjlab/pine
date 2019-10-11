@@ -77,17 +77,17 @@ let vm = new Vue({
             }
 
             this.running = true;
-            this.current_tab = TABS.PROGRESS;
+            this.switchTab(TABS.PROGRESS);
             this.stdout = "";
             this.stderr = "";
             this.reset_cluego_pathways();
 
             this.saveSession();
 
-            this.running = false; // debug
-            this.read_cluego_pathways(); // debug
-            this.current_tab = TABS.PATHWAY_SELECTION;
-            return; // debug
+            //this.running = false; // DEBUG:
+            //this.read_cluego_pathways(); // DEBUG:
+            //this.current_tab = TABS.PATHWAY_SELECTION; // DEBUG:
+            //return; // DEBUG:
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../pine_2.py")].concat(args);
@@ -112,7 +112,7 @@ let vm = new Vue({
                     that.stdout += "process failed\n";
                 }
                 that.running = false;
-                that.current_tab = TABS.PATHWAY_SELECTION;
+                that.switchTab(TABS.PATHWAY_SELECTION);
             });
         },
         run_full: function() {
@@ -126,9 +126,20 @@ let vm = new Vue({
                 return;
             }
 
+            /* create the filtered cluego file */
+            const filtered_file_name = path.join(this.input.output, "output_cluego-filtered.txt");
+            let file_data = [];
+            file_data.push(this.cluego_pathways_header.join("\t"));
+            for(const pathway of this.cluego_pathways) {
+                if(pathway.selected) {
+                    file_data.push(pathway.line);
+                }
+            }
+            fs.writeFileSync(filtered_file_name, file_data.join("\n"), "utf-8");
+
             let args = this.pine_args("filtered");
             args.push("-a");
-            args.push(path.join(this.input.output, "output_cluego-filtered.txt"));
+            args.push(filtered_file_name);
             this.run(args);
         },
         pine_args: function(suffix) {
@@ -189,7 +200,6 @@ let vm = new Vue({
             }
 
             let counter = 0;
-            let header = null;
             let cluego_pathways = [];
             let line_reader =  readline.createInterface({
                 input: fs.createReadStream(cluego_file),
@@ -199,14 +209,14 @@ let vm = new Vue({
                 let fields = line.split("\t");
 
                 if(counter === 0) {
-                    this.cluego_pathways_header = fields;
+                    that.cluego_pathways_header = fields;
                 } else {
-                    if(fields.length !== this.cluego_pathways_header.length) {
+                    if(fields.length !== that.cluego_pathways_header.length) {
                         return; // invalid line
                     }
                     let record = {"data": {}, "selected": false, "line": line};
-                    for(let i = 0; i < this.cluego_pathways_header.length; i++) {
-                        record["data"][this.cluego_pathways_header[i]] = fields[i];
+                    for(let i = 0; i < that.cluego_pathways_header.length; i++) {
+                        record["data"][that.cluego_pathways_header[i]] = fields[i];
                     }
                     // don't split genes unless needed
                     // record["data"]["Associated Genes Found"] = record["data"]["Associated Genes Found"].replace(/^\[|\]$/g, '').split("\t");
@@ -328,7 +338,7 @@ let vm = new Vue({
         },
         refreshTab: function() {
             if(this.current_tab === TABS.PATH_LOCATION && this.input.cytoscape_path && this.input.cluego_base_path) {
-                this.current_tab = TABS.INPUT;
+                this.switchTab(TABS.INPUT);
             }
         },
         setCluegoBasePath: function(cluego_path) {
@@ -427,6 +437,24 @@ let vm = new Vue({
             let cytoscape_file = path.join(this.input.output, "PINE.cys");
             shell.openItem(cytoscape_file);
         },
+        tabReachable: function(tab_name) {
+            switch(tab_name) {
+                case TABS.PATH_LOCATION:
+                    return false;
+                case TABS.INPUT:
+                    return true;
+                case TABS.PROGRESS:
+                    return this.running || this.stdout;
+                case TABS.PATHWAY_SELECTION:
+                    return !this.running && this.stdout;
+            }
+            return false;
+        },
+        switchTab: function(tab_name) {
+            if(this.tabReachable(tab_name)) {
+                this.current_tab = tab_name;
+            }
+        }
     },
     mounted: function() {
         this.loadSession();
