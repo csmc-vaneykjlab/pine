@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require("fs");
 const process = require("process");
 const os = require("os");
+const readline = require("readline");
+const shell = require("electron").shell;
 
 document.addEventListener("keydown", function(e) {
     if(e.keyCode === 123) {
@@ -18,7 +20,6 @@ const TABS = {
     INPUT: "input",
     PROGRESS: "progress",
     PATHWAY_SELECTION: "pathway-selection",
-    COMPLETE: "complete",
 };
 const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
 
@@ -64,51 +65,33 @@ let vm = new Vue({
         current_tab: TABS.PATH_LOCATION,
         cluego_versions: null,
         cluego_picked_version: null,
+        cluego_pathways: [],
+        cluego_pathways_header: [],
+        cluego_pathways_query: "",
     },
     methods: {
-        run: function() {
+        run: function(args) {
             let that = this;
-            if(!this.runnable()) {
+            if(!this.runnable() || this.running) {
                 return;
             }
-            if(this.running) {
-                return;
-            }
+
             this.running = true;
             this.current_tab = TABS.PROGRESS;
-
             this.stdout = "";
             this.stderr = "";
+            this.reset_cluego_pathways();
 
             this.saveSession();
 
-            let args = [
-                "--in", this.input.in,
-                "--output", path.join(this.input.output, "Merged_Input.csv"),
-                "--type", this.input.type,
-                "--species", this.input.species,
-                "--mapping", this.get_cluego_mapping(),
-                "--save-session", path.join(this.input.output, "PINE.cys"),
-                "--limit", this.limit,
-                "--score", this.score,
-                "--run", this.run,
-                "--fccutoff", this.fccutoff,
-                "--pvalcutoff", this.pvalcutoff,
-                "--output_cluego", path.join(this.input.output, "output_cluego.txt"),
-                "--leading-term", this.leading_term,
-                "--visualize", this.visualize,
-                "--cluego-pval", this.cluego_pval,
-                "--reference-path", this.reference_path,
-                "--grouping", this.grouping,
-            ];
-            if(this.significant) {
-                args.push("--significant");
-            }
-            if(this.debug) {
-                args.push("--debug");
-            }
+            this.running = false; // debug
+            this.read_cluego_pathways(); // debug
+            this.current_tab = TABS.PATHWAY_SELECTION;
+            return; // debug
+
             if(process.env.NODE_ENV === "dev") {
-                var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", [path.join(__dirname, "/../../pine_2.py")].concat(args));
+                let args1 = [path.join(__dirname, "/../../pine_2.py")].concat(args);
+                var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
                 var pine = spawn(path.join(__dirname, "/../../pine_2/pine_2.exe"), args);
             }
@@ -124,17 +107,115 @@ let vm = new Vue({
             pine.on("close", function(code) { 
                 if(code === 0) {
                     that.stdout += "process completed successfully\n";
+                    that.read_cluego_pathways();
                 } else {
                     that.stdout += "process failed\n";
                 }
                 that.running = false;
+                that.current_tab = TABS.PATHWAY_SELECTION;
             });
+        },
+        run_full: function() {
+            let args = this.pine_args();
+            args.push("-c");
+            args.push(path.join(this.input.output, "output_cluego.txt"));
+            this.run(args);
+        },
+        run_with_cluego_subset: function() {
+            if(!this.runnable_with_cluego_subset()) {
+                return;
+            }
+
+            let args = this.pine_args("filtered");
+            args.push("-a");
+            args.push(path.join(this.input.output, "output_cluego-filtered.txt"));
+            this.run(args);
+        },
+        pine_args: function(suffix) {
+            if(suffix === undefined) {
+                suffix = "";
+            } else {
+                suffix = "-" + suffix;
+            }
+
+            let args = [
+                "-i", this.input.in,
+                "-o", path.join(this.input.output, "Merged_Input" + suffix + ".csv"), // change to just output dir
+                "-t", this.input.type,
+                "-s", this.input.species,
+                "-m", this.get_cluego_mapping(),
+                "-v", path.join(this.input.output, "PINE" + suffix + ".cys"), // remove
+                "-l", this.input.limit,
+                "-r", this.input.score,
+                "-u", this.input.run,
+                "-f", this.input.fccutoff,
+                "-p", this.input.pvalcutoff,
+                "-e", this.input.leading_term, // remove
+                "-z", this.input.visualize,
+                "-y", this.input.cluego_pval,
+                "-h", this.input.reference_path,
+                "-g", this.input.grouping,
+            ];
+            if(this.significant) {
+                args.push("--significant");
+            }
+            if(this.debug) {
+                args.push("--debug");
+            }
+
+            return args;
         },
         runnable: function() {
             if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type) {
                 return true;
             }
             return false;
+        },
+        runnable_with_cluego_subset: function() {
+            return this.runnable() && this.cluego_pathways.filter((x) => x.selected === true).length > 0;
+        },
+        reset_cluego_pathways: function() {
+            this.cluego_pathways = [];
+            this.cluego_pathways_header = [];
+        },
+        read_cluego_pathways: function() {
+            var that = this;
+
+            this.reset_cluego_pathways();
+
+            let cluego_file = path.join(this.input.output, "output_cluego.txt");
+            if(!fs.existsSync(cluego_file) || !fs.statSync(cluego_file).isFile()) {
+                return;
+            }
+
+            let counter = 0;
+            let header = null;
+            let cluego_pathways = [];
+            let line_reader =  readline.createInterface({
+                input: fs.createReadStream(cluego_file),
+            });
+            line_reader.on("line", function(line) {
+                line = line.replace(/^\s+|\s+$/g, '');
+                let fields = line.split("\t");
+
+                if(counter === 0) {
+                    this.cluego_pathways_header = fields;
+                } else {
+                    if(fields.length !== this.cluego_pathways_header.length) {
+                        return; // invalid line
+                    }
+                    let record = {"data": {}, "selected": false, "line": line};
+                    for(let i = 0; i < this.cluego_pathways_header.length; i++) {
+                        record["data"][this.cluego_pathways_header[i]] = fields[i];
+                    }
+                    // don't split genes unless needed
+                    // record["data"]["Associated Genes Found"] = record["data"]["Associated Genes Found"].replace(/^\[|\]$/g, '').split("\t");
+                    cluego_pathways.push(record);
+                }
+                counter += 1;
+            });
+
+            this.cluego_pathways = cluego_pathways;
         },
         get_cluego_mapping: function() {
             if(!this.cluego_picked_version) {
@@ -336,10 +417,15 @@ let vm = new Vue({
                 this.cluego_picked_version.latest = true;
             }
         },
-        setCytoscapePath: function(path) {
-            if(fs.existsSync(path) && fs.statSync(path).isFile()) {
-                this.input.cytoscape_path = path;
+        setCytoscapePath: function(cy_path) {
+            if(!fs.existsSync(cy_path) || !fs.statSync(cy_path).isFile()) {
+                return;
             }
+            this.input.cytoscape_path = cy_path;
+        },
+        openGeneratedFile: function() {
+            let cytoscape_file = path.join(this.input.output, "PINE.cys");
+            shell.openItem(cytoscape_file);
         },
     },
     mounted: function() {
@@ -349,6 +435,28 @@ let vm = new Vue({
     filters: {
         filename: function(v) {
             return path.basename(v);
+        },
+        roundString: function(v, places) {
+            const n = Number(v);
+            if(isNaN(n)) {
+                return v;
+            } else {
+                return n.toPrecision(places);
+            }
         }
-    }
+    },
+    computed: {
+        cluego_pathways_filtered: function() {
+            var that = this;
+
+            return this.cluego_pathways.filter(function(pathway) {
+                if(that.cluego_pathways_query === "") {
+                    return true;
+                }
+
+                let lower = that.cluego_pathways_query.toLowerCase();
+                return pathway.data['GOTerm'].toLowerCase().includes(lower) || pathway.data['Ontology Source'].toLowerCase().includes(lower);
+            });
+        },
+    },
 });

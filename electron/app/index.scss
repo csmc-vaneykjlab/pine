@@ -6,6 +6,7 @@ $color-light: #F8F4E3;
     margin: 1rem;
     padding: 1rem;
     border: 1px solid black;
+    border-radius: 5px;
 }
 
 .run-section {
@@ -22,6 +23,7 @@ input.file-button {
     padding: 0.25rem;
     border-radius: 5px;
     color: $color-light;
+    display: inline-block;
 
     &.disabled {
         background-color: desaturate($color1, 50%);
@@ -33,7 +35,6 @@ input.file-button {
     display: grid;
     grid-template-columns: 2fr 2fr 3fr;
     row-gap: 1rem;
-    //font-size: 1.25rem;
 }
 
 .grid-additional-options {
@@ -49,4 +50,29 @@ input.file-button {
 
 .align-right {
     text-align: right;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.scroll-table-wrapper {
+    overflow-x: scroll;
+}
+
+.pathway-picker {
+    border-spacing: 0;
+
+    td,th {
+        padding: 0.5rem 0.25rem;
+    }
+
+    th {
+        border-top: solid 0.25px $color-dark;
+        border-bottom: solid 0.25px $color-dark;
+    }
+
+    tr:nth-child(even) {
+        background-color: $color-light;
+    }
 }

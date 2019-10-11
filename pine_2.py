@@ -2006,10 +2006,6 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
     os.remove(cy_cluego_out)
     
 def main(argv):
-  import subprocess
-  cytoscape_file = 'C:\\Program Files\\Cytoscape_v3.7.1\\cytoscape.exe'
-  subprocess.call([cytoscape_file])
-
   cy_in = ""
   cy_species = ""
   cy_lim = 0

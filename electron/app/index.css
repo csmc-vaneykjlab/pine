@@ -2,6 +2,7 @@
   margin: 1rem;
   padding: 1rem;
   border: 1px solid black;
+  border-radius: 5px;
 }
 
 .run-section {
@@ -18,6 +19,7 @@ input.file-button {
   padding: 0.25rem;
   border-radius: 5px;
   color: #F8F4E3;
+  display: inline-block;
 }
 .success-button.disabled {
   background-color: #5c6460;
@@ -43,6 +45,28 @@ input.file-button {
 
 .align-right {
   text-align: right;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.scroll-table-wrapper {
+  overflow-x: scroll;
+}
+
+.pathway-picker {
+  border-spacing: 0;
+}
+.pathway-picker td, .pathway-picker th {
+  padding: 0.5rem 0.25rem;
+}
+.pathway-picker th {
+  border-top: solid 0.25px #483D3F;
+  border-bottom: solid 0.25px #483D3F;
+}
+.pathway-picker tr:nth-child(even) {
+  background-color: #F8F4E3;
 }
 
 /*# sourceMappingURL=index.css.map */

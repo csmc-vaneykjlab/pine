@@ -2,20 +2,20 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>PINE</title>
     <link href="./index.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
     <div id="app">
       <div v-if="current_tab === tabs.PATH_LOCATION">
         <section class="full-section">
-          Enter the full path of the cytoscape executable:
+          Enter the full path of the Cytoscape executable:
           <label class="success-button" for="file-button-cytoscape">Select file</label>
           <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
           {{ input.cytoscape_path }}
         </section>
         <section class="full-section">
-          Enter the full path of the cluego files:
+          Enter the full path of the ClueGO files:
           <label class="success-button" for="file-button-cluego">Select file</label>
           <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
           {{ input.cluego_base_path }}
@@ -89,7 +89,7 @@
           <div><input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" /></div>
 
           <div class="align-right">Outline significant values</div>
-          <div><input type="checkbox" v-model="input.debug" /></div>
+          <div><input type="checkbox" v-model="input.significant" /></div>
 
           <div class="align-right">Run</div>
           <div>
@@ -118,15 +118,60 @@
         </div>
 
         <section class="run-section">
-          <span class="success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run()">Click to run</span>
+          <span class="success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Click to run</span>
         </section>
       </div>
 
       <div v-if="current_tab === tabs.PROGRESS">
-        <h4>stdout</h4>
-        <pre>{{ stdout }}</pre>
-        <h4>stderr</h4>
-        <pre>{{ stderr }}</pre>
+        <div class="full-section">
+          <h4>Log</h4>
+          <h4>stdout</h4>
+          <pre>{{ stdout }}</pre>
+          <h4>stderr</h4>
+          <pre>{{ stderr }}</pre>
+        </div>
+      </div>
+
+      <div v-if="current_tab === tabs.PATHWAY_SELECTION">
+        <div class="full-section">
+          <h4>Complete</h4>
+          <span class="clickable" v-on:click="openGeneratedFile()"><strong>&#x1F5CB; View your file</strong></span>
+        </div>
+        <div class="full-section">
+          <h4>Pathway selection</h4>
+          <p>Choose a subset of pathways to analyze.</p>
+          <div>
+            Filter: <input type="text" v-model="cluego_pathways_query" />
+          </div>
+          <div class="scroll-table-wrapper">
+            <table class="pathway-picker">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>GO term</th>
+                  <th>Ontology source</th>
+                  <th>Term p-value</th>
+                  <th>Adjusted term p-value</th>
+                  <th>Percent associated genes</th>
+                  <th>Number of genes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="pathway in cluego_pathways_filtered">
+                  <td><input type="checkbox" v-model="pathway.selected" /></td>
+                  <td>{{ pathway.data['GOTerm'] }}</td>
+                  <td>{{ pathway.data['Ontology Source'] }}</td>
+                  <td class="align-right">{{ pathway.data['Term PValue'] | roundString(4) }}</td>
+                  <td class="align-right">{{ pathway.data['Term PValue Corrected with Bonferroni step down'] | roundString(4) }}</td>
+                  <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
+                  <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="vertical-sep"></div>
+          <div v-on:click="run_with_cluego_subset()" class="success-button" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">Reanalyze</div>
+        </div>
       </div>
     </div>
 
