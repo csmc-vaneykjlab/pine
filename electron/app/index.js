@@ -68,6 +68,7 @@ let vm = new Vue({
         cluego_pathways: [],
         cluego_pathways_header: [],
         cluego_pathways_query: "",
+        show_config: false,
     },
     methods: {
         run: function(args) {

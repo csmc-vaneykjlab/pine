@@ -1,8 +1,16 @@
 .full-section {
-  margin: 1rem;
+  margin-left: 1rem;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
   padding: 1rem;
   border: 1px solid black;
   border-radius: 5px;
+}
+
+h1, h2, h3, h4, h5, h6.full-section-header {
+  margin-top: 0.1rem;
+  margin-bottom: 0.1rem;
+  margin-left: 1rem;
 }
 
 .run-section {
@@ -28,7 +36,7 @@ input.file-button {
 
 .grid-options {
   display: grid;
-  grid-template-columns: 100px 200px auto;
+  grid-template-columns: 200px 200px auto;
   row-gap: 1rem;
 }
 
@@ -73,6 +81,7 @@ ul.tab-selector li {
   display: inline-block;
   margin: 0.25rem 2rem;
   cursor: pointer;
+  padding: 0.5rem;
 }
 ul.tab-selector li.disabled {
   cursor: not-allowed;
@@ -80,8 +89,8 @@ ul.tab-selector li.disabled {
 }
 ul.tab-selector li.active {
   cursor: default;
-  text-decoration: underline;
   font-weight: bold;
+  text-decoration: underline;
 }
 
 /*# sourceMappingURL=index.css.map */
