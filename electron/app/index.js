@@ -107,10 +107,10 @@ let vm = new Vue({
 
             pine.on("close", function(code) { 
                 if(code === 0) {
-                    that.stdout += "process completed successfully\n";
+                    that.stdout += "run completed successfully\n";
                     that.read_cluego_pathways();
                 } else {
-                    that.stdout += "process failed\n";
+                    that.stdout += "run failed\n";
                 }
                 that.running = false;
                 that.switchTab(TABS.PATHWAY_SELECTION);
@@ -247,7 +247,7 @@ let vm = new Vue({
 
             let path = e.target.files[0].path;
             if(name === "cytoscape_path") {
-                this.setCluegoBasePath(path);
+                this.setCytoscapePath(path);
                 this.automatic_input.cytoscape_path = false;
             } else if(name === "cluego_base_path") {
                 this.setCluegoBasePath(path);
@@ -486,6 +486,16 @@ let vm = new Vue({
                 let lower = that.cluego_pathways_query.toLowerCase();
                 return pathway.data['GOTerm'].toLowerCase().includes(lower) || pathway.data['Ontology Source'].toLowerCase().includes(lower);
             });
+        },
+        configuration_message: function() {
+            if(this.automatic_input.cytoscape_path && this.automatic_input.cluego_base_path) {
+                return "The Cytoscape executable and the ClueGO configuration files were automatically detected.  They can be changed in the section below.";
+            } else if(this.automatic_input.cytoscape_path) {
+                return "The Cytoscape executable was automatically detected.  It can be changed in the section below.";
+            } else if(this.automatic_input.cluego_base_path) {
+                return "The ClueGO configuration files were automatically detected.  It can be changed in the section below.";
+            }
+            return "";
         },
     },
 });

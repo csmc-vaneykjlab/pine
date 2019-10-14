@@ -70,7 +70,10 @@
 
           <div class="grid-additional-options">
 
-            <div class="align-right">Term</div>
+            <div class="align-right tooltip-parent">
+              Term
+              <div class="tooltip">ClueGO leading term selection criteria</div>
+            </div>
             <div>
               <select v-model="input.leading_term">
                 <option v-for="at in allowed_leading_terms" v-bind:value="at">{{ at }}</option>
@@ -133,6 +136,7 @@
           Configuration
           <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config">&#x2795;</span>
           <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config">&#x2796;</span>
+          <span class="small-info">{{ configuration_message }}</span>
         </h4>
         <div class="full-section" v-show="show_config">
 
