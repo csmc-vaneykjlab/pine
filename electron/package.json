@@ -1,0 +1,28 @@
+{
+  "name": "electron-quick-start",
+  "version": "1.0.0",
+  "description": "A minimal Electron application",
+  "main": "main.js",
+  "scripts": {
+    "start": "npm run-script sass && electron .",
+    "dev": "npm run-script sass && set NODE_ENV=dev&& electron .",
+    "sass": "sass app/index.scss app/index.css"
+  },
+  "repository": "https://github.com/electron/electron-quick-start",
+  "keywords": [
+    "Electron",
+    "quick",
+    "start",
+    "tutorial",
+    "demo"
+  ],
+  "author": "GitHub",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "electron": "^6.0.7"
+  },
+  "dependencies": {
+    "electron-packager": "^14.0.6",
+    "vue": "^2.6.10"
+  }
+}
