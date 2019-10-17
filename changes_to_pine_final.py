@@ -143,7 +143,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
-    Types:1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category
+    Types:1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category; 5=singlefc-site; 6=multifc-site
     '''
     input_file = csv.reader(csv_file, delimiter=',')
     line_count = 0
@@ -228,7 +228,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if type == "5" or type == "6":
           if include_list:
             modInSeq_dict = {}
-            peptide = row[peptide_col]
+            if peptide_col:
+              peptide = row[peptide_col]
+            else:
+              print("Error: Column 'Peptide' not found")
+              sys.exit(1)
             protein_list_id = row[protein]
             modInSeq_all_dict = find_mod(peptide)
             combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
@@ -283,7 +287,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval]]})
                       
                 else:
-                  print("Error: Required columns- ProteinID, FC")
+                  print("Error: Required columns- ProteinID, Peptide, FC")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
                   sys.exit()
               
@@ -304,7 +308,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if row[label] not in unique_labels:
                     unique_labels.append(row[label])                
                 else:
-                  print("Error: Required columns- ProteinID, FC, Label")
+                  print("Error: Required columns- ProteinID, Peptide, FC, Label")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
                   sys.exit()
                   
@@ -507,8 +511,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       all_dropped_pep = {}
       all_dropped_warning = ""
       count_dropped = 0
+      print(site_info_dict)
       for each_protid in site_info_dict:
         for each_site in site_info_dict[each_protid]:
+          
           keys = list(site_info_dict[each_protid][each_site].keys())
           if len(keys) > 1:
             each_site_info, dropped_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
@@ -615,14 +621,26 @@ def ptm_scoring(site_dict, enzyme, include_list):
     index = all_peptides.index(each_peptide)
     
     #Score update
-    top_score[index] += miscleave - exception + om
-    
+    top_score[index] += miscleave - exception + om 
   # Pick lowest score
   min_score = min(top_score)
-  index = top_score.index(min_score)
+  indices = [i for i, x in enumerate(top_score) if x == min_score]
+  largest_avg_FC = 0
+  index = 0
+  for each_index in indices:
+    each_pick_pep = all_peptides[each_index]
+    n = 0
+    avg_FC = 0     
+    for each_site_pos in site_dict[each_pick_pep][0]:
+      avg_FC += abs(each_site_pos)
+      n+= 1
+    avg_FC = avg_FC/n
+    if abs(avg_FC) >= largest_avg_FC:     
+      largest_avg_FC = abs(each_site_pos)
+      index = each_index
   pick_pep = all_peptides[index]
-  dropped_pep = [ x for x in all_peptides if not x == pick_pep]
-  print(site_dict[pick_pep])
+  dropped_pep = [x for x in all_peptides if not x == pick_pep]
+  
   return(site_dict[pick_pep],dropped_pep)  
     
 def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict):
@@ -1244,6 +1262,11 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
   elif type == "5" or type == "6":
     if prot_as_list:
       countiter = 0
+      corresponding_prot_id = get_query_from_list(uniprot_query, [each])
+      if list(corresponding_prot_id.keys())[0] in ambigious_sites:
+        ambigious = each + "*"
+      else:
+        ambigious = each
       for each_site in site_dict[prot_val]:
         is_significant = 0
         is_FC_true = 0.0
@@ -1263,11 +1286,6 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
             if (float(each_FC) > 0 or float(each_FC) < 0):
               is_FC_true = 1.0
             count_FC_uniprot+=1
-          corresponding_prot_id = get_query_from_list(uniprot_query, [each])
-          if list(corresponding_prot_id.keys())[0] in ambigious_sites:
-            ambigious = each + "*"
-          else:
-            ambigious = each
           uniprot_list.update({'query':[each],'significant':[is_significant],'FC_exists':[is_FC_true],'site':[each_site+"-"+each], 'ambigious':[ambigious]})
           not_in_list +=1
         else:
@@ -1283,11 +1301,6 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
             if (float(each_FC) > 0 or float(each_FC) < 0):
               is_FC_true = 1.0
             count_FC_uniprot+=1
-          corresponding_prot_id = get_query_from_list(uniprot_query, [each])
-          if list(corresponding_prot_id.keys())[0] in ambigious_sites:
-            ambigious = each + "*"
-          else:
-            ambigious = each
           uniprot_list['query'].append(each)
           uniprot_list['significant'].append(is_significant)
           uniprot_list['FC_exists'].append(is_FC_true)
@@ -2363,7 +2376,6 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           breadth_of.append(val_breadth_of_val)
           if type == "5" or type == "6":
             indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
-            print("YASS",indices)
             for each_index in indices:
               G.add_vertex(uniprot_list['site'][each_index])
               merged_vertex.append(uniprot_list['site'][each_index])
@@ -2896,7 +2908,10 @@ def main(argv):
     
     database_dict = {} 
     mods_list = []
-    if cy_type_num == "5":
+    if cy_type_num == "5" or cy_type_num == "6":
+      if not cy_fasta_file or not cy_mods:
+        print("Error: Fasta file and List of Modifications are mandatory for site analysis")
+        sys.exit(1)        
       database_dict = db_handling(cy_fasta_file)
       mods_list = cy_mods.split(",") 
       
