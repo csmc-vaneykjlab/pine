@@ -26,12 +26,10 @@ input.file-button {
     display: none;
 }
 
-.success-button {
+.button {
     cursor: pointer;
-    background-color: $color1;
     padding: 0.25rem;
     border-radius: 5px;
-    color: $color-light;
     display: inline-block;
 
     &.disabled {
@@ -40,9 +38,14 @@ input.file-button {
     }
 }
 
+.success-button {
+    background-color: $color1;
+    color: $color-light;
+}
+
 .grid-options {
     display: grid;
-    grid-template-columns: 200px 200px auto;
+    grid-template-columns: 200px 250px auto;
     row-gap: 1rem;
 }
 
@@ -112,6 +115,7 @@ ul.tab-selector {
 }
 
 .tooltip-parent {
+    @extend .small-info;
     text-decoration: underline;
     text-decoration-style: dotted;
     cursor: help;
@@ -128,4 +132,7 @@ ul.tab-selector {
     padding: 1rem;
     background-color: $color-dark;
     color: $color-light;
+    font-size: 1rem;
+    max-width: 200px;
+    text-align: left;
 }

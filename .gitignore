@@ -4,3 +4,4 @@ Cytoscape.log
 build
 dist
 __pycache__
+env

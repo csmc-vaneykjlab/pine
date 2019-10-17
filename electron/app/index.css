@@ -21,22 +21,25 @@ input.file-button {
   display: none;
 }
 
-.success-button {
+.button {
   cursor: pointer;
-  background-color: #2c945d;
   padding: 0.25rem;
   border-radius: 5px;
-  color: #F8F4E3;
   display: inline-block;
 }
-.success-button.disabled {
+.button.disabled {
   background-color: #5c6460;
   cursor: not-allowed;
 }
 
+.success-button {
+  background-color: #2c945d;
+  color: #F8F4E3;
+}
+
 .grid-options {
   display: grid;
-  grid-template-columns: 200px 200px auto;
+  grid-template-columns: 200px 250px auto;
   row-gap: 1rem;
 }
 
@@ -93,7 +96,7 @@ ul.tab-selector li.active {
   text-decoration: underline;
 }
 
-.small-info {
+.small-info, .tooltip-parent {
   color: #FF5A5F;
   font-size: 0.75rem;
 }
@@ -115,6 +118,9 @@ ul.tab-selector li.active {
   padding: 1rem;
   background-color: #483D3F;
   color: #F8F4E3;
+  font-size: 1rem;
+  max-width: 200px;
+  text-align: left;
 }
 
 /*# sourceMappingURL=index.css.map */
