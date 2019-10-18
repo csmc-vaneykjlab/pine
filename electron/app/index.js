@@ -1,5 +1,5 @@
 const Vue = require("vue/dist/vue.js");
-const { remote } = require("electron");
+const { remote, net } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -79,13 +79,31 @@ let vm = new Vue({
         show_config: false,
     },
     methods: {
-        run: function(args) {
+        run: async function(args) {
             let that = this;
             if(!this.runnable() || this.running) {
                 return;
             }
-
             this.running = true;
+
+            /* warn user about cytoscape running and give them a chance to stop */
+            if(await this.is_cytoscape_running()) {
+                const res = remote.dialog.showMessageBoxSync({
+                    "type": "warning",
+                    "buttons": [
+                        "Continue anyways",
+                        "Cancel (recommended)",
+                    ],
+                    "defaultId": 1,
+                    "title": "Cytoscape open",
+                    "message": "It is recommended that you close Cytoscape before continuing to avoid data loss",
+                });
+                if(res !== 0) {
+                    this.running = false;
+                    return;
+                }
+            }
+
             this.switchTab(TABS.PROGRESS);
             this.stdout = "";
             this.stderr = "";
@@ -109,14 +127,18 @@ let vm = new Vue({
                 if(typeof d !== "string") {
                     d = d.toString("utf8");
                 }
-                if(d.startsWith("COMMAND")) {
-                    if(d.startsWith("COMMAND FILE-PATHWAYS ")) {
-                        that.session_files.cluego_pathways = d.replace(/^COMMAND FILE-PATHWAYS /, "");
-                    } else if(d.startsWith("COMMAND FILE-SESSION ")) {
-                        that.session_files.cytoscape_session = d.replace(/^COMMAND FILE-SESSION /, "");
+                const d_split = d.split("\n");
+                for(let ds of d_split) {
+                    ds = ds.replace(/^\s+|\s+$/g, ""); // strip whitespace
+                    if(ds.startsWith("COMMAND")) {
+                        if(ds.startsWith("COMMAND FILE-PATHWAYS ")) {
+                            that.session_files.cluego_pathways = ds.replace(/^COMMAND FILE-PATHWAYS /, "");
+                        } else if(ds.startsWith("COMMAND FILE-SESSION ")) {
+                            that.session_files.cytoscape_session = ds.replace(/^COMMAND FILE-SESSION /, "");
+                        }
+                    } else {
+                        that.stdout += ds + "\n";
                     }
-                } else {
-                    that.stdout += d + "\n";
                 }
             });
 
@@ -132,7 +154,8 @@ let vm = new Vue({
                     that.switchTab(TABS.PATHWAY_SELECTION);
                 } else {
                     that.stdout += "run failed\n";
-                    that.reset_session_files();
+                    that.read_cluego_pathways();
+                    //that.reset_session_files();
                 }
             });
         },
@@ -172,6 +195,24 @@ let vm = new Vue({
                 return true;
             }
             return false;
+        },
+        is_cytoscape_running: async function() {
+            /* check if listening on port 1234 */
+            let running = await new Promise(function(resolve) {
+                const request = remote.net.request("http://localhost:1234/v1/version");
+                request.on("response", function() {
+                    resolve(true);
+                });
+                request.on("error", function() {
+                    resolve(false);
+                });
+                request.on("close", function() {
+                    /* catch all, just return false */
+                    resolve(false);
+                });
+                request.end();
+            });
+            return running;
         },
         pine_args: function() {
             let args = [
@@ -219,7 +260,6 @@ let vm = new Vue({
 
             this.reset_cluego_pathways();
 
-            console.log(this.session_files.cluego_pathways);
             if(!this.session_files.cluego_pathways || !fs.existsSync(this.session_files.cluego_pathways) || !fs.statSync(this.session_files.cluego_pathways).isFile()) {
                 return;
             }

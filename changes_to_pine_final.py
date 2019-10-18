@@ -402,179 +402,185 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
     sys.exit(1)
   
-  if cy_out is not None:
-    with open(cy_out,'w') as csv_file:
-      csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
+  if cy_out:
+    csv_file = open(cy_out,'w')
+    csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
+  if cy_debug:
+    logging.debug("Initial query: " + str(len(each_protein_list)))
+  initial_length = len(each_protein_list)
+  to_return_unique_protids_length = len(set(each_protein_list))
+
+  if type == "1": 
+    dropping_repeats = []    
+    if repeat_prot_ids:
+      unique_each_protein_list = [x for x in each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids]]  
+      dropping_repeats = [x for x in each_protein_list if x.lower() in [name.lower() for name in repeat_prot_ids]]        
+      for x in list(prot_list):
+        if x.lower() in [name.lower() for name in repeat_prot_ids]:
+          del prot_list[x]
+    else:
+      unique_each_protein_list = each_protein_list
+    if retain_prot_ids:
+      each_protein_list = list(set(unique_each_protein_list))
+    else:
+      each_protein_list = unique_each_protein_list
+
+    if cy_debug:
+      if all_dropped:
+        logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
+        all_dropped = dropping_repeats + retain_prot_ids
+        all_dropped = sorted(all_dropped)
+        logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
+    for each_dupe_query in all_dropped:
+      line = each_dupe_query + ",,,,," + "Duplicate query;\n"
+      if cy_out:
+        csv_file.write(line) 
+
+  elif type == "3":
+    if repeat_prot_ids:
+      unique_each_protein_list = list(set(each_protein_list))    
       if cy_debug:
-        logging.debug("Initial query: " + str(len(each_protein_list)))
-      initial_length = len(each_protein_list)
-      to_return_unique_protids_length = len(set(each_protein_list))
-
-      if type == "1": 
-        dropping_repeats = []    
-        if repeat_prot_ids:
-          unique_each_protein_list = [x for x in each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids]]  
-          dropping_repeats = [x for x in each_protein_list if x.lower() in [name.lower() for name in repeat_prot_ids]]        
-          for x in list(prot_list):
-            if x.lower() in [name.lower() for name in repeat_prot_ids]:
-              del prot_list[x]
-        else:
-          unique_each_protein_list = each_protein_list
-        if retain_prot_ids:
-          each_protein_list = list(set(unique_each_protein_list))
-        else:
-          each_protein_list = unique_each_protein_list
-
-        if cy_debug:
-          if all_dropped:
-            logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
-            all_dropped = dropping_repeats + retain_prot_ids
-            all_dropped = sorted(all_dropped)
-            logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
-        for each_dupe_query in all_dropped:
-          line = each_dupe_query + ",,,,," + "Duplicate query;\n"
+        logging.debug("Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
+        logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids)) 
+      for each_dupe_query in repeat_prot_ids:
+        line = each_dupe_query + ",,,," + "Duplicate query;\n"
+        if cy_out:
           csv_file.write(line) 
+      each_protein_list = unique_each_protein_list      
 
-      elif type == "3":
-        if repeat_prot_ids:
-          unique_each_protein_list = list(set(each_protein_list))    
-          if cy_debug:
-            logging.debug("Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
-            logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids)) 
-          for each_dupe_query in repeat_prot_ids:
-            line = each_dupe_query + ",,,," + "Duplicate query;\n"
-            csv_file.write(line) 
-          each_protein_list = unique_each_protein_list      
+  elif type == "4":
+    unique_each_protein_list = list(set(each_protein_list))
+    if retain_prot_ids:
+      if cy_debug:
+        logging.debug("Duplicate query: " + str(len(retain_prot_ids)))
+        logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids)) 
+      for each_dupe_query in retain_prot_ids:
+        line = each_dupe_query + ",,,," + "Duplicate query;\n"
+        if cy_out:
+          csv_file.write(line) 
+    each_protein_list = unique_each_protein_list
 
-      elif type == "4":
-        unique_each_protein_list = list(set(each_protein_list))
-        if retain_prot_ids:
-          if cy_debug:
-            logging.debug("Duplicate query: " + str(len(retain_prot_ids)))
-            logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids)) 
-          for each_dupe_query in retain_prot_ids:
-            line = each_dupe_query + ",,,," + "Duplicate query;\n"
-            csv_file.write(line) 
-        each_protein_list = unique_each_protein_list
-
-      elif type == "2":
-          unique_each_protein_list = list(set(each_protein_list))
-          count_dropped = 0
-          additional_dropped = []
-          if retain_prot_ids:
-            for each_dupe_query in retain_prot_ids:
-              line = each_dupe_query + ",,,," + "Duplicate query;\n"
-              csv_file.write(line)
-          if repeat_prot_ids_2:  
-            unique_each_protein_list = [x for x in unique_each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids_2]]        
-            for each_prot_2 in repeat_prot_ids_2.keys():
-              for each_label_drop in repeat_prot_ids_2[each_prot_2]:
-                count_dropped +=1              
-                if each_prot_2 in prot_list:
-                  if each_label_drop in prot_list[each_prot_2]:
-                    del prot_list[each_prot_2][each_label_drop]
-                    additional_dropped.append(each_prot_2)
-                    count_dropped +=1
-                    if len(prot_list[each_prot_2]) == 0:
-                      del prot_list[each_prot_2]                
-
-          if cy_debug:
-            list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
-            list_of_duplicates = sorted(list_of_duplicates)
-            if list_of_duplicates:
-              logging.debug("Duplicate query: " + str(len(list_of_duplicates)))
-              logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
-
-          for each_dupe_query in list_of_duplicates:
-            line = each_dupe_query + ",,,," + "Duplicate query;\n"
+  elif type == "2":
+      unique_each_protein_list = list(set(each_protein_list))
+      count_dropped = 0
+      additional_dropped = []
+      if retain_prot_ids:
+        for each_dupe_query in retain_prot_ids:
+          line = each_dupe_query + ",,,," + "Duplicate query;\n"
+          if cy_out:
             csv_file.write(line)
-
-          each_protein_list = unique_each_protein_list
-          max_FC_len = len(unique_labels)
-          prot_list_rearrange = {}
-          for each_protid in prot_list:
-            for each_label in unique_labels:
-              if each_label in prot_list[each_protid]:
-                if each_protid not in prot_list_rearrange:
-                  prot_list_rearrange.update({each_protid:[[(prot_list[each_protid][each_label])[0]],[(prot_list[each_protid][each_label])[1]]]})
-                else:
-                  prot_list_rearrange[each_protid][0].append((prot_list[each_protid][each_label])[0])
-                  prot_list_rearrange[each_protid][1].append((prot_list[each_protid][each_label])[1])
-              else:
-                if each_protid not in prot_list_rearrange:
-                  prot_list_rearrange.update({each_protid:[[0],[1.0]]})
-                else:
-                  prot_list_rearrange[each_protid][0].append(0.0)
-                  prot_list_rearrange[each_protid][1].append(1.0)
-          prot_list = {}
-          prot_list = prot_list_rearrange
-
-      elif type == "5":
-        site_info_dict_rearrange = {}
-        all_dropped_pep = {}
-        all_dropped_warning = ""
-        count_dropped = 0
-        for each_protid in site_info_dict:
-          for each_site in site_info_dict[each_protid]:
-            keys = list(site_info_dict[each_protid][each_site].keys())
-            if len(keys) > 1:
-              each_site_info, dropped_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
-              for each_dropped_pep in dropped_pep:
-                count_dropped+=1
-                if each_protid in all_dropped_pep:
-                  all_dropped_pep[each_protid].append(each_dropped_pep)
-                  all_dropped_warning += ", " + each_dropped_pep 
-                else:
-                  all_dropped_pep.update({each_protid:[each_dropped_pep]})
-                  all_dropped_warning += each_protid + "(" + each_dropped_pep
-              if all_dropped_warning:
-                all_dropped_warning += ")"
-
-            else:
-              each_site_info = site_info_dict[each_protid][each_site][keys[0]]
-            if each_protid not in site_info_dict_rearrange:
-              site_info_dict_rearrange[each_protid] = {}
-              site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-            else:
-              site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-        site_info_dict = site_info_dict_rearrange
-        if all_dropped_pep:
-          ambigious_sites = list(all_dropped_pep.keys())      
-        if cy_debug and all_dropped_pep:
-          logging.debug("Lower score query: " + str(count_dropped))
-          logging.warning("WARNING - Dropping queries: " + all_dropped_warning)
-
-      elif type == "6":
-        max_FC_len = len(unique_labels)
-        site_list_rearrange = {}
-        for each_protid_site in site_info_dict:
-          for each_site in site_info_dict[each_protid_site]:
-            for each_label in unique_labels:
-              if each_label in site_info_dict[each_protid_site][each_site]:
-                if each_protid_site not in site_list_rearrange:
-                  site_list_rearrange[each_protid_site] = {}
-                  site_list_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site][each_label])[0]],[(site_info_dict[each_protid_site][each_site][each_label])[1]]]})
-                else:
-                  if each_site not in site_list_rearrange[each_protid_site]:
-                    site_list_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site][each_label])[0]],[(site_info_dict[each_protid_site][each_site][each_label])[1]]]})
-                  else:
-                    site_list_rearrange[each_protid_site][each_site][0].append((site_info_dict[each_protid_site][each_site][each_label])[0])
-                    site_list_rearrange[each_protid_site][each_site][1].append((site_info_dict[each_protid_site][each_site][each_label])[1])
-              else:
-                if each_protid_site not in site_list_rearrange:
-                  site_list_rearrange[each_protid_site] = {}
-                  site_list_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
-                else:
-                  if each_site not in site_list_rearrange[each_protid_site]:
-                    site_list_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
-                  else:
-                    site_list_rearrange[each_protid_site][each_site][0].append(0.0)
-                    site_list_rearrange[each_protid_site][each_site][1].append(1.0)
-          site_info_dict = {}
-          site_info_dict = site_list_rearrange 
+      if repeat_prot_ids_2:  
+        unique_each_protein_list = [x for x in unique_each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids_2]]        
+        for each_prot_2 in repeat_prot_ids_2.keys():
+          for each_label_drop in repeat_prot_ids_2[each_prot_2]:
+            count_dropped +=1              
+            if each_prot_2 in prot_list:
+              if each_label_drop in prot_list[each_prot_2]:
+                del prot_list[each_prot_2][each_label_drop]
+                additional_dropped.append(each_prot_2)
+                count_dropped +=1
+                if len(prot_list[each_prot_2]) == 0:
+                  del prot_list[each_prot_2]                
 
       if cy_debug:
-        logging.debug("Unique remaining queries: " + str(len(each_protein_list)))      
+        list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
+        list_of_duplicates = sorted(list_of_duplicates)
+        if list_of_duplicates:
+          logging.debug("Duplicate query: " + str(len(list_of_duplicates)))
+          logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
+
+      for each_dupe_query in list_of_duplicates:
+        line = each_dupe_query + ",,,," + "Duplicate query;\n"
+        if cy_out:
+          csv_file.write(line)
+
+      each_protein_list = unique_each_protein_list
+      max_FC_len = len(unique_labels)
+      prot_list_rearrange = {}
+      for each_protid in prot_list:
+        for each_label in unique_labels:
+          if each_label in prot_list[each_protid]:
+            if each_protid not in prot_list_rearrange:
+              prot_list_rearrange.update({each_protid:[[(prot_list[each_protid][each_label])[0]],[(prot_list[each_protid][each_label])[1]]]})
+            else:
+              prot_list_rearrange[each_protid][0].append((prot_list[each_protid][each_label])[0])
+              prot_list_rearrange[each_protid][1].append((prot_list[each_protid][each_label])[1])
+          else:
+            if each_protid not in prot_list_rearrange:
+              prot_list_rearrange.update({each_protid:[[0],[1.0]]})
+            else:
+              prot_list_rearrange[each_protid][0].append(0.0)
+              prot_list_rearrange[each_protid][1].append(1.0)
+      prot_list = {}
+      prot_list = prot_list_rearrange
+
+  elif type == "5":
+    site_info_dict_rearrange = {}
+    all_dropped_pep = {}
+    all_dropped_warning = ""
+    count_dropped = 0
+    for each_protid in site_info_dict:
+      for each_site in site_info_dict[each_protid]:
+        keys = list(site_info_dict[each_protid][each_site].keys())
+        if len(keys) > 1:
+          each_site_info, dropped_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
+          for each_dropped_pep in dropped_pep:
+            count_dropped+=1
+            if each_protid in all_dropped_pep:
+              all_dropped_pep[each_protid].append(each_dropped_pep)
+              all_dropped_warning += ", " + each_dropped_pep 
+            else:
+              all_dropped_pep.update({each_protid:[each_dropped_pep]})
+              all_dropped_warning += each_protid + "(" + each_dropped_pep
+          if all_dropped_warning:
+            all_dropped_warning += ")"
+
+        else:
+          each_site_info = site_info_dict[each_protid][each_site][keys[0]]
+        if each_protid not in site_info_dict_rearrange:
+          site_info_dict_rearrange[each_protid] = {}
+          site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
+        else:
+          site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
+    site_info_dict = site_info_dict_rearrange
+    if all_dropped_pep:
+      ambigious_sites = list(all_dropped_pep.keys())      
+    if cy_debug and all_dropped_pep:
+      logging.debug("Lower score query: " + str(count_dropped))
+      logging.warning("WARNING - Dropping queries: " + all_dropped_warning)
+
+  elif type == "6":
+    max_FC_len = len(unique_labels)
+    site_list_rearrange = {}
+    for each_protid_site in site_info_dict:
+      for each_site in site_info_dict[each_protid_site]:
+        for each_label in unique_labels:
+          if each_label in site_info_dict[each_protid_site][each_site]:
+            if each_protid_site not in site_list_rearrange:
+              site_list_rearrange[each_protid_site] = {}
+              site_list_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site][each_label])[0]],[(site_info_dict[each_protid_site][each_site][each_label])[1]]]})
+            else:
+              if each_site not in site_list_rearrange[each_protid_site]:
+                site_list_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site][each_label])[0]],[(site_info_dict[each_protid_site][each_site][each_label])[1]]]})
+              else:
+                site_list_rearrange[each_protid_site][each_site][0].append((site_info_dict[each_protid_site][each_site][each_label])[0])
+                site_list_rearrange[each_protid_site][each_site][1].append((site_info_dict[each_protid_site][each_site][each_label])[1])
+          else:
+            if each_protid_site not in site_list_rearrange:
+              site_list_rearrange[each_protid_site] = {}
+              site_list_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
+            else:
+              if each_site not in site_list_rearrange[each_protid_site]:
+                site_list_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
+              else:
+                site_list_rearrange[each_protid_site][each_site][0].append(0.0)
+                site_list_rearrange[each_protid_site][each_site][1].append(1.0)
+      site_info_dict = {}
+      site_info_dict = site_list_rearrange 
+
+  if cy_debug:
+    logging.debug("Unique remaining queries: " + str(len(each_protein_list)))      
+  if cy_out:
     csv_file.close()  
  
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites)
@@ -2597,6 +2603,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   response = requests.put("http://localhost:1234/v1/styles/GAL_Style3/dependencies", json=data)
   
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
+  return # DEBUG:
   if cy_debug:
     logging.handlers = []
     if path.exists("Cytoscape.log"):
@@ -2725,6 +2732,10 @@ def main(argv):
     eprint("ClueGO input file (-a) and Cytoscape saved session (-c) must be provided together")
     sys.exit(1)
 
+  if not os.path.isdir(cy_out_dir):
+    eprint("Error: output is not a directory")
+    sys.exit(1)
+
   timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
 
   # create file names
@@ -2732,15 +2743,14 @@ def main(argv):
     cy_out = None
     cy_cluego_out = None
     cy_session = cy_session_file
-    logging_file = re.sub(r"\.cys$", cy_session) + ".log"
+    logging_file = re.sub(r"\.cys$", "", cy_session) + "-filtered.log"
+    reanalyze_flag = True
   else:
-    if not os.path.isdir(cy_out_dir):
-      eprint("Error: output is not a directory")
-      sys.exit(1)
     cy_out = os.path.join(cy_out_dir, timestamp + "-merged-input.csv")
     cy_cluego_out = os.path.join(cy_out_dir, timestamp + "-cluego-pathways.txt")
     cy_session = os.path.join(cy_out_dir, timestamp + "-pine.cys")
     logging_file = os.path.join(cy_out_dir, timestamp + "-pine.log")
+    reanalyze_flag = False
     if gui_mode: # notify gui of the file names
       print(f"COMMAND FILE-PATHWAYS {cy_cluego_out}")
       print(f"COMMAND FILE-SESSION {cy_session}")
@@ -2897,8 +2907,12 @@ def main(argv):
       eprint("Error: Cytoscape version must be 3.7.0 and above")
       sys.exit(1)
     
-    # Start a new session
-    requests.post('http://localhost:1234/v1/commands/session/new')
+    # Start a new session or open existing
+    if reanalyze_flag:
+      r = requests.get('http://localhost:1234/v1/commands/session/open?file=' + urllib.parse.quote(cy_session, safe=""))
+      time.sleep(10)
+    else:
+      requests.post('http://localhost:1234/v1/commands/session/new')
     
     # Apps installed
     request = requests.post('http://localhost:1234/v1/commands/apps/list installed')
@@ -3137,10 +3151,13 @@ def main(argv):
     cytoscape_not_responding_msg = "Expecting value: line 1 column 1 (char 0)"
     if cytoscape_not_open_msg in str(e) or cytoscape_not_open_msg2 in str(e):
       eprint("Error: Cytoscape must be open")
+      sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
       eprint("Error: Cytoscape not responding. Please restart and wait for it to fully load")
+      sys.exit(1)
     else:
       traceback.print_exc()
+      sys.exit(1)
       
 if __name__ == "__main__":
   main(sys.argv[1:])

@@ -15,6 +15,7 @@ h1, h2, h3, h4, h5, h6.full-section-header {
 
 .run-section {
   margin: 1rem;
+  text-align: right;
 }
 
 input.file-button {
@@ -96,14 +97,13 @@ ul.tab-selector li.active {
   text-decoration: underline;
 }
 
-.small-info, .tooltip-parent {
+.small-info {
   color: #FF5A5F;
   font-size: 0.75rem;
 }
 
 .tooltip-parent {
   text-decoration: underline;
-  text-decoration-style: dotted;
   cursor: help;
 }
 

@@ -8,9 +8,9 @@
   <body>
     <div id="app">
       <ul class="tab-selector">
-        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Start</li>
+        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Settings</li>
         <li v-on:click="switchTab(tabs.PROGRESS)" v-bind:class="{'disabled': !tabReachable(tabs.PROGRESS), 'active': current_tab === tabs.PROGRESS}">Log</li>
-        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway filtering</li>
+        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway selection</li>
       </ul>
 
       <div v-if="current_tab === tabs.PATH_LOCATION">
@@ -29,6 +29,40 @@
       </div>
 
       <div v-if="current_tab === tabs.INPUT">
+
+        <h4 class="full-section-header">
+          Configuration
+          <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config">&#x2795;</span>
+          <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config">&#x2796;</span>
+          <span class="small-info">{{ configuration_message }}</span>
+        </h4>
+        <div class="full-section" v-show="show_config">
+
+          <div class="grid-options">
+            <div>Cytoscape path</div>
+            <div>
+              <label class="button success-button" for="file-button-cytoscape">Select file</label>
+              <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
+            </div>
+            <div>{{ input.cytoscape_path }}</div>
+
+            <div>ClueGO configuration directory</div>
+            <div>
+              <label class="button success-button" for="file-button-cluego">Select file</label>
+              <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
+            </div>
+            <div>
+              {{ input.cluego_base_path }}
+              <select v-model="cluego_picked_version">
+                <option v-for="cv in cluego_versions" v-bind:value="cv">
+                  {{ cv.version }}
+                  {{ cv.latest ? "(latest)" : "" }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <h4 class="full-section-header">Required options</h4>
         <div class="full-section">
           <div class="grid-options">
@@ -47,15 +81,16 @@
             </div>
             <div><span v-show="input.output">&#x1F4C1; {{ input.output | filename }}</span></div>
 
-            <div>Species</div>
+            <div>
+              <span class="tooltip-parent">
+                Species
+                <div class="tooltip">We currently only support mouse, human and rat.  Mouse and human are supported by default in ClueGO but rat needs to be downloaded manually.</div>
+              </span>
+            </div>
             <div>
               <select v-model="input.species" v-if="cluego_picked_version">
                 <option v-for="mapping in cluego_picked_version.mapping_files" v-bind:value="species_map[mapping.species.toLowerCase()]">{{ species_map[mapping.species.toLowerCase()] }}</option>
               </select>
-              <span class="tooltip-parent">
-                [help]
-                <div class="tooltip">We currently only support mouse, human and rat.  Mouse and human are supported by default in ClueGO but rat needs to be downloaded manually.</div>
-              </span>
             </div>
             <div></div>
 
@@ -75,8 +110,8 @@
           <div class="grid-additional-options">
 
             <div class="align-right">
+              <span class="tooltip-parent">
               Term
-              <span class="tooltip-parent">[help]
                 <div class="tooltip">ClueGO leading term selection criteria</div>
               </span>
             </div>
@@ -138,41 +173,9 @@
           </div>
         </div>
 
-        <h4 class="full-section-header">
-          Configuration
-          <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config">&#x2795;</span>
-          <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config">&#x2796;</span>
-          <span class="small-info">{{ configuration_message }}</span>
-        </h4>
-        <div class="full-section" v-show="show_config">
-
-          <div class="grid-options">
-            <div>Cytoscape path</div>
-            <div>
-              <label class="button success-button" for="file-button-cytoscape">Select file</label>
-              <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
-            </div>
-            <div>{{ input.cytoscape_path }}</div>
-
-            <div>ClueGO configuration directory</div>
-            <div>
-              <label class="button success-button" for="file-button-cluego">Select file</label>
-              <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
-            </div>
-            <div>
-              {{ input.cluego_base_path }}
-              <select v-model="cluego_picked_version">
-                <option v-for="cv in cluego_versions" v-bind:value="cv">
-                  {{ cv.version }}
-                  {{ cv.latest ? "(latest)" : "" }}
-                </option>
-              </select>
-            </div>
-          </div>
-        </div>
 
         <section class="run-section">
-          <span class="button success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Click to run</span>
+          <span class="button success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Run</span>
         </section>
       </div>
 
