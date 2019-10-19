@@ -1,10 +1,14 @@
+@charset "UTF-8";
+* {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 .full-section {
   margin-left: 1rem;
   margin-right: 1rem;
   margin-bottom: 1rem;
   padding: 1rem;
-  border: 1px solid black;
-  border-radius: 5px;
+  border: 1px solid #483D3F;
 }
 
 h1, h2, h3, h4, h5, h6.full-section-header {
@@ -15,7 +19,7 @@ h1, h2, h3, h4, h5, h6.full-section-header {
 
 .run-section {
   margin: 1rem;
-  text-align: right;
+  text-align: center;
 }
 
 input.file-button {
@@ -24,7 +28,7 @@ input.file-button {
 
 .button {
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 5px;
   display: inline-block;
 }
@@ -55,6 +59,10 @@ input.file-button {
   height: 2rem;
 }
 
+.horizontal-sep {
+  margin-left: 1rem;
+}
+
 .align-right {
   text-align: right;
 }
@@ -81,11 +89,22 @@ input.file-button {
   background-color: #F8F4E3;
 }
 
+ul.tab-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  margin-left: 1rem;
+  margin-right: 1rem;
+  border: solid #483D3F 1px;
+  border-bottom-width: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
 ul.tab-selector li {
   display: inline-block;
-  margin: 0.25rem 2rem;
   cursor: pointer;
   padding: 0.5rem;
+  text-align: center;
+  background-color: lightgrey;
 }
 ul.tab-selector li.disabled {
   cursor: not-allowed;
@@ -95,6 +114,10 @@ ul.tab-selector li.active {
   cursor: default;
   font-weight: bold;
   text-decoration: underline;
+  background-color: white;
+}
+ul.tab-selector li + li {
+  border-left: 1px solid gray;
 }
 
 .small-info {
@@ -103,8 +126,11 @@ ul.tab-selector li.active {
 }
 
 .tooltip-parent {
-  text-decoration: underline;
   cursor: help;
+}
+
+.tooltip-parent:after {
+  content: "❔";
 }
 
 .tooltip-parent:hover .tooltip {

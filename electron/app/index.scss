@@ -3,13 +3,17 @@ $color2: #FF5A5F;
 $color-dark: #483D3F;
 $color-light: #F8F4E3;
 
+* {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
 .full-section {
     margin-left: 1rem;
     margin-right: 1rem;
     margin-bottom: 1rem;
     padding: 1rem;
-    border: 1px solid black;
-    border-radius: 5px;
+    border: 1px solid $color-dark;
+    //border-radius: 5px;
 
 }
 h1,h2,h3,h4,h5,h6.full-section-header {
@@ -20,7 +24,7 @@ h1,h2,h3,h4,h5,h6.full-section-header {
 
 .run-section {
     margin: 1rem;
-    text-align: right;
+    text-align: center;
 }
 
 input.file-button {
@@ -29,7 +33,7 @@ input.file-button {
 
 .button {
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 5px;
     display: inline-block;
 
@@ -59,6 +63,10 @@ input.file-button {
 
 .vertical-sep {
     height: 2rem;
+}
+
+.horizontal-sep {
+    margin-left: 1rem;
 }
 
 .align-right {
@@ -91,11 +99,22 @@ input.file-button {
 }
 
 ul.tab-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    border: solid $color-dark 1px;
+    //border-radius: 5px 5px 0 0;
+    border-bottom-width: 0;
+    margin-bottom: 0;
+    padding: 0;
+
     li {
         display: inline-block;
-        margin: 0.25rem 2rem;
         cursor: pointer;
         padding: 0.5rem;
+        text-align: center;
+        background-color: lightgrey;
 
         &.disabled {
             cursor: not-allowed;
@@ -106,7 +125,12 @@ ul.tab-selector {
             cursor: default;
             font-weight: bold;
             text-decoration: underline;
+            background-color: white;
         }
+    }
+
+    li + li {
+        border-left: 1px solid gray;;
     }
 }
 
@@ -116,8 +140,11 @@ ul.tab-selector {
 }
 
 .tooltip-parent {
-    text-decoration: underline;
     cursor: help;
+}
+
+.tooltip-parent:after {
+    content: "❔";
 }
 
 .tooltip-parent:hover .tooltip {
