@@ -8,229 +8,240 @@
   <body>
     <div id="app">
       <ul class="tab-selector">
-        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Start</li>
+        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Settings</li>
         <li v-on:click="switchTab(tabs.PROGRESS)" v-bind:class="{'disabled': !tabReachable(tabs.PROGRESS), 'active': current_tab === tabs.PROGRESS}">Log</li>
-        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway filtering</li>
+        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway selection</li>
       </ul>
 
-      <div v-if="current_tab === tabs.PATH_LOCATION">
-        <section class="full-section">
-          Enter the full path of the Cytoscape executable:
-          <label class="button success-button" for="file-button-cytoscape">Select file</label>
-          <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
-          {{ input.cytoscape_path }}
-        </section>
-        <section class="full-section">
-          Enter the full path of the ClueGO files:
-          <label class="button success-button" for="file-button-cluego">Select file</label>
-          <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
-          {{ input.cluego_base_path }}
-        </section>
-      </div>
+      <div class="full-section">
 
-      <div v-if="current_tab === tabs.INPUT">
-        <h4 class="full-section-header">Required options</h4>
-        <div class="full-section">
-          <div class="grid-options">
-
-            <div>Input file:</div>
-            <div>
-              <label class="button success-button" for="file-button-input">Select file</label>
-              <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" />
-            </div>
-            <div><span v-show="input.in">&#x1F5CE; {{ input.in | filename }}</span></div>
-
-            <div>Output directory</div>
-            <div>
-              <label class="button success-button" for="file-button-output">Select directory</label>
-              <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory />
-            </div>
-            <div><span v-show="input.output">&#x1F4C1; {{ input.output | filename }}</span></div>
-
-            <div>Species</div>
-            <div>
-              <select v-model="input.species" v-if="cluego_picked_version">
-                <option v-for="mapping in cluego_picked_version.mapping_files" v-bind:value="species_map[mapping.species.toLowerCase()]">{{ species_map[mapping.species.toLowerCase()] }}</option>
-              </select>
-              <span class="tooltip-parent">
-                [help]
-                <div class="tooltip">We currently only support mouse, human and rat.  Mouse and human are supported by default in ClueGO but rat needs to be downloaded manually.</div>
-              </span>
-            </div>
-            <div></div>
-
-            <div>Type</div>
-            <div>
-              <select v-model="input.type">
-                <option v-for="(val, key) in allowed_types" v-bind:value="key">{{ val }}</option>
-              </select>
-            </div>
-            <div></div>
-          </div>
+        <div v-if="current_tab === tabs.PATH_LOCATION">
+          <section class="full-section">
+            Enter the full path of the Cytoscape executable:
+            <label class="button success-button" for="file-button-cytoscape">Select file</label>
+            <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
+            {{ input.cytoscape_path }}
+          </section>
+          <section class="full-section">
+            Enter the full path of the ClueGO files:
+            <label class="button success-button" for="file-button-cluego">Select file</label>
+            <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
+            {{ input.cluego_base_path }}
+          </section>
         </div>
 
-        <h4 class="full-section-header">Additional options</h4>
-        <div class="full-section">
+        <div v-if="current_tab === tabs.INPUT">
 
-          <div class="grid-additional-options">
+          <h4 class="full-section-header">
+            Configuration
+            <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config">&#x2795;</span>
+            <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config">&#x2796;</span>
+            <span class="small-info">{{ configuration_message }}</span>
+          </h4>
+          <div class="full-section" v-show="show_config">
 
-            <div class="align-right">
-              Term
-              <span class="tooltip-parent">[help]
-                <div class="tooltip">ClueGO leading term selection criteria</div>
-              </span>
-            </div>
-            <div>
-              <select v-model="input.leading_term">
-                <option v-for="at in allowed_leading_terms" v-bind:value="at">{{ at }}</option>
-              </select>
-            </div>
+            <div class="grid-options">
+              <div>Cytoscape path</div>
+              <div>
+                <label class="button success-button" for="file-button-cytoscape">Select file</label>
+                <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
+              </div>
+              <div>{{ input.cytoscape_path }}</div>
 
-            <div class="align-right">Interaction confidence score</div>
-            <div><input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" /></div>
-
-            <div class="align-right">ClueGO grouping</div>
-            <div>
-              <select v-model="input.grouping">
-                <option v-for="acg in allowed_grouping" v-bind:value="acg">{{ acg }}</option>
-              </select>
-            </div>
-
-            <div class="align-right">ClueGo p-value</div>
-            <div><input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" /></div>
-
-            <div class="align-right">Number of interactors</div>
-            <div><input type="number" step="1" min="0" max="100" v-model="input.limit" /></div>
-
-            <div class="align-right">Fold change cutoff</div>
-            <div><input type="number" step="0.01" min="0" v-model="input.fccutoff" /></div>
-
-            <div class="align-right">P-value cutoff</div>
-            <div><input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" /></div>
-
-            <div class="align-right">Outline significant values</div>
-            <div><input type="checkbox" v-model="input.significant" /></div>
-
-            <div class="align-right">Run</div>
-            <div>
-              <select v-model="input.run">
-                <option v-for="ar in allowed_runs" v-bind:value="ar">{{ ar }}</option>
-              </select>
-            </div>
-
-            <div class="align-right">Visualize</div>
-            <div>
-              <select v-model="input.visualize">
-                <option v-for="av in allowed_visualize" v-bind:value="av">{{ av }}</option>
-              </select>
-            </div>
-
-            <div class="align-right">Reference file</div>
-            <div>
-              <label class="button success-button" for="file-button-reference">Select file</label>
-              <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" />
-              <div v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">&#x1F5CE; {{ input.reference_path | filename }}</div>
-            </div>
-
-            <div class="align-right">Debug mode:</div>
-            <div><input type="checkbox" v-model="input.debug" /></div>
-
-          </div>
-        </div>
-
-        <h4 class="full-section-header">
-          Configuration
-          <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config">&#x2795;</span>
-          <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config">&#x2796;</span>
-          <span class="small-info">{{ configuration_message }}</span>
-        </h4>
-        <div class="full-section" v-show="show_config">
-
-          <div class="grid-options">
-            <div>Cytoscape path</div>
-            <div>
-              <label class="button success-button" for="file-button-cytoscape">Select file</label>
-              <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
-            </div>
-            <div>{{ input.cytoscape_path }}</div>
-
-            <div>ClueGO configuration directory</div>
-            <div>
-              <label class="button success-button" for="file-button-cluego">Select file</label>
-              <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
-            </div>
-            <div>
-              {{ input.cluego_base_path }}
-              <select v-model="cluego_picked_version">
-                <option v-for="cv in cluego_versions" v-bind:value="cv">
-                  {{ cv.version }}
-                  {{ cv.latest ? "(latest)" : "" }}
-                </option>
-              </select>
+              <div>ClueGO configuration directory</div>
+              <div>
+                <label class="button success-button" for="file-button-cluego">Select file</label>
+                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
+              </div>
+              <div>
+                {{ input.cluego_base_path }}
+                <select v-model="cluego_picked_version">
+                  <option v-for="cv in cluego_versions" v-bind:value="cv">
+                    {{ cv.version }}
+                    {{ cv.latest ? "(latest)" : "" }}
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        <section class="run-section">
-          <span class="button success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Click to run</span>
-        </section>
-      </div>
-
-      <div v-if="current_tab === tabs.PROGRESS">
-        <div class="full-section">
-          <h4>Log</h4>
-          <h4>stdout</h4>
-          <pre>{{ stdout }}</pre>
-          <h4>stderr</h4>
-          <pre>{{ stderr }}</pre>
-        </div>
-      </div>
-
-      <div v-if="current_tab === tabs.PATHWAY_SELECTION">
-        <div class="full-section">
-          <h4>Complete</h4>
-          <span class="clickable" v-on:click="openGeneratedFile()"><strong>&#x1F5CB; View your file</strong></span>
-        </div>
-        <div class="full-section">
-          <h4>Pathway selection</h4>
-          <p>Choose a subset of pathways to analyze.</p>
-          <div>
-            <div v-on:click="run_with_cluego_subset()" class="button success-button" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">Reanalyze</div>
-            Filter: <input type="text" v-model="cluego_pathways.query" />
-          </div>
           <div class="vertical-sep"></div>
-          <div>
-            <div class="button" v-bind:class="{disabled: cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">&lt;</div>
-            {{ cluego_pathways.page }}
-            <div class="button" v-bind:class="{disabled: cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways.page + 1)">&gt;</div>
+
+          <h4 class="full-section-header">Required options</h4>
+          <div class="full-section">
+            <div class="grid-options">
+
+              <div>Input file:</div>
+              <div>
+                <label class="button success-button" for="file-button-input">Select file</label>
+                <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" />
+              </div>
+              <div><span v-show="input.in">&#x1F5CE; {{ input.in | filename }}</span></div>
+
+              <div>Output directory</div>
+              <div>
+                <label class="button success-button" for="file-button-output">Select directory</label>
+                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory />
+              </div>
+              <div><span v-show="input.output">&#x1F4C1; {{ input.output | filename }}</span></div>
+
+              <div>
+                <span class="tooltip-parent">
+                  Species
+                  <div class="tooltip">We currently only support mouse, human and rat.  Mouse and human are supported by default in ClueGO but rat needs to be downloaded manually.</div>
+                </span>
+              </div>
+              <div>
+                <select v-model="input.species" v-if="cluego_picked_version">
+                  <option v-for="mapping in cluego_picked_version.mapping_files" v-bind:value="species_map[mapping.species.toLowerCase()]">{{ species_map[mapping.species.toLowerCase()] }}</option>
+                </select>
+              </div>
+              <div></div>
+
+              <div>Type</div>
+              <div>
+                <select v-model="input.type">
+                  <option v-for="(val, key) in allowed_types" v-bind:value="key">{{ val }}</option>
+                </select>
+              </div>
+              <div></div>
+            </div>
           </div>
-          <div class="scroll-table-wrapper">
-            <table class="pathway-picker">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>GO term</th>
-                  <th>Ontology source</th>
-                  <th>Term p-value</th>
-                  <th>Adjusted term p-value</th>
-                  <th>Percent associated genes</th>
-                  <th>Number of genes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="pathway in cluego_pathways_filtered.data">
-                  <td><input type="checkbox" v-model="pathway.selected" /></td>
-                  <td>{{ pathway.data['GOTerm'] }}</td>
-                  <td>{{ pathway.data['Ontology Source'] }}</td>
-                  <td class="align-right">{{ pathway.data['Term PValue'] | roundString(4) }}</td>
-                  <td class="align-right">{{ pathway.data['Term PValue Corrected with Bonferroni step down'] | roundString(4) }}</td>
-                  <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
-                  <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
-                </tr>
-              </tbody>
-            </table>
+
+          <h4 class="full-section-header">Additional options</h4>
+          <div class="full-section">
+
+            <div class="grid-additional-options">
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                Term
+                  <div class="tooltip">ClueGO leading term selection criteria</div>
+                </span>
+              </div>
+              <div>
+                <select v-model="input.leading_term">
+                  <option v-for="at in allowed_leading_terms" v-bind:value="at">{{ at }}</option>
+                </select>
+              </div>
+
+              <div class="align-right">Interaction confidence score</div>
+              <div><input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" /></div>
+
+              <div class="align-right">ClueGO grouping</div>
+              <div>
+                <select v-model="input.grouping">
+                  <option v-for="acg in allowed_grouping" v-bind:value="acg">{{ acg }}</option>
+                </select>
+              </div>
+
+              <div class="align-right">ClueGo p-value</div>
+              <div><input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" /></div>
+
+              <div class="align-right">Number of interactors</div>
+              <div><input type="number" step="1" min="0" max="100" v-model="input.limit" /></div>
+
+              <div class="align-right">Fold change cutoff</div>
+              <div><input type="number" step="0.01" min="0" v-model="input.fccutoff" /></div>
+
+              <div class="align-right">P-value cutoff</div>
+              <div><input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" /></div>
+
+              <div class="align-right">Outline significant values</div>
+              <div><input type="checkbox" v-model="input.significant" /></div>
+
+              <div class="align-right">Run</div>
+              <div>
+                <select v-model="input.run">
+                  <option v-for="ar in allowed_runs" v-bind:value="ar">{{ ar }}</option>
+                </select>
+              </div>
+
+              <div class="align-right">Visualize</div>
+              <div>
+                <select v-model="input.visualize">
+                  <option v-for="av in allowed_visualize" v-bind:value="av">{{ av }}</option>
+                </select>
+              </div>
+
+              <div class="align-right">Reference file</div>
+              <div>
+                <label class="button success-button" for="file-button-reference">Select file</label>
+                <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" />
+                <div v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">&#x1F5CE; {{ input.reference_path | filename }}</div>
+              </div>
+
+              <div class="align-right">Debug mode:</div>
+              <div><input type="checkbox" v-model="input.debug" /></div>
+
+            </div>
+          </div>
+
+
+          <section class="run-section">
+            <span class="button success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Run</span>
+            <span class="horizontal-sep"></span>
+            <span class="button success-button">Reset</span>
+          </section>
+        </div>
+
+        <div v-if="current_tab === tabs.PROGRESS">
+          <div class="full-section">
+            <h4>Log</h4>
+            <h4>stdout</h4>
+            <pre>{{ stdout }}</pre>
+            <h4>stderr</h4>
+            <pre>{{ stderr }}</pre>
           </div>
         </div>
+
+        <div v-if="current_tab === tabs.PATHWAY_SELECTION">
+          <div class="full-section">
+            <h4>Complete</h4>
+            <span class="clickable" v-on:click="openGeneratedFile()"><strong>&#x1F5CB; View your file</strong></span>
+          </div>
+          <div class="full-section">
+            <h4>Pathway selection</h4>
+            <p>Choose a subset of pathways to analyze.</p>
+            <div>
+              <div v-on:click="run_with_cluego_subset()" class="button success-button" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">Reanalyze</div>
+              Filter: <input type="text" v-model="cluego_pathways.query" />
+            </div>
+            <div class="vertical-sep"></div>
+            <div>
+              <div class="button" v-bind:class="{disabled: cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">&lt;</div>
+              {{ cluego_pathways.page }}
+              <div class="button" v-bind:class="{disabled: cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways.page + 1)">&gt;</div>
+            </div>
+            <div class="scroll-table-wrapper">
+              <table class="pathway-picker">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>GO term</th>
+                    <th>Ontology source</th>
+                    <th>Term p-value</th>
+                    <th>Adjusted term p-value</th>
+                    <th>Percent associated genes</th>
+                    <th>Number of genes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="pathway in cluego_pathways_filtered.data">
+                    <td><input type="checkbox" v-model="pathway.selected" /></td>
+                    <td>{{ pathway.data['GOTerm'] }}</td>
+                    <td>{{ pathway.data['Ontology Source'] }}</td>
+                    <td class="align-right">{{ pathway.data['Term PValue'] | roundString(4) }}</td>
+                    <td class="align-right">{{ pathway.data['Term PValue Corrected with Bonferroni step down'] | roundString(4) }}</td>
+                    <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
+                    <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

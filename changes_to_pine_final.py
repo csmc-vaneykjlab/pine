@@ -3,14 +3,14 @@
 try:
   from py2cytoscape import cyrest
 except ImportError:
-  print("Error: Please install module py2cytoscape. [Installation: pip install py2cytoscape]")
+  eprint("Error: Please install module py2cytoscape. [Installation: pip install py2cytoscape]")
 from py2cytoscape.data.cynetwork import CyNetwork
 from py2cytoscape.data.cyrest_client import CyRestClient
 from py2cytoscape.data.style import StyleUtil
 try:
   import requests
 except ImportError:
-  print("ImportError: Please make sure you are using Python3")
+  eprint("ImportError: Please make sure you are using Python3")
 from urllib.parse import quote
 from datetime import datetime
 import urllib
@@ -31,12 +31,18 @@ import math
 import igraph
 import traceback
 import collections
+import subprocess
 
-def setup_logger(name, log_file, level=logging.DEBUG):
+def eprint(*args, **kwargs):
+  print(*args, file=sys.stderr, **kwargs)
+
+def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   handler = logging.FileHandler(log_file,mode='w')
   logger = logging.getLogger(name)
   logger.setLevel(level)
   logger.addHandler(handler)
+  if with_stdout:
+    logger.addHandler(logging.StreamHandler(sys.stdout))
   return logger
 
 def db_handling(db_file):
@@ -183,21 +189,21 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               is_FC = True          
         
         if not is_prot_col:
-          print("Error: Column 'ProteinID' not found")
+          eprint("Error: Column 'ProteinID' not found")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-          sys.exit()          
+          sys.exit(1)
       else: 
         if '/' in row[protein]:
           split_val = row[protein].split('/')
           if len(split_val) > 2:
-            print("Error: Multiple protein IDs not considered")
+            eprint("Error: Multiple protein IDs not considered")
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-            sys.exit()
+            sys.exit(1)
           elif len(split_val) == 2:
             if not bool(re.match('^[0-9]$', split_val[0])):
-              print("Error: Multiple protein IDs not considered")
+              eprint("Error: Multiple protein IDs not considered")
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-              sys.exit()
+              sys.exit(1)
         
         if '|' in row[protein]:
           row[protein] = row[protein].split('|')[1]
@@ -205,7 +211,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if not bool(re.match('^[A-Za-z0-9\-]+$', row[protein])):
           err_msg = "Error: Invalid proteinID: " + row[protein]
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-          sys.exit()
+          sys.exit(1)
         
         if type == "1" or type == "2" or type == "5" or type == "6":
           skip = False
@@ -245,7 +251,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 seqInDatabase = seqInDatabase_list[0]
                 break
             else:
-              print("Error: ProteinID '" + str(protein_list_id) + "' not found in " + str(db_file) + ". Check fasta database file provided.")  
+              eprint("Error: ProteinID '" + str(protein_list_id) + "' not found in " + str(db_file) + ". Check fasta database file provided.")  
               sys.exit(1)            
             for k in include_list:
               for key,value in modInSeq_all_dict.items():                   
@@ -288,9 +294,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
                       
                 else:
-                  print("Error: Required columns- ProteinID, Peptide, FC")
+                  eprint("Error: Required columns- ProteinID, Peptide, FC")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-                  sys.exit()
+                  sys.exit(1)
               
               if type == "6":              
                 if is_prot_col and is_FC and is_label_col:
@@ -316,9 +322,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if row[label] not in unique_labels:
                     unique_labels.append(row[label])                
                 else:
-                  print("Error: Required columns- ProteinID, Peptide, FC, Label")
+                  eprint("Error: Required columns- ProteinID, Peptide, FC, Label")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-                  sys.exit()
+                  sys.exit(1)
                   
         if row[protein] not in each_protein_list:
           each_protein_list.append(row[protein])
@@ -328,9 +334,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 prot_list.update({row[protein]:[[float(get_fc_val)],[get_pval]]})
                 max_FC_len = 1
               else:
-                print("Error: Required columns- ProteinID, FC")
+                eprint("Error: Required columns- ProteinID, FC")
                 remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-                sys.exit()
+                sys.exit(1)
                 
             elif type == "2":
               if is_prot_col and is_FC and is_label_col:
@@ -339,23 +345,23 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 if row[label] not in unique_labels:
                   unique_labels.append(row[label])                
               else:
-                print("Error: Required columns- ProteinID, FC, Label")
+                eprint("Error: Required columns- ProteinID, FC, Label")
                 remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-                sys.exit()
+                sys.exit(1)
                 
             elif type == "3":
               if is_prot_col:
                 continue
               else:
-                print("Error: Required columns- ProteinID")
+                eprint("Error: Required columns- ProteinID")
                 remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-                sys.exit()
+                sys.exit(1)
             
           elif type == "4":
             if (not is_prot_col) or (not is_cat):
-              print("Error: Required columns- ProteinID, Category")
+              eprint("Error: Required columns- ProteinID, Category")
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-              sys.exit()
+              sys.exit(1)
               
             if row[cat] not in each_category:
               each_category.append(row[cat])
@@ -399,16 +405,19 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       line_count+=1 
     
   if len(unique_labels) > 10:
-    print("Error: Number of unique labels should not exceed 10")
+    eprint("Error: Number of unique labels should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-    sys.exit()
+    sys.exit(1)
     
   if len(each_category) > 10:
-    print("Error: Number of categories should not exceed 10")
+    eprint("Error: Number of categories should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-    sys.exit()
- 
-  csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
+    sys.exit(1)
+  
+  if cy_out:
+    csv_file = open(cy_out,'w')
+    csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
+
   if cy_debug:
     logging.debug("Initial query: " + str(len(each_protein_list)))
   initial_length = len(each_protein_list)
@@ -428,7 +437,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       each_protein_list = list(set(unique_each_protein_list))
     else:
       each_protein_list = unique_each_protein_list
-      
+
     if cy_debug:
       if all_dropped:
         logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
@@ -437,7 +446,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
     for each_dupe_query in all_dropped:
       line = each_dupe_query + ",,,,," + "Duplicate query;\n"
-      csv_file.write(line) 
+      if cy_out:
+        csv_file.write(line)  
       
   elif type == "3":
     if repeat_prot_ids:
@@ -447,7 +457,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids)) 
       for each_dupe_query in repeat_prot_ids:
         line = each_dupe_query + ",,,," + "Duplicate query;\n"
-        csv_file.write(line) 
+        if cy_out:
+          csv_file.write(line) 
       each_protein_list = unique_each_protein_list      
 
   elif type == "4":
@@ -458,9 +469,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids)) 
       for each_dupe_query in retain_prot_ids:
         line = each_dupe_query + ",,,," + "Duplicate query;\n"
-        csv_file.write(line) 
+        if cy_out:
+          csv_file.write(line) 
     each_protein_list = unique_each_protein_list
-      
+
   elif type == "2":
       unique_each_protein_list = list(set(each_protein_list))
       count_dropped = 0
@@ -468,7 +480,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if retain_prot_ids:
         for each_dupe_query in retain_prot_ids:
           line = each_dupe_query + ",,,," + "Duplicate query;\n"
-          csv_file.write(line)
+
+          if cy_out:
+            csv_file.write(line)
       if repeat_prot_ids_2:  
         unique_each_protein_list = [x for x in unique_each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids_2]]        
         for each_prot_2 in repeat_prot_ids_2.keys():
@@ -491,8 +505,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       
       for each_dupe_query in list_of_duplicates:
         line = each_dupe_query + ",,,," + "Duplicate query;\n"
-        csv_file.write(line)
-        
+        if cy_out:
+          csv_file.write(line)
+    
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
@@ -673,8 +688,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     site_info_dict = site_list_rearrange 
     
   if cy_debug:
-    logging.debug("Unique remaining queries: " + str(len(each_protein_list)))      
-  csv_file.close() 
+    logging.debug("Unique remaining queries: " + str(len(each_protein_list)))
+  if cy_out:    
+    csv_file.close() 
   
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites)
 
@@ -836,14 +852,14 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   unique_organisms = list(set(organisms))
 
   if len(unique_organisms) > 1:
-    print("Error: Protein list is of more than 1 organism: " + ','.join(unique_organisms))
+    eprint("Error: Protein list is of more than 1 organism: " + ','.join(unique_organisms))
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-    sys.exit()
+    sys.exit(1)
   
   if not species.lower() in unique_organisms[0].lower():
-    print("Error: Species mismatch. Species parameter provided is " + species + " and species of protein list is " + unique_organisms[0])
+    eprint("Error: Species mismatch. Species parameter provided is " + species + " and species of protein list is " + unique_organisms[0])
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-    sys.exit()
+    sys.exit(1)
    
   if cy_debug:
     if prot_with_mult_primgene:
@@ -1115,11 +1131,11 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)  
     try:
       requests.get("http://localhost:1234/v1/commands/command/quit")
-      print("Error: Genemania timed out- please try again later")
-      sys.exit()
+      eprint("Error: Genemania timed out- please try again later")
+      sys.exit(1)
     except:
-      print("Error: Cytoscape must be open")
-      sys.exit()
+      eprint("Error: Cytoscape must be open")
+      sys.exit(1)
       
   for each_node in node_info['rows']:
     genemania_node.update({each_node['shared name']:each_node['gene name']})   
@@ -1520,9 +1536,9 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
             is_uniq_col = True            
       else:
         if not is_sym_col or not is_uniq_col:
-          print("Error: Required columns in ClueGO file: SymbolID and UniqueID#EntrezGeneID")
+          eprint("Error: Required columns in ClueGO file: SymbolID and UniqueID#EntrezGeneID")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-          sys.exit()
+          sys.exit(1)
         primgene = row[symbolid]
         secgene = []        
         if "|" in row[symbolid]:
@@ -1759,9 +1775,10 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   current_network_suid = response.json()['data']['networkSUID']
   
   # 4.2 Get ClueGO result table
-  response = requests.get(CLUEGO_BASE_URL+SEP+"analysis-results"+SEP+"get-cluego-table"+SEP+str(current_network_suid))
-  table_file_name = output_cluego
-  writeLines(response.text,table_file_name)
+  if output_cluego:
+    response = requests.get(CLUEGO_BASE_URL+SEP+"analysis-results"+SEP+"get-cluego-table"+SEP+str(current_network_suid))
+    table_file_name = output_cluego
+    writeLines(response.text,table_file_name)
   
 def get_interactions_dict(filtered_dict, search, merged_out_dict):
   lower_filtered = [name.lower() for name in filtered_dict]
@@ -1775,6 +1792,8 @@ def get_interactions_dict(filtered_dict, search, merged_out_dict):
   return(merged_out_dict)
 
 def write_into_out(merged_out_dict, out):
+  if not out:
+    return
   with open(out,'a') as csv_file:
     for each_prot in merged_out_dict:
       line = each_prot + "," + merged_out_dict[each_prot]['Primary'] + "," + merged_out_dict[each_prot]['String'] + "," + merged_out_dict[each_prot]['Genemania'] + "," + merged_out_dict[each_prot]['Comment'] + "\n"
@@ -1802,9 +1821,9 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
             is_genes_found = True    
             
         if not (is_go_term and is_genes_found):
-          print("Error: Required columns in cluego input file: GOTerm and Associated Genes Found")
+          eprint("Error: Required columns in cluego input file: GOTerm and Associated Genes Found")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-          sys.exit()            
+          sys.exit(1)
       
       else:
         if row:  
@@ -1820,9 +1839,9 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
           if row[goterm] not in top_annotations:
             top_annotations.update({row[goterm]:each_gene_list})
           else:
-            print("Error: Duplicate GOID found in cluego input file")
+            eprint("Error: Duplicate GOID found in cluego input file")
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-            sys.exit()
+            sys.exit(1)
           
       line_count+=1
   return(top_annotations, unique_gene)
@@ -2729,6 +2748,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   response = requests.put("http://localhost:1234/v1/styles/GAL_Style3/dependencies", json=data)
   
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
+  return # DEBUG:
   if cy_debug:
     logging.handlers = []
     if path.exists("Cytoscape.log"):
@@ -2746,10 +2766,7 @@ def main(argv):
   cy_lim = 0
   cy_score = 0.4
   cy_debug = True
-  logging = setup_logger("cytoscape","Cytoscape.log")
   cy_map = ""
-  cy_out = "Merged_Input.csv"
-  cy_cluego_out = "ClueGO_Output.txt"
   merged_out_dict = {}
   help = False
   cy_type = ""
@@ -2761,7 +2778,6 @@ def main(argv):
   leading_term_selection = "no. of genes per term"
   cluego_reference_file = ""
   cy_cluego_inp_file = ""
-  cy_session = "PINE_" + str(datetime.now().strftime("%d%b%Y_%H%M%S")) + ".cys"
   cluego_pval = 0.05
   cy_run = "both"
   cy_ptm_sites = False
@@ -2769,9 +2785,13 @@ def main(argv):
   cy_mods = ""
   leading_term_cluster = "" 
   cy_enzyme = ""
+  gui_mode = False
+  cy_out_dir = None
+  cy_exe = None
+  cy_session_file = None
   
   try:
-    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:c:ng:f:p:z:e:h:a:v:y:u:d:b:x:",["--in=","--species=","--limit=","--type=","--score=","--mapping=","--output=","--output_cluego=","--significant","--grouping=","--fccutoff=","--pvalcutoff=","--visualize=","leading-term=","--reference-path=","--input_cluego=","--save-session=","--cluego-pval=","--run=","--mods=","--fasta-file=","--enzyme="])
+    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:ng:f:p:z:h:a:y:u:d:b:x:e:c:",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file"])
     for opt, arg in opts:
       if opt in ("-i","--in"):
         cy_in = arg
@@ -2794,17 +2814,13 @@ def main(argv):
       elif opt in ("-m","--mapping"):
         cy_map = arg
       elif opt in ("-o","--output"):
-        cy_out = arg
+        cy_out_dir = arg
       elif opt in ("-d", "--mods"):
         cy_mods = arg
       elif opt in ("-b", "--fasta-file"):
         cy_fasta_file = arg
-      elif opt in ("-c","--output_cluego"):
-        cy_cluego_out = arg
       elif opt in ("-a","--input_cluego"):
         cy_cluego_inp_file = arg
-      elif opt in ("-e","--leading-term"):
-        leading_term_selection = arg
       elif opt in ("-z","--visualize"):
         select_terms = arg
       elif opt in ("-y","--cluego-pval"):
@@ -2813,16 +2829,20 @@ def main(argv):
         cluego_reference_file = arg
       elif opt in ("-g","--grouping"):
         cy_cluego_grouping = arg
-      elif opt in ("-v","--save-session"):
-        cy_session = arg
       elif opt in ("-x","--enzyme"):
         cy_enzyme = arg
+      elif opt in ("--gui",):
+        gui_mode = True
+      elif opt in ("-e","--cytoscape-executable"):
+        cy_exe = arg
+      elif opt in ("-c", "--cytoscape-session-file"):
+        cy_session_file = arg
       else:
         help = True      
-  except getopt.GetoptError:
+  except getopt.GetoptError as e:
     help = True
     
-  if not cy_in or not cy_species or not cy_type:
+  if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe:
     help = True
     
   if help:
@@ -2838,10 +2858,11 @@ def main(argv):
     print("Argument:      -x [--enzyme]: enzyme name")   
     print("Argument:      -d [--mods]: comma separated list of modifications of interest")
     print("Argument:      -b [--fastafile]: path to fasta file")
+    print("Argument:      -e [--cytoscape-executable]: the path to the Cytoscape executable")  
     print("Argument(opt): -u [--run]: choose tools for interactions [Allowed: string, genemania, both; Default: both]")
     print("Argument(opt): -l [--limit]: number of interactors [Default:0, Range:0-100]")
     print("Argument(opt): -r [--score]: interaction confidence score [Default:0.4, Range 0-1]")
-    print("Argument(opt): -a [--inputcluego]: cluego input file in txt format")
+    print("Argument(opt): -a [--inputcluego]: cluego input file in txt format.  Must be provided with the -c, --cytoscape-session-file argument")
     print("Argument(opt): -y [--cluegopval]: cluego terms pvalue [Default: 0.05]")
     print("Argument(opt): -g [--grouping]: cluego grouping [Allowed: global, medium, detailed; Default: medium]")
     print("Argument(opt): -z [--visualize]: cluego analysis type [Allowed: biological process, subcellular location, molecular function, pathways, all; Default: pathways]")
@@ -2849,8 +2870,42 @@ def main(argv):
     print("Argument(opt): -f [--fccutoff]: cutoff for fold change [Default: abs(FC) >= 0.0]")
     print("Argument(opt): -p [--pvalcutoff]: cutoff for p value [Default: pval > 1.0]")
     print("Argument(opt): -n [--significant]: outline statistically significant nodes")  
+    print("Argument(opt): -c [--cytoscape-session-file]: the path to an existing Cytoscape session so that it can be reanalyzed. Must be provided with the -a, --inputcluego argument")
     sys.exit()
-       
+
+  if (not cy_cluego_inp_file and cy_session_file) or (cy_cluego_inp_file and not cy_session_file):
+    eprint("ClueGO input file (-a) and Cytoscape saved session (-c) must be provided together")
+    sys.exit(1)
+
+  if not os.path.isdir(cy_out_dir):
+    eprint("Error: output is not a directory")
+    sys.exit(1)
+
+  timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+
+  # create file names
+  if cy_cluego_inp_file and cy_session_file:
+    cy_out = None
+    cy_cluego_out = None
+    cy_session = cy_session_file
+    logging_file = re.sub(r"\.cys$", "", cy_session) + "-filtered.log"
+    reanalyze_flag = True
+  else:
+    cy_out = os.path.join(cy_out_dir, timestamp + "-merged-input.csv")
+    cy_cluego_out = os.path.join(cy_out_dir, timestamp + "-cluego-pathways.txt")
+    cy_session = os.path.join(cy_out_dir, timestamp + "-pine.cys")
+    logging_file = os.path.join(cy_out_dir, timestamp + "-pine.log")
+    reanalyze_flag = False
+    if gui_mode: # notify gui of the file names
+      print(f"COMMAND FILE-PATHWAYS {cy_cluego_out}")
+      print(f"COMMAND FILE-SESSION {cy_session}")
+
+  # set up logging
+  if gui_mode:
+    logging = setup_logger("cytoscape", logging_file, with_stdout=True)
+  else:
+    logging = setup_logger("cytoscape", logging_file)
+
   if cy_species.lower() == "human":
     tax_id = "9606"
     organism_name = "Homo Sapiens"
@@ -2861,31 +2916,31 @@ def main(argv):
     tax_id = "10116"
     organism_name = "Rattus norvegicus"
   else:
-    print("Error: Species currently supported are human, mouse, rat")
-    sys.exit()
+    eprint("Error: Species currently supported are human, mouse, rat")
+    sys.exit(1)
 
   if not ('\\' in cy_session or "/" in cy_session):
     cwd = os.getcwd()
     cy_session = cwd + "\\" + cy_session
     
   if not ('.cys' in cy_session):
-    print("Error: Cytoscape session file must have a valid name with .cys extension")
-    sys.exit()
+    eprint("Error: Cytoscape session file must have a valid name with .cys extension")
+    sys.exit(1)
   
   if not (float(cluego_pval) >=0.0 and float(cluego_pval) <=1.0):
-    print("Error: Cluego pvalue range must be between 0 to 1")
-    sys.exit()
+    eprint("Error: Cluego pvalue range must be between 0 to 1")
+    sys.exit(1)
   
   allowed_runs = ["string","genemania","both"]
   if cy_run.lower() not in allowed_runs:  
-    print("Error: String run type must be one of the following: " + ','.join(allowed_runs))
-    sys.exit()
+    eprint("Error: String run type must be one of the following: " + ','.join(allowed_runs))
+    sys.exit(1)
     
   # Highest%20Significance, %23Genes%20%2F%20Term, %25Genes%20%2F%20Term, %25Genes%20%2F%20Term%20vs%20Cluster
   allowed_leading_term = ["highest significance", "no. of genes per term", "percent of genes per term", "percent genes per term vs cluster"]
   if leading_term_selection.lower() not in allowed_leading_term:
-    print("Error: ClueGO leading term selection must be one of the following: " + (',').join(allowed_leading_term))
-    sys.exit()
+    eprint("Error: ClueGO leading term selection must be one of the following: " + (',').join(allowed_leading_term))
+    sys.exit(1)
   elif leading_term_selection.lower() == "highest significance":
     leading_term_selection = "Highest%20Significance"
   elif leading_term_selection.lower() == "no. of genes per term":
@@ -2898,8 +2953,8 @@ def main(argv):
   allowed_type = ["singlefc","multifc","nofc","category","singlefc-site","multifc-site"]
   # 1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category
   if cy_type.lower() not in allowed_type:
-    print("Error: Input type must be one of the following: " + (',').join(allowed_type))
-    sys.exit()
+    eprint("Error: Input type must be one of the following: " + (',').join(allowed_type))
+    sys.exit(1)
   elif cy_type.lower() == "singlefc":
     cy_type_num = "1"
   elif cy_type.lower() == "multifc":
@@ -2914,39 +2969,39 @@ def main(argv):
     cy_type_num = "6"
   
   if (cy_ptm_sites and cy_type.lower() == "nofc") or (cy_ptm_sites and cy_type.lower() == "category"):
-    print("Error: PTM visualization only supported along with singlefc or multifc analysis")
-    sys.exit()
+    eprint("Error: PTM visualization only supported along with singlefc or multifc analysis")
+    sys.exit(1)
     
   allowed_selections = ["biological process","subcellular location","molecular function","pathways","all"]
   if select_terms.lower() not in allowed_selections:
-    print("Error: The visualization type must be one of the following: " + (',').join(allowed_selections))
-    sys.exit()
+    eprint("Error: The visualization type must be one of the following: " + (',').join(allowed_selections))
+    sys.exit(1)
   
   try:
     cy_fc_cutoff = float(cy_fc_cutoff)
   except:
-    print("Error: FC cutoff must be a number") 
-    sys.exit()
+    eprint("Error: FC cutoff must be a number") 
+    sys.exit(1)
 
   try:
     cy_pval_cutoff = float(cy_pval_cutoff)
   except:
-    print("Error: PVal cutoff must be a number") 
-    sys.exit()  
+    eprint("Error: PVal cutoff must be a number") 
+    sys.exit(1)
   
   if not (cy_pval_cutoff >= 0.0 and cy_pval_cutoff <= 1.0):
-    print("Error: PVal cutoff must range between 0 and 1")
-    sys.exit()
+    eprint("Error: PVal cutoff must range between 0 and 1")
+    sys.exit(1)
     
   allowed_groups = ["global","medium","detailed"]
   if cy_cluego_grouping.lower() not in allowed_groups:
-    print("Error: Cluego grouping must be one of the following:" + (',').join(allowed_groups))
-    sys.exit()
+    eprint("Error: Cluego grouping must be one of the following:" + (',').join(allowed_groups))
+    sys.exit(1)
     
   cy_score = float(cy_score)*1000
   if not (cy_score >= 0.0 and cy_score <= 1000.0):
-    print("Error: Invalid string score provided. Value must be between 0 to 1; Confidence levels for string score- Low = 0.150, Medium = 0.400, High = 0.700, Highest = 0.900")
-    sys.exit()
+    eprint("Error: Invalid string score provided. Value must be between 0 to 1; Confidence levels for string score- Low = 0.150, Medium = 0.400, High = 0.700, Highest = 0.900")
+    sys.exit(1)
   
   # Rounding off score - ex: 500.9 and above = 501, less = 500
   cy_score_ceil = math.ceil(cy_score)
@@ -2956,19 +3011,53 @@ def main(argv):
     cy_score = math.floor(cy_score)
   
   if not (int(cy_lim) >= 0 and int(cy_lim) <=100):
-    print("Error: Limit on additional interactors is 100. Please choose a number between 0 and 100")
-    sys.exit()
+    eprint("Error: Limit on additional interactors is 100. Please choose a number between 0 and 100")
+    sys.exit(1)
     
   try:
+    # close cytoscape
+    try:
+      r = requests.get("http://localhost:1234/v1/version")
+      session_filename = os.path.join(cy_out_dir, timestamp + "-exited-session.cys") # save current session
+      r = requests.get("http://localhost:1234/v1/commands/session/save%20as?file=" + urllib.parse.quote(session_filename, safe=""))
+      r = requests.get("http://localhost:1234/v1/commands/command/quit")
+      logging.warning("Cytoscape was already open with an existing session.  Saved existing session to: " + session_filename)
+      wait_counter = 0
+      while wait_counter < 120: # give 2 minutes to exit cytoscape
+        try:
+          requests.get("http://localhost:1234/v1/version")
+        except:
+          break
+        time.sleep(5)
+        wait_counter += 5
+    except:
+      pass
+
+    # open cytoscape
+    subprocess.Popen([cy_exe])
+    wait_counter = 0
+    while wait_counter < 120: # give 2 minutes max for cytoscape to open
+      try:
+        r = requests.get("http://localhost:1234/v1/version")
+        test = r.json()
+        break
+      except:
+        time.sleep(5)
+        wait_counter += 5
+
     # Check Cytoscape version
     request = requests.get('http://localhost:1234/v1/version')
     cy_version = request.json()
     if not bool(re.match('^3.7', cy_version['cytoscapeVersion'])):
-      print("Error: Cytoscape version must be 3.7.0 and above")
-      sys.exit()
+      eprint("Error: Cytoscape version must be 3.7.0 and above")
+      sys.exit(1)
     
-    # Start a new session
-    requests.post('http://localhost:1234/v1/commands/session/new')
+    # Start a new session or open existing
+    if reanalyze_flag:
+      r = requests.get('http://localhost:1234/v1/commands/session/open?file=' + urllib.parse.quote(cy_session, safe=""))
+      time.sleep(10)
+    else:
+      requests.post('http://localhost:1234/v1/commands/session/new')
     
     # Apps installed
     request = requests.post('http://localhost:1234/v1/commands/apps/list installed')
@@ -2994,16 +3083,16 @@ def main(argv):
         ver_reactome = app_version
     
     if not app_genemania or not ver_genemania == "3.5.1":
-      print("Error: Cytoscape app GeneMANIA v3.5.1 not installed or not responding properly")
-      sys.exit()
+      eprint("Error: Cytoscape app GeneMANIA v3.5.1 not installed or not responding properly")
+      sys.exit(1)
       
     if not app_cluego or not (ver_cluego == "2.5.4" or ver_cluego == "2.5.5"):
-      print("Error: Cytoscape app ClueGO v2.5.4/v2.5.5 not installed or not responding properly")
-      sys.exit()
+      eprint("Error: Cytoscape app ClueGO v2.5.4/v2.5.5 not installed or not responding properly")
+      sys.exit(1)
     
     if cluego_reference_file and ver_cluego != "2.5.5":
-      print("Error: Using ClueGO custom reference file needs version 2.5.5 of ClueGO")
-      sys.exit()
+      eprint("Error: Using ClueGO custom reference file needs version 2.5.5 of ClueGO")
+      sys.exit(1)
     
     body = dict(offline=True)
     response = requests.post("http://localhost:1234/v1/commands/genemania/organisms", json=body)
@@ -3012,29 +3101,29 @@ def main(argv):
       if tax_id == str(each['taxonomyId']):
         genemania_bool = True
     if not genemania_bool:
-      print("Error: Please install " + cy_species + " dataset in Genemania")
-      sys.exit()
+      eprint("Error: Please install " + cy_species + " dataset in Genemania")
+      sys.exit(1)
     
     if not cy_cluego_inp_file:
       # Check if cluego path exists
       if not cy_map:
-        print("Error: ClueGO mapping file path must be provided")
-        sys.exit()
+        eprint("Error: ClueGO mapping file path must be provided")
+        sys.exit(1)
         
       if not path.exists(cy_map):
-        print("Error: Path to ClueGO mapping file " + cy_map + " does not exist")
-        sys.exit()
+        eprint("Error: Path to ClueGO mapping file " + cy_map + " does not exist")
+        sys.exit(1)
       else:
         if ver_cluego not in cy_map:
-          print("Error: ClueGO version mismatch. Version installed is " + ver_cluego + " and version contained in path to ClueGO mapping file " + cy_map)
-          sys.exit()
+          eprint("Error: ClueGO version mismatch. Version installed is " + ver_cluego + " and version contained in path to ClueGO mapping file " + cy_map)
+          sys.exit(1)
         if organism_name.lower() not in cy_map.lower():
-          print("Error: Species mismatch.  Species parameter provided is " + organism_name + " and species contained in path to ClueGO mapping file is " + cy_map)
-          sys.exit()
+          eprint("Error: Species mismatch.  Species parameter provided is " + organism_name + " and species contained in path to ClueGO mapping file is " + cy_map)
+          sys.exit(1)
     
       if not (".gz" in cy_map or "gene2accession" in cy_map):
-        print("Error: ClueGO mapping file must refer to the species gene2accession gz file")
-        sys.exit()
+        eprint("Error: ClueGO mapping file must refer to the species gene2accession gz file")
+        sys.exit(1)
     
     database_dict = {} 
     mods_list = []
@@ -3056,9 +3145,9 @@ def main(argv):
     
     # Limit query inpt number = 1500
     if len(unique_each_protein_list) > 1500:
-      print("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
+      eprint("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-      sys.exit()
+      sys.exit(1)
      
     #Uniprot API call to get primary gene, synonym
     if cy_debug:
@@ -3094,8 +3183,8 @@ def main(argv):
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-      print("Error: No query for String and Genemania")
-      sys.exit()
+      eprint("Error: No query for String and Genemania")
+      sys.exit(1)
     
     string_filtered_dict = {}
     genemania_filtered_dict = {}
@@ -3133,9 +3222,9 @@ def main(argv):
       logging.debug("\nStep 5: Merge String and Genemania interactions started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
   
     if not string_filtered_dict and not genemania_filtered_dict:
-      print("Error: No interactions found in String and Genemania")
+      eprint("Error: No interactions found in String and Genemania")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-      sys.exit()
+      sys.exit(1)
    
     unique_merged_interactions = []
     unique_nodes = []
@@ -3199,8 +3288,8 @@ def main(argv):
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
   
-    #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    #requests.get("http://localhost:1234/v1/commands/command/quit")
+    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
+    requests.get("http://localhost:1234/v1/commands/command/quit")
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
@@ -3208,11 +3297,14 @@ def main(argv):
     cytoscape_not_open_msg2 = "Remote end closed connection without response"
     cytoscape_not_responding_msg = "Expecting value: line 1 column 1 (char 0)"
     if cytoscape_not_open_msg in str(e) or cytoscape_not_open_msg2 in str(e):
-      print("Error: Cytoscape must be open")
+      eprint("Error: Cytoscape must be open")
+      sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
-      print("Error: Cytoscape not responding. Please restart and wait for it to fully load")
+      eprint("Error: Cytoscape not responding. Please restart and wait for it to fully load")
+      sys.exit(1)
     else:
       traceback.print_exc()
+      sys.exit(1)
       
 if __name__ == "__main__":
   main(sys.argv[1:])
