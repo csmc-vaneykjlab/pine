@@ -27,7 +27,7 @@
         <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway Selection</li>
       </ul>
 
-      <div class="full-section">
+      <div class="full-section wrapper">
 
         <div v-if="current_tab === tabs.PATH_LOCATION">
           <section class="full-section">
@@ -161,7 +161,7 @@
               <div class="align-right" v-if="is_extra_options_required()">
                 <span class="tooltip-parent">
                   Enzyme <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">Which enzyme was used for digestion.</div>
                 </span>
               </div>
               <div v-if="is_extra_options_required()">
@@ -195,7 +195,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Reference file <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">ClueGO custom reference path</div>
                 </span>
               </div>
               <div>
@@ -209,7 +209,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Confidence score <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">Interaction confidence score</div>
                 </span>
               </div>
               <div><input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" /></div>
@@ -217,7 +217,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   ClueGO grouping <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">ClueGO grouping</div>
                 </span>
               </div>
               <div>
@@ -231,7 +231,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   ClueGo p-value <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">ClueGO terms p-value</div>
                 </span>
               </div>
               <div><input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" /></div>
@@ -267,7 +267,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Outline significant <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">Outline statistically significant nodes</div>
                 </span>
               </div>
               <div><input type="checkbox" v-model="input.significant" /></div>
@@ -275,7 +275,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Run <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">Which tool to use for interactions</div>
                 </span>
               </div>
               <div>
@@ -289,7 +289,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Visualize <i class="far fa-question-circle"></i>
-                  <div class="tooltip"></div>
+                  <div class="tooltip">ClueGO analysis type</div>
                 </span>
               </div>
               <div>
@@ -308,7 +308,7 @@
           <section class="run-section">
             <span class="button success-button big" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
             <span class="horizontal-sep"></span>
-            <span class="button success-button big">Reset</span>
+            <span class="button success-button big" v-on:click="set_input_defaults()">Reset</span>
           </section>
         </div>
 
@@ -323,10 +323,15 @@
 
         <div v-if="current_tab === tabs.PATHWAY_SELECTION">
           <div class="full-section">
-            <h4>Pathway selection</h4>
-            <p>Choose a subset of pathways to analyze.</p>
-            <div>
-              Filter: <input type="text" v-model="cluego_pathways.query" />
+            <div class="grid-3-columns">
+              <div class="tooltip-parent">
+                Pathway selection <i class="far fa-question-circle"></i>
+                <div class="tooltip">Choose a subset of pathways to analyze.</div>
+              </div>
+              <div>
+                Filter: <input type="text" v-model="cluego_pathways.query" />
+              </div>
+              <div></div>
             </div>
             <div class="vertical-sep"></div>
             <div class="scroll-table-wrapper">

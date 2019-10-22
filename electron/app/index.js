@@ -91,6 +91,8 @@ let vm = new Vue({
             query: null,
             page: null,
             per_page: null,
+            sources: null,
+            sort: null,
         },
         show_config: false,
         show_about: false,
@@ -166,8 +168,30 @@ let vm = new Vue({
                     that.switchTab(TABS.PATHWAY_SELECTION);
                 } else {
                     that.stdout += "run failed\n";
-                    that.read_cluego_pathways();
-                    //that.reset_session_files();
+                    let res = remote.dialog.showMessageBoxSync({
+                        "type": "warning",
+                        "buttons": [
+                            "Restart",
+                            "Cancel",
+                        ],
+                        "defaultID": 1,
+                        "title": "Run failed",
+                        "message": that.stderr,
+                        "noLink": true,
+                    });
+                    if(res === 0) { // restart
+                        if(that.session_exists()) {
+                            that.run_with_cluego_subset();
+                        } else {
+                            that.run_full();
+                        }
+                    } else { // cancel
+                        if(that.session_exists()) {
+                            that.switchTab(TABS.PATHWAY_SELECTION);
+                        } else {
+                            that.switchTab(TABS.INPUT);
+                        }
+                    }
                 }
             });
         },
@@ -256,7 +280,7 @@ let vm = new Vue({
         },
         runnable: function() {
             if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running) {
-                if(this.allowed_types[this.input.type].er) {
+                if(this.is_extra_options_required()) {
                     if(this.input.mods && this.input.fasta_file && this.input.enzyme) {
                         return true;
                     } else {
@@ -277,6 +301,8 @@ let vm = new Vue({
             this.cluego_pathways.query = "";
             this.cluego_pathways.page = 1;
             this.cluego_pathways.per_page = 5;
+            this.cluego_pathways.sources = [];
+            this.cluego_pathways.sort = null;
         },
         set_input_defaults: function() {
             this.input.type = "";
@@ -309,6 +335,16 @@ let vm = new Vue({
             let line_reader =  readline.createInterface({
                 input: fs.createReadStream(this.session_files.cluego_pathways),
             });
+            let sources = new Set();
+            let source_types = [
+                {"phrase": "biologicalprocess", "name": "Biological Process"},
+                {"phrase": "cellularcomponent", "name": "Cellular Component"},
+                {"phrase": "molecularfunction", "name": "Molecular Function"},
+                {"phrase": "human-diseases", "name": "Pathway (Human Diseases)"},
+                {"phrase": "kegg", "name": "Pathway (KEGG)"},
+                {"phrase": "wikipathways", "name": "Pathway (Wiki Pathways)"},
+                {"phrase": "pathways", "name": "Pathway (Other)"},
+            ];
             line_reader.on("line", function(line) {
                 line = line.replace(/^\s+|\s+$/g, '');
                 let fields = line.split("\t");
@@ -325,7 +361,12 @@ let vm = new Vue({
                     }
                     // don't split genes unless needed
                     // record["data"]["Associated Genes Found"] = record["data"]["Associated Genes Found"].replace(/^\[|\]$/g, '').split("\t");
-                    cluego_pathways.push(record);
+
+                    /* get the ontology source */
+                    let record_source = record["data"]["Ontology Source"].toLowerCase();
+                    for(const st of source_types) {
+                        //record_source.includes();
+                    }
                 }
                 counter += 1;
             });
@@ -575,7 +616,9 @@ let vm = new Vue({
             this.cluego_pathways.page = next_page;
         },
         is_extra_options_required: function() {
-            console.log(this.allowed_types[this.input.type].er);
+            if(!(this.input.type in this.allowed_types)) {
+                return false;
+            }
             return this.allowed_types[this.input.type].er;
         },
     },
@@ -584,6 +627,11 @@ let vm = new Vue({
         this.set_input_defaults();
         this.loadSession();
         this.searchForPaths();
+
+        this.session_files.cytoscape_session = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191022T145051-pine.cys"; // DEBUG:
+        this.session_files.cluego_pathways = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191022T145051-cluego-pathways.txt"; // DEBUG:
+        this.read_cluego_pathways();
+        this.switchTab(TABS.PATHWAY_SELECTION); // DEBUG:
     },
     filters: {
         filename: function(v) {

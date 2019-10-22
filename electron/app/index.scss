@@ -13,15 +13,19 @@ $color-light: #F8F4E3;
     margin-bottom: 1rem;
     padding: 1rem;
     border: 1px solid $color-dark;
-    //border-radius: 5px;
-
 }
+
+.full-section.wrapper {
+    height: 475px;
+    overflow-y: auto;
+}
+
 h1,h2,h3,h4,h5,h6.full-section-header {
         margin-top: 0.1rem;
         margin-bottom: 0.1rem;
         margin-left: 1rem;
         margin-right: 1rem;
-    }
+}
 
 .run-section {
     margin: 1rem;
@@ -88,6 +92,11 @@ input.file-button {
     grid-template-columns: 1fr 1fr;
 }
 
+.grid-3-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
 .vertical-sep {
     height: 2rem;
 }
@@ -127,6 +136,7 @@ input.file-button {
 
 .pathway-picker {
     border-spacing: 0;
+    width: 100%;
 
     td,th {
         padding: 0.5rem 0.25rem;
