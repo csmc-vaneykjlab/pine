@@ -74,7 +74,7 @@ let vm = new Vue({
             header: [],
             query: "",
             page: 1,
-            per_page: 10,
+            per_page: 5,
         },
         show_config: false,
     },
@@ -105,7 +105,7 @@ let vm = new Vue({
             }
 
             this.switchTab(TABS.PROGRESS);
-            this.stdout = "";
+            this.stdout = "Starting PINE analysis...\n\n";
             this.stderr = "";
             this.reset_cluego_pathways();
 
@@ -253,7 +253,7 @@ let vm = new Vue({
             this.cluego_pathways.header = [];
             this.cluego_pathways.query = "";
             this.cluego_pathways.page = 1;
-            this.cluego_pathways.per_page = 10;
+            this.cluego_pathways.per_page = 5;
         },
         read_cluego_pathways: function() {
             var that = this;
@@ -499,8 +499,10 @@ let vm = new Vue({
             this.input.cytoscape_path = cy_path;
         },
         openGeneratedFile: function() {
-            let cytoscape_file = path.join(this.input.output, "PINE.cys");
-            shell.openItem(cytoscape_file);
+            if(!fs.existsSync(this.session_files.cytoscape_session) || !fs.statSync(this.session_files.cytoscape_session).isFile()) {
+                return;
+            }
+            shell.openItem(this.session_files.cytoscape_session);
         },
         tabReachable: function(tab_name) {
             switch(tab_name) {
@@ -520,6 +522,9 @@ let vm = new Vue({
                 this.current_tab = tab_name;
             }
         },
+        run_disabled: function() {
+            return this.running || this.session_files.cytoscape_session;
+        },
         change_cluego_pathways_page: function(next_page) {
             if(next_page < 1) {
                 return;
@@ -536,7 +541,11 @@ let vm = new Vue({
     },
     filters: {
         filename: function(v) {
-            return path.basename(v);
+            let basename = path.basename(v);
+            if(basename.length > 10) {
+                return basename.slice(0, 7) + "...";
+            }
+            return basename;
         },
         roundString: function(v, places) {
             const n = Number(v);

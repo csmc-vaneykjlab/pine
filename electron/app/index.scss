@@ -36,6 +36,7 @@ input.file-button {
     padding: 0.25rem 0.75rem;
     border-radius: 5px;
     display: inline-block;
+    font-size: 0.75rem;
 
     &.disabled {
         background-color: desaturate($color1, 50%);
@@ -50,8 +51,22 @@ input.file-button {
 
 .grid-options {
     display: grid;
-    grid-template-columns: 200px 250px auto;
+    grid-template-columns: 2fr 3fr 1fr 2fr 3fr;
+    column-gap: 0.5rem;
     row-gap: 1rem;
+
+    input[type=number],input[type=text],select {
+        width: 80%;
+        border-width: 1px;
+        padding: 0;
+    }
+}
+
+.grid-config-options {
+    display: grid;
+    grid-template-columns: 2fr 3fr auto;
+    row-gap: 1rem;
+    column-gap: 0.5rem;
 }
 
 .grid-additional-options {
@@ -61,8 +76,17 @@ input.file-button {
     column-gap: 0.5rem;
 }
 
+.grid-pathways-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
 .vertical-sep {
     height: 2rem;
+}
+
+.vertical-sep-small {
+    height: 1rem;
 }
 
 .horizontal-sep {
@@ -71,6 +95,11 @@ input.file-button {
 
 .align-right {
     text-align: right;
+}
+
+.box-children-right {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .clickable {
@@ -161,4 +190,18 @@ ul.tab-selector {
     font-size: 1rem;
     max-width: 200px;
     text-align: left;
+}
+
+.text-small {
+    font-size: 0.75rem;
+}
+
+.log-stdout {
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.log-stderr {
+    font-size: 1.5rem;
+    color: $color2;
 }
