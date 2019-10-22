@@ -26,32 +26,48 @@ const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
 let vm = new Vue({
     el: "#app",
     data: {
-        allowed_types: {"noFC": "No fold change", "singleFC": "Single fold change", "multiFC": "Multi fold change", "category": "Category"},
+        allowed_types: {
+            "noFC": {"text": "No fold change", "er": false}, // er - extra required - extra fields need to be shown and submitted by the user
+            "singleFC": {"text": "Single fold change", "er": false},
+            "multiFC": {"text": "Multi fold change", "er": false},
+            "category": {"text": "Category", "er": false},
+            "singleFC-site": {"text": "Single fold change site", "er": true},
+            "multiFC-site": {"text": "Multi fold change site", "er": true},
+        },
         species_map: {"homo sapiens": "human", "mus musculus": "mouse", "rattus norvegicus": "rat"},
         allowed_runs: ["string", "genemania", "both"],
-        allowed_leading_terms: ["highest significance", "no. of genes per term", "percent of genes per term", "percent genes per term vs cluster"],
         allowed_visualize: ["biological process","subcellular location","molecular function","pathways","all"],
         allowed_grouping: ["global", "medium", "detailed"],
+        allowed_enzymes: {
+            "trypsin": "Trypsin",
+            "trypsin_p": "Trypsin P",
+            "lys_n": "Lysine N-terminus",
+            "lys_c": "Lysine C-terminus",
+            "asp_n": "Asparagine N-terminus",
+            "arg_n": "Arginine N-terminus",
+            "chymotrypsin": "Chymotrypsin",
+        },
 
         input: {
             cytoscape_path: "",
             cluego_base_path: "",
             in: "",
             output: "",
-            type: "",
-            species: "",
-            limit: 0,
-            score: 0.4,
-            significant: false,
-            run: "both",
-            fccutoff: 0.0,
-            pvalcutoff: 1.0,
-            leading_term: "no. of genes per term",
-            visualize: "pathways",
-            cluego_pval: 0.05,
-            reference_path: "",
-            grouping: "medium",
-            debug: false,
+            type: null,
+            species: null,
+            limit: null,
+            score: null,
+            significant: null,
+            run: null,
+            fccutoff: null,
+            pvalcutoff: null,
+            visualize: null,
+            cluego_pval: null,
+            reference_path: null,
+            grouping: null,
+            enzyme: null,
+            fasta_file: null,
+            mods: null,
         },
         automatic_input: { // for messaging the user that the paths were found automatically
             cytoscape_path: false,
@@ -70,13 +86,14 @@ let vm = new Vue({
         cluego_versions: null,
         cluego_picked_version: null,
         cluego_pathways: {
-            data: [],
-            header: [],
-            query: "",
-            page: 1,
-            per_page: 5,
+            data: null,
+            header: null,
+            query: null,
+            page: null,
+            per_page: null,
         },
         show_config: false,
+        show_about: false,
     },
     methods: {
         run: async function(args) {
@@ -110,11 +127,6 @@ let vm = new Vue({
             this.reset_cluego_pathways();
 
             this.saveSession();
-
-            //this.running = false; // DEBUG:
-            //this.read_cluego_pathways(); // DEBUG:
-            //this.current_tab = TABS.PATHWAY_SELECTION; // DEBUG:
-            //return; // DEBUG:
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
@@ -231,6 +243,9 @@ let vm = new Vue({
                 "--reference-path", this.input.reference_path,
                 "--grouping", this.input.grouping,
                 "--cytoscape-executable", this.input.cytoscape_path,
+                "--enzyme", this.input.enzyme,
+                "--fasta-file", this.input.fasta_file,
+                "--mods", this.input.mods,
                 "--gui",
             ];
             if(this.significant) {
@@ -241,7 +256,15 @@ let vm = new Vue({
         },
         runnable: function() {
             if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running) {
-                return true;
+                if(this.allowed_types[this.input.type].er) {
+                    if(this.input.mods && this.input.fasta_file && this.input.enzyme) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return true;
+                }
             }
             return false;
         },
@@ -254,6 +277,23 @@ let vm = new Vue({
             this.cluego_pathways.query = "";
             this.cluego_pathways.page = 1;
             this.cluego_pathways.per_page = 5;
+        },
+        set_input_defaults: function() {
+            this.input.type = "";
+            this.input.species = "";
+            this.input.limit = 0;
+            this.input.score = 0.4;
+            this.input.significant = false;
+            this.input.run = "both";
+            this.input.fccutoff = 0.0;
+            this.input.pvalcutoff = 1.0;
+            this.input.visualize = "pathways";
+            this.input.cluego_pval = 0.05;
+            this.input.reference_path = "";
+            this.input.grouping = "medium";
+            this.input.enzyme = "trypsin";
+            this.input.fasta_file = "";
+            this.input.mods = "S,T,Y";
         },
         read_cluego_pathways: function() {
             var that = this;
@@ -534,8 +574,14 @@ let vm = new Vue({
             }
             this.cluego_pathways.page = next_page;
         },
+        is_extra_options_required: function() {
+            console.log(this.allowed_types[this.input.type].er);
+            return this.allowed_types[this.input.type].er;
+        },
     },
     mounted: function() {
+        this.reset_cluego_pathways();
+        this.set_input_defaults();
         this.loadSession();
         this.searchForPaths();
     },

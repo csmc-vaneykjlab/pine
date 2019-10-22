@@ -3,10 +3,24 @@
   <head>
     <meta charset="UTF-8">
     <title>PINE</title>
-    <link href="./index.css" rel="stylesheet" type="text/css" />
+    <link href="./css/index.css" rel="stylesheet" type="text/css" />
+    <link href="./css/fontawesome-free-5.11.2-web/css/all.min.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
     <div id="app">
+      <div class="overlay" v-show="show_about">
+        <div class="box-children-center-center">
+          <div class="about-box">
+            <h4>PINE - Protein Interaction Network Extractor</h4>
+            <p>Developed at Cedars-Sinai</p>
+            <hr/>
+            <div>
+              <span class="button" v-on:click="() => show_about = false">Close</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <ul class="tab-selector">
         <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Settings</li>
         <li v-on:click="switchTab(tabs.PROGRESS)" v-bind:class="{'disabled': !tabReachable(tabs.PROGRESS), 'active': current_tab === tabs.PROGRESS}">Log</li>
@@ -33,10 +47,17 @@
         <div v-if="current_tab === tabs.INPUT">
 
           <h4 class="full-section-header">
-            Configuration
-            <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config">&#x2795;</span>
-            <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config">&#x2796;</span>
-            <span class="small-info">{{ configuration_message }}</span>
+            <div class="grid-2-columns">
+              <div>
+                Configuration
+                <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config"><i class="fas fa-plus-circle"></i></span>
+                <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config"><i class="fas fa-minus-circle"></i></span>
+                <span class="small-info">{{ configuration_message }}</span>
+              </div>
+              <div class="box-children-right">
+                <span class="button" v-on:click="() => show_about = true"><i class="fas fa-info"></i></span>
+              </div>
+            </div>
           </h4>
           <div class="full-section" v-show="show_config">
 
@@ -71,7 +92,12 @@
           <div class="full-section">
             <div class="grid-options">
 
-              <div class="align-right">Input file</div>
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Input file <i class="far fa-question-circle"></i>
+                  <div class="tooltip">Input file in CSV format</div>
+                </span>
+              </div>
               <div>
                 <label class="button success-button" for="file-button-input">Select file</label>
                 <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" />
@@ -82,7 +108,7 @@
 
               <div class="align-right">
                 <span class="tooltip-parent">
-                  Species
+                  Species <i class="far fa-question-circle"></i>
                   <div class="tooltip">We currently only support mouse, human and rat.  Mouse and human are supported by default in ClueGO but rat needs to be downloaded manually.</div>
                 </span>
               </div>
@@ -92,7 +118,12 @@
                 </select>
               </div>
 
-              <div class="align-right">Output directory</div>
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Output directory <i class="far fa-question-circle"></i>
+                  <div class="tooltip">The directory where your files will be saved.</div>
+                </span>
+              </div>
               <div>
                 <label class="button success-button" for="file-button-output">Select directory</label>
                 <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory />
@@ -101,12 +132,58 @@
 
               <div></div>
 
-              <div class="align-right">Type</div>
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Type <i class="far fa-question-circle"></i>
+                  <div class="tooltip">Input type</div>
+                </span>
+              </div>
               <div>
                 <select v-model="input.type">
-                  <option v-for="(val, key) in allowed_types" v-bind:value="key">{{ val }}</option>
+                  <option v-for="(val, key) in allowed_types" v-bind:value="key">{{ val.text }}</option>
                 </select>
               </div>
+
+              <div v-if="is_extra_options_required()" class="align-right">
+                <span class="tooltip-parent">
+                  Fasta file <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div v-if="is_extra_options_required()">
+                <label class="button success-button" for="file-button-output">Select file</label>
+                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'fasta_file')" />
+                <span class="text-small" v-show="input.fasta_file">{{ input.fasta_file | filename }}</span>
+              </div>
+
+              <div v-if="is_extra_options_required()"></div>
+
+              <div class="align-right" v-if="is_extra_options_required()">
+                <span class="tooltip-parent">
+                  Enzyme <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div v-if="is_extra_options_required()">
+                <select v-model="input.enzyme">
+                  <option v-for="(val, key) in allowed_enzymes" v-bind:value="key">{{ val }}</option>
+                </select>
+              </div>
+
+              <div v-if="is_extra_options_required()"></div>
+              <div v-if="is_extra_options_required()"></div>
+              <div v-if="is_extra_options_required()"></div>
+
+              <div class="align-right" v-if="is_extra_options_required()">
+                <span class="tooltip-parent">
+                  Modifications <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div v-if="is_extra_options_required()">
+                <input type="text" v-model="input.mods" />
+              </div>
+
             </div>
           </div>
 
@@ -117,66 +194,10 @@
 
               <div class="align-right">
                 <span class="tooltip-parent">
-                Term
-                <div class="tooltip">ClueGO leading term selection criteria</div>
+                  Reference file <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
                 </span>
               </div>
-              <div>
-                <select v-model="input.leading_term">
-                  <option v-for="at in allowed_leading_terms" v-bind:value="at">{{ at }}</option>
-                </select>
-              </div>
-
-              <div></div>
-
-              <div class="align-right">Confidence score</div>
-              <div><input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" /></div>
-
-              <div class="align-right">ClueGO grouping</div>
-              <div>
-                <select v-model="input.grouping">
-                  <option v-for="acg in allowed_grouping" v-bind:value="acg">{{ acg }}</option>
-                </select>
-              </div>
-
-              <div></div>
-
-              <div class="align-right">ClueGo p-value</div>
-              <div><input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" /></div>
-
-              <div class="align-right"># of interactors</div>
-              <div><input type="number" step="1" min="0" max="100" v-model="input.limit" /></div>
-
-              <div></div>
-
-              <div class="align-right">Fold change cutoff</div>
-              <div><input type="number" step="0.01" min="0" v-model="input.fccutoff" /></div>
-
-              <div class="align-right">P-value cutoff</div>
-              <div><input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" /></div>
-
-              <div></div>
-
-              <div class="align-right">Outline significant</div>
-              <div><input type="checkbox" v-model="input.significant" /></div>
-
-              <div class="align-right">Run</div>
-              <div>
-                <select v-model="input.run">
-                  <option v-for="ar in allowed_runs" v-bind:value="ar">{{ ar }}</option>
-                </select>
-              </div>
-
-              <div></div>
-
-              <div class="align-right">Visualize</div>
-              <div>
-                <select v-model="input.visualize">
-                  <option v-for="av in allowed_visualize" v-bind:value="av">{{ av }}</option>
-                </select>
-              </div>
-
-              <div class="align-right">Reference file</div>
               <div>
                 <label class="button success-button" for="file-button-reference">Select file</label>
                 <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" />
@@ -185,17 +206,109 @@
 
               <div></div>
 
-              <div class="align-right">Debug mode</div>
-              <div><input type="checkbox" v-model="input.debug" /></div>
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Confidence score <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div><input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" /></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  ClueGO grouping <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div>
+                <select v-model="input.grouping">
+                  <option v-for="acg in allowed_grouping" v-bind:value="acg">{{ acg }}</option>
+                </select>
+              </div>
+
+              <div></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  ClueGo p-value <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div><input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" /></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  # of interactors <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div><input type="number" step="1" min="0" max="100" v-model="input.limit" /></div>
+
+              <div></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Fold change cutoff <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div><input type="number" step="0.01" min="0" v-model="input.fccutoff" /></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  P-value cutoff <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div><input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" /></div>
+
+              <div></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Outline significant <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div><input type="checkbox" v-model="input.significant" /></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Run <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div>
+                <select v-model="input.run">
+                  <option v-for="ar in allowed_runs" v-bind:value="ar">{{ ar }}</option>
+                </select>
+              </div>
+
+              <div></div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
+                  Visualize <i class="far fa-question-circle"></i>
+                  <div class="tooltip"></div>
+                </span>
+              </div>
+              <div>
+                <select v-model="input.visualize">
+                  <option v-for="av in allowed_visualize" v-bind:value="av">{{ av }}</option>
+                </select>
+              </div>
+
+              <div></div>
+              <div></div>
 
             </div>
           </div>
 
 
           <section class="run-section">
-            <span class="button success-button" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
+            <span class="button success-button big" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
             <span class="horizontal-sep"></span>
-            <span class="button success-button">Reset</span>
+            <span class="button success-button big">Reset</span>
           </section>
         </div>
 
@@ -243,7 +356,7 @@
               </table>
             </div>
             <div class="vertical-sep"></div>
-            <div class="grid-pathways-actions">
+            <div class="grid-2-columns">
               <div>
                 <div>
                   <div class="button" v-bind:class="{disabled: cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">&lt;</div>

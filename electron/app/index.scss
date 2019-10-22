@@ -20,6 +20,7 @@ h1,h2,h3,h4,h5,h6.full-section-header {
         margin-top: 0.1rem;
         margin-bottom: 0.1rem;
         margin-left: 1rem;
+        margin-right: 1rem;
     }
 
 .run-section {
@@ -34,24 +35,30 @@ input.file-button {
 .button {
     cursor: pointer;
     padding: 0.25rem 0.75rem;
-    border-radius: 5px;
+    border-radius: 3px;
     display: inline-block;
     font-size: 0.75rem;
+    border: solid $color-dark 1px;
 
-    &.disabled {
+    &.disabled.disabled {
         background-color: desaturate($color1, 50%);
         cursor: not-allowed;
     }
-}
 
-.success-button {
-    background-color: $color1;
-    color: $color-light;
+    &.big {
+        font-size: 1rem;
+    }
+
+    &.success-button {
+        background-color: $color1;
+        color: $color-light;
+        border-width: 0;
+    }
 }
 
 .grid-options {
     display: grid;
-    grid-template-columns: 2fr 3fr 1fr 2fr 3fr;
+    grid-template-columns: 3fr 4fr 1fr 3fr 4fr;
     column-gap: 0.5rem;
     row-gap: 1rem;
 
@@ -76,7 +83,7 @@ input.file-button {
     column-gap: 0.5rem;
 }
 
-.grid-pathways-actions {
+.grid-2-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
 }
@@ -100,6 +107,14 @@ input.file-button {
 .box-children-right {
     display: flex;
     justify-content: flex-end;
+}
+
+.box-children-center-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
 }
 
 .clickable {
@@ -172,10 +187,6 @@ ul.tab-selector {
     cursor: help;
 }
 
-.tooltip-parent:after {
-    content: "❔";
-}
-
 .tooltip-parent:hover .tooltip {
     display: block;
 }
@@ -204,4 +215,23 @@ ul.tab-selector {
 .log-stderr {
     font-size: 1.5rem;
     color: $color2;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: rgba(169,169,169,0.5);
+    height: 100%;
+    width: 100%;
+    z-index: 1000;
+}
+
+.about-box {
+    background-color: white;
+    padding: 2rem;
+    top: 0;
+    left: 0;
+    margin: 0 auto;
+    display: inline-block;
 }
