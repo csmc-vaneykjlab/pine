@@ -2615,7 +2615,6 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   response = requests.put("http://localhost:1234/v1/styles/GAL_Style3/dependencies", json=data)
   
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
-  return # DEBUG:
   if cy_debug:
     logging.handlers = []
     if path.exists("Cytoscape.log"):
