@@ -1980,7 +1980,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     "Site":"ELLIPSE",
     "Gene":"ROUND_RECTANGLE"
   }
-  my_style.create_discrete_mapping(column='query', col_type='Double', vp='NODE_SHAPE', mappings=shape_kv_pair)
+  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
   if type == "5":
     label_color_kv_pair = {
         "Function":"#FFFFFF",
@@ -2003,7 +2003,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_ambigious_data,max_FC_len)
+    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_ambigious_data,max_FC_len, uniprot_list)
     if pval_style:
       pval_sig = 1
     
@@ -2111,7 +2111,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len)
+    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list)
     if pval_style:
       pval_sig = 1
     
@@ -2311,21 +2311,32 @@ def singleFC(my_style, uniprot_list):
   my_style.create_continuous_mapping(column='FC1',vp='NODE_FILL_COLOR',col_type='Double',points=points1)
   return(my_style)
   
-def multipleFC(my_style,FC_exists,query,func,name,max_FC_len):
+def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list):
   '''
   Styling specific to multipleFC case
   '''
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
   bar_columns = ""
   color_columns = ""
+  min_fc = 0
+  max_fc = 0
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
+    if i == 1:
+      min_fc = min(uniprot_list[term_FC])
+      max_fc = max(uniprot_list[term_FC])
+    else:
+      if min(uniprot_list[term_FC]) < min_fc:
+        min_fc = min(uniprot_list[term_FC])
+      if max(uniprot_list[term_FC]) > max_fc:
+        max_fc = max(uniprot_list[term_FC])
     bar_columns = bar_columns + '\"' + term_FC + '\"' + ","
     color_columns = color_columns + '\"' + color_code[i-1] + '\"' + ","
   bar_columns = bar_columns[:-1]
   color_columns = color_columns[:-1]
-  
-  value = "org.cytoscape.BarChart:{" + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]}"
+ 
+  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]}"
+
   kv_pair = {
     "1":value
   }
@@ -2783,7 +2794,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       pval_sig = 1
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len)
+    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len, uniprot_list)
 
     if pval_style:
       pval_sig = 1
@@ -2856,7 +2867,6 @@ def main(argv):
   gui_mode = False
   cy_out_dir = None
   cy_exe = None
-  cy_session_file = None
   
   try:
     opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:ng:f:p:z:h:a:y:u:d:b:x:e:c:",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file="])
@@ -2903,8 +2913,6 @@ def main(argv):
         gui_mode = True
       elif opt in ("-e","--cytoscape-executable"):
         cy_exe = arg
-      elif opt in ("-c", "--cytoscape-session-file"):
-        cy_session_file = arg
       else:
         help = True      
   except getopt.GetoptError as e:
@@ -2937,41 +2945,39 @@ def main(argv):
     print("Argument(opt): -f [--fccutoff]: cutoff for fold change [Default: abs(FC) >= 0.0]")
     print("Argument(opt): -p [--pvalcutoff]: cutoff for p value [Default: pval > 1.0]")
     print("Argument(opt): -n [--significant]: outline statistically significant nodes")  
-    print("Argument(opt): -c [--cytoscape-session-file]: the path to an existing Cytoscape session so that it can be reanalyzed. Must be provided with the -a, --inputcluego argument")
     sys.exit()
-
-  if (not cy_cluego_inp_file and cy_session_file) or (cy_cluego_inp_file and not cy_session_file):
-    eprint("ClueGO input file (-a) and Cytoscape saved session (-c) must be provided together")
-    sys.exit(1)
 
   if not os.path.isdir(cy_out_dir):
     eprint("Error: output is not a directory")
     sys.exit(1)
-
+  
   timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-
+  
   # create file names
-  if cy_cluego_inp_file and cy_session_file:
+  if cy_cluego_inp_file:
     cy_out = None
     cy_cluego_out = None
-    cy_session = cy_session_file
-    logging_file = re.sub(r"\.cys$", "", cy_session) + "-filtered.log"
+    path_to_cluego = (os.path.abspath(cy_cluego_inp_file))
+    session_name = path_to_cluego.split(".")[0]
+    cy_session = session_name + ".cys"
+    logging_file = session_name + ".log"
     reanalyze_flag = True
-  else:
-    cy_out = os.path.join(cy_out_dir, timestamp + "-merged-input.csv")
-    cy_cluego_out = os.path.join(cy_out_dir, timestamp + "-cluego-pathways.txt")
-    cy_session = os.path.join(cy_out_dir, timestamp + "-pine.cys")
-    logging_file = os.path.join(cy_out_dir, timestamp + "-pine.log")
+  else:  
+    path_to_new_dir = os.path.join(os.path.abspath(cy_out_dir), timestamp)  
+    os.mkdir(path_to_new_dir) 
+    cy_out = os.path.join(path_to_new_dir, "Interactions.csv")
+    cy_cluego_out = os.path.join(path_to_new_dir, "PINE.cluego.txt")
+    cy_session = os.path.join(path_to_new_dir, "PINE.cys")
+    logging_file = os.path.join(path_to_new_dir, "PINE.log")
     reanalyze_flag = False
-    if gui_mode: # notify gui of the file names
-      print(f"COMMAND FILE-PATHWAYS {cy_cluego_out}")
-      print(f"COMMAND FILE-SESSION {cy_session}")
+    if gui_mode: # notify gui of the output directory
+      print(f"COMMAND FILE-SESSION {path_to_new_dir}")
 
   # set up logging
   if gui_mode:
-    logging = setup_logger("cytoscape", logging_file, with_stdout=True)
+    logging = setup_logger("PINE", logging_file, with_stdout=True)
   else:
-    logging = setup_logger("cytoscape", logging_file)
+    logging = setup_logger("PINE", logging_file)
 
   if cy_species.lower() == "human":
     tax_id = "9606"
@@ -3119,12 +3125,8 @@ def main(argv):
       eprint("Error: Cytoscape version must be 3.7.0 and above")
       sys.exit(1)
     
-    # Start a new session or open existing
-    if reanalyze_flag:
-      r = requests.get('http://localhost:1234/v1/commands/session/open?file=' + urllib.parse.quote(cy_session, safe=""))
-      time.sleep(10)
-    else:
-      requests.post('http://localhost:1234/v1/commands/session/new')
+    # Start a new session 
+    requests.post('http://localhost:1234/v1/commands/session/new')
     
     # Apps installed
     request = requests.post('http://localhost:1234/v1/commands/apps/list installed')
@@ -3354,7 +3356,7 @@ def main(argv):
     
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-  
+    print(cy_session)
     requests.post("http://localhost:1234/v1/session?file=" + cy_session)
     requests.get("http://localhost:1234/v1/commands/command/quit")
     
