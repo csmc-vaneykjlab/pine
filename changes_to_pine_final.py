@@ -149,7 +149,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
-    Types:1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category; 5=singlefc-site; 6=multifc-site
+    Types:1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category; 5=singlefc-ptm; 6=multifc-ptm
     '''
     input_file = csv.reader(csv_file, delimiter=',')
     line_count = 0
@@ -1976,14 +1976,34 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   slash_delim = chr(92)
   
   shape_kv_pair = {
-    "-1":"ELLIPSE",
-    "1":"DIAMOND",
-    "0":"DIAMOND"
+    "Function":"OCTAGON",
+    "Site":"ELLIPSE",
+    "Gene":"ROUND_RECTANGLE"
   }
-  my_style.create_discrete_mapping(column='FC_exists', col_type='Double', vp='NODE_SHAPE', mappings=shape_kv_pair)
+  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
+  if type == "5":
+    label_color_kv_pair = {
+        "Function":"#FFFFFF",
+        "Gene":"#FFFFFF",
+        "Site":"#000000"
+    }
+  else:
+    label_color_kv_pair = {
+        "Function":"#FFFFFF",
+        "Gene":"#000000",
+        "Site":"#000000"
+    }
+  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
+  
+  width_kv_pair = {
+    "Function":"210",
+    "Gene":"70",
+    "Site":"60"
+  }
+  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_ambigious_data,max_FC_len)
+    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_ambigious_data,max_FC_len, uniprot_list)
     if pval_style:
       pval_sig = 1
     
@@ -2091,7 +2111,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len)
+    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list)
     if pval_style:
       pval_sig = 1
     
@@ -2183,7 +2203,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
   
   shape_kv_pair = {
-    "Function":"ELLIPSE",
+    "Function":"OCTAGON",
     "Gene":"ROUND_RECTANGLE",
   }
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
@@ -2291,21 +2311,32 @@ def singleFC(my_style, uniprot_list):
   my_style.create_continuous_mapping(column='FC1',vp='NODE_FILL_COLOR',col_type='Double',points=points1)
   return(my_style)
   
-def multipleFC(my_style,FC_exists,query,func,name,max_FC_len):
+def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list):
   '''
   Styling specific to multipleFC case
   '''
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
   bar_columns = ""
   color_columns = ""
+  min_fc = 0
+  max_fc = 0
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
+    if i == 1:
+      min_fc = min(uniprot_list[term_FC])
+      max_fc = max(uniprot_list[term_FC])
+    else:
+      if min(uniprot_list[term_FC]) < min_fc:
+        min_fc = min(uniprot_list[term_FC])
+      if max(uniprot_list[term_FC]) > max_fc:
+        max_fc = max(uniprot_list[term_FC])
     bar_columns = bar_columns + '\"' + term_FC + '\"' + ","
     color_columns = color_columns + '\"' + color_code[i-1] + '\"' + ","
   bar_columns = bar_columns[:-1]
   color_columns = color_columns[:-1]
-  
-  value = "org.cytoscape.BarChart:{" + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]}"
+ 
+  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]}"
+
   kv_pair = {
     "1":value
   }
@@ -2470,6 +2501,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   query_val_noFC = []
   count_each = 0
   all_interactions = []
+  function_fc_val = {}
   
   category_present = 0
   for each in each_category:
@@ -2545,13 +2577,27 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
             val_pos_or_neg += 1
           elif FC_val_each_gene < 0:
             val_pos_or_neg -= 1
-              
+      
+      check_if_function = [each, each_gene]
+      check_if_gene = [each_gene, each]
+      for each_check_func,each_check_gene in zip(check_if_function,check_if_gene):
+        if each_check_func in function_only:
+          val_to_add = 0
+          if each_check_gene.lower() in fc_merged_vertex:
+            if fc_merged_vertex[each_check_gene.lower()] >= 0:
+              val_to_add += 1
+            else:
+              val_to_add += -1
+            if each_check_func in function_fc_val:
+              function_fc_val[each_check_func] += val_to_add
+            else:
+              function_fc_val.update({each_check_func:val_to_add})      
       name_edge = each + " with " + each_gene
       G.add_edge(each,each_gene,name=name_edge)
       all_interactions.append(name_edge)
       
     pos_or_neg_func_value.update({each:val_pos_or_neg})
-
+ 
   G.vs
   G.vs["query"] = query
   G.vs["name"] = merged_vertex
@@ -2599,7 +2645,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   if type == "5" or type == "6":
     search_list_for_fc = [a.lower() for a in uniprot_list["site"]]
     print(search_list_for_fc)
-    print(merged_vertex)
+    print(fc_merged_vertex)
   else:
     search_list_for_fc = uniprot_list["name"]
   for i in range(1,max_FC_len+1):
@@ -2632,21 +2678,41 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           elif add_term_value < 0:
             add_term_value = -100
           add_term_FC.append(add_term_value)
+        
+            
+        elif type == "5":
+          if each_vertex_name.lower() in fc_merged_vertex:
+            if float(fc_merged_vertex[each_vertex_name.lower()]) >= 0:
+              add_term_FC.append(100)
+            else:
+              add_term_FC.append(-100)
+          
+          elif each_vertex_name in function_only:
+            if float(function_fc_val[each_vertex_name]) >= 0:
+              add_term_FC.append(100)
+            else:
+              add_term_FC.append(-100)
+            
+          else:
+            add_term_FC.append(0.0)
+ 
         else:
           add_term_FC.append(0.0)
+          
         add_term_pval.append("NA")
         significant_val.append("NA")
         
         if fc_exists_count == 0:
-          FC_exists.append(0.0)
-  
+          FC_exists.append(0.0)    
+             
       k+=1
     fc_exists_count+=1
-  
+
     G.vs[term_FC] = add_term_FC
     G.vs[term_pval] = add_term_pval
     G.vs["significant"] = significant_val
     G.vs["FC_exists"] = FC_exists
+    
   if max_FC_len == 0 and not category_present:
     G.vs["query_val"] = query_val_noFC
   
@@ -2668,9 +2734,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
   
   shape_kv_pair = {
-    "Function":"ELLIPSE",
+    "Function":"OCTAGON",
     "Gene":"ROUND_RECTANGLE",
-    "Site":"DIAMOND"
+    "Site":"ELLIPSE"
   }
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
   height_kv_pair = {
@@ -2678,16 +2744,30 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     "Gene":"30",
     "Site":"30"
   }
-  width_kv_pair = {
-    "Function":"210",
-    "Gene":"60",
-    "Site":"60"
-  }
-  label_color_kv_pair = {
-    "Function":"#FFFFFF",
-    "Gene":"#000000",
-    "Site":"#000000"
-  }
+  if type == "5" or type == "6":
+    width_kv_pair = {
+      "Function":"210",
+      "Gene":"70",
+      "Site":"60"
+    }
+  else:
+    width_kv_pair = {
+      "Function":"210",
+      "Gene":"60",
+      "Site":"60"
+    }
+  if type == "5":
+    label_color_kv_pair = {
+      "Function":"#FFFFFF",
+      "Gene":"#FFFFFF",
+      "Site":"#000000"
+    }
+  else:
+    label_color_kv_pair = {
+      "Function":"#FFFFFF",
+      "Gene":"#000000",
+      "Site":"#000000"
+    }
   node_label_size =  [
     {
       "value": "2",
@@ -2714,7 +2794,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       pval_sig = 1
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len)
+    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len, uniprot_list)
 
     if pval_style:
       pval_sig = 1
@@ -2787,10 +2867,9 @@ def main(argv):
   gui_mode = False
   cy_out_dir = None
   cy_exe = None
-  cy_session_file = None
   
   try:
-    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:ng:f:p:z:h:a:y:u:d:b:x:e:c:",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file"])
+    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:ng:f:p:z:h:a:y:u:d:b:x:e:c:",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file="])
     for opt, arg in opts:
       if opt in ("-i","--in"):
         cy_in = arg
@@ -2834,8 +2913,6 @@ def main(argv):
         gui_mode = True
       elif opt in ("-e","--cytoscape-executable"):
         cy_exe = arg
-      elif opt in ("-c", "--cytoscape-session-file"):
-        cy_session_file = arg
       else:
         help = True      
   except getopt.GetoptError as e:
@@ -2847,12 +2924,11 @@ def main(argv):
   if help:
     print("Cytoscape Visualization")
     print("---------------------------------------------------------------------------------------------")
-    print("Usage:         cytoscape_api.py -i input.csv -o merged.csv -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz")
+    print("Usage:         cytoscape_api.py -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz")
     print("Argument:      -i [--in]: input file in csv format")
     print("Argument:      -o [--output]: output directory")     
-    print("Argument:      -t [--type]: input type [Allowed: noFC, singleFC, multiFC, category, singlefc-site, multifc-site]")   
-    print("Argument:      -s [--species]: species [Supported: human, mouse, rat]")
-    print("Argument:      -c [--cyspath]: path to cytoscape.exe")    
+    print("Argument:      -t [--type]: input type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm]")   
+    print("Argument:      -s [--species]: species [Supported: human, mouse, rat]")   
     print("Argument:      -m [--mapping]: path to cluego mapping file compressed in .gz format") 
     print("Argument:      -x [--enzyme]: enzyme name")   
     print("Argument:      -d [--mods]: comma separated list of modifications of interest")
@@ -2869,41 +2945,39 @@ def main(argv):
     print("Argument(opt): -f [--fccutoff]: cutoff for fold change [Default: abs(FC) >= 0.0]")
     print("Argument(opt): -p [--pvalcutoff]: cutoff for p value [Default: pval > 1.0]")
     print("Argument(opt): -n [--significant]: outline statistically significant nodes")  
-    print("Argument(opt): -c [--cytoscape-session-file]: the path to an existing Cytoscape session so that it can be reanalyzed. Must be provided with the -a, --inputcluego argument")
     sys.exit()
-
-  if (not cy_cluego_inp_file and cy_session_file) or (cy_cluego_inp_file and not cy_session_file):
-    eprint("ClueGO input file (-a) and Cytoscape saved session (-c) must be provided together")
-    sys.exit(1)
 
   if not os.path.isdir(cy_out_dir):
     eprint("Error: output is not a directory")
     sys.exit(1)
-
+  
   timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-
+  
   # create file names
-  if cy_cluego_inp_file and cy_session_file:
+  if cy_cluego_inp_file:
     cy_out = None
     cy_cluego_out = None
-    cy_session = cy_session_file
-    logging_file = re.sub(r"\.cys$", "", cy_session) + "-filtered.log"
+    path_to_cluego = (os.path.abspath(cy_cluego_inp_file))
+    session_name = path_to_cluego.split(".")[0]
+    cy_session = session_name + ".cys"
+    logging_file = session_name + ".log"
     reanalyze_flag = True
-  else:
-    cy_out = os.path.join(cy_out_dir, timestamp + "-merged-input.csv")
-    cy_cluego_out = os.path.join(cy_out_dir, timestamp + "-cluego-pathways.txt")
-    cy_session = os.path.join(cy_out_dir, timestamp + "-pine.cys")
-    logging_file = os.path.join(cy_out_dir, timestamp + "-pine.log")
+  else:  
+    path_to_new_dir = os.path.join(os.path.abspath(cy_out_dir), timestamp)  
+    os.mkdir(path_to_new_dir) 
+    cy_out = os.path.join(path_to_new_dir, "Interactions.csv")
+    cy_cluego_out = os.path.join(path_to_new_dir, "PINE.cluego.txt")
+    cy_session = os.path.join(path_to_new_dir, "PINE.cys")
+    logging_file = os.path.join(path_to_new_dir, "PINE.log")
     reanalyze_flag = False
-    if gui_mode: # notify gui of the file names
-      print(f"COMMAND FILE-PATHWAYS {cy_cluego_out}")
-      print(f"COMMAND FILE-SESSION {cy_session}")
+    if gui_mode: # notify gui of the output directory
+      print(f"COMMAND FILE-SESSION {path_to_new_dir}")
 
   # set up logging
   if gui_mode:
-    logging = setup_logger("cytoscape", logging_file, with_stdout=True)
+    logging = setup_logger("PINE", logging_file, with_stdout=True)
   else:
-    logging = setup_logger("cytoscape", logging_file)
+    logging = setup_logger("PINE", logging_file)
 
   if cy_species.lower() == "human":
     tax_id = "9606"
@@ -2949,7 +3023,7 @@ def main(argv):
   elif leading_term_selection.lower() == "percent genes per term vs cluster":
     leading_term_selection = "%25Genes%20%2F%20Term%20vs%20Cluster"
     
-  allowed_type = ["singlefc","multifc","nofc","category","singlefc-site","multifc-site"]
+  allowed_type = ["singlefc","multifc","nofc","category","singlefc-ptm","multifc-ptm"]
   # 1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category
   if cy_type.lower() not in allowed_type:
     eprint("Error: Input type must be one of the following: " + (',').join(allowed_type))
@@ -2962,9 +3036,9 @@ def main(argv):
     cy_type_num = "3"
   elif cy_type.lower() == "category":
     cy_type_num = "4"
-  elif cy_type.lower() == "singlefc-site":
+  elif cy_type.lower() == "singlefc-ptm":
     cy_type_num = "5"
-  elif cy_type.lower() == "multifc-site":
+  elif cy_type.lower() == "multifc-ptm":
     cy_type_num = "6"
   
   if (cy_ptm_sites and cy_type.lower() == "nofc") or (cy_ptm_sites and cy_type.lower() == "category"):
@@ -3051,12 +3125,8 @@ def main(argv):
       eprint("Error: Cytoscape version must be 3.7.0 and above")
       sys.exit(1)
     
-    # Start a new session or open existing
-    if reanalyze_flag:
-      r = requests.get('http://localhost:1234/v1/commands/session/open?file=' + urllib.parse.quote(cy_session, safe=""))
-      time.sleep(10)
-    else:
-      requests.post('http://localhost:1234/v1/commands/session/new')
+    # Start a new session 
+    requests.post('http://localhost:1234/v1/commands/session/new')
     
     # Apps installed
     request = requests.post('http://localhost:1234/v1/commands/apps/list installed')
@@ -3286,7 +3356,7 @@ def main(argv):
     
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-  
+    print(cy_session)
     requests.post("http://localhost:1234/v1/session?file=" + cy_session)
     requests.get("http://localhost:1234/v1/commands/command/quit")
     
