@@ -49,12 +49,23 @@ input.file-button {
         cursor: not-allowed;
     }
 
+    &.disabled-light.disabled-light {
+        background-color: lightgrey;
+        cursor: not-allowed;
+    }
+
     &.big {
         font-size: 1rem;
     }
 
     &.success-button {
         background-color: $color1;
+        color: $color-light;
+        border-width: 0;
+    }
+
+    &.danger-button {
+        background-color: $color2;
         color: $color-light;
         border-width: 0;
     }
@@ -89,12 +100,27 @@ input.file-button {
 
 .grid-2-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .grid-3-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr)
+}
+
+.grid-4-columns {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr)
+}
+
+.grid-pathway-selection-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.grid-pathway-selection-footer {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
 }
 
 .vertical-sep {
@@ -130,13 +156,10 @@ input.file-button {
     cursor: pointer;
 }
 
-.scroll-table-wrapper {
-    overflow-x: scroll;
-}
-
 .pathway-picker {
     border-spacing: 0;
     width: 100%;
+    font-size: 0.9rem;
 
     td,th {
         padding: 0.5rem 0.25rem;
@@ -244,4 +267,12 @@ ul.tab-selector {
     left: 0;
     margin: 0 auto;
     display: inline-block;
+}
+
+.color-1 {
+    color: $color1;
+}
+
+.noselect {
+    user-select: none;
 }

@@ -323,56 +323,110 @@
 
         <div v-if="current_tab === tabs.PATHWAY_SELECTION">
           <div class="full-section">
-            <div class="grid-3-columns">
+            <div class="grid-pathway-selection-header">
               <div class="tooltip-parent">
                 Pathway selection <i class="far fa-question-circle"></i>
                 <div class="tooltip">Choose a subset of pathways to analyze.</div>
               </div>
               <div>
-                Filter: <input type="text" v-model="cluego_pathways.query" />
+                Filter: <input type="text" v-model="cluego_pathways.query" size="15" />
               </div>
-              <div></div>
+              <div>
+                <select v-model="cluego_pathways.ontology_sources_filter">
+                  <option v-for="source in cluego_pathways_filtered.ontology_sources" v-bind:value="source.name">{{ source.name }} ({{ source.count }})</option>
+                </select>
+              </div>
+              <div>
+                <span class="button danger-button" v-if="cluego_pathways.sort" v-on:click="cluego_pathways_sort_clear()">
+                  <i class="fas fa-times"></i>
+                  {{ cluego_pathways.sort.display }}
+                  ({{ cluego_pathways.sort.order }})
+                </span>
+                <span class="button danger-button" v-show="cluego_pathways_filtered.n_selected > 0" v-on:click="cluego_pathways_unselect_all()">
+                  <i class="fas fa-times"></i>
+                  Unselect all
+                </span>
+              </div>
             </div>
             <div class="vertical-sep"></div>
             <div class="scroll-table-wrapper">
               <table class="pathway-picker">
                 <thead>
                   <tr>
-                    <th></th>
-                    <th>GO term</th>
-                    <th>Ontology</th>
-                    <th>P-value</th>
-                    <th>Adj. p-value</th>
-                    <th>% genes</th>
-                    <th># of genes</th>
+                    <th>
+                      <i v-on:click="cluego_pathways_sort('selected', 'Selected')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
+                    <th>
+                      GO term
+                      <i v-on:click="cluego_pathways_sort('GOTerm', 'GO term')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
+                    <th>
+                      P-value
+                      <i v-on:click="cluego_pathways_sort('Term PValue', 'P-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
+                    <th>
+                      Adj. p-value
+                      <i v-on:click="cluego_pathways_sort('Term PValue Corrected with Bonferroni step down', 'Adj. p-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
+                    <th>
+                      % genes
+                      <i v-on:click="cluego_pathways_sort('% Associated Genes', '% genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
+                    <th>
+                      # of genes
+                      <i v-on:click="cluego_pathways_sort('Nr. Genes', '# of genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="pathway in cluego_pathways_filtered.data">
                     <td><input type="checkbox" v-model="pathway.selected" /></td>
-                    <td>{{ pathway.data['GOTerm'] }}</td>
-                    <td>{{ pathway.data['Ontology Source'] }}</td>
+                    <td>
+                      {{ pathway.data['GOTerm'] }}
+                      <span class="tooltip-parent">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="tooltip">{{ pathway.data["Ontology Source Category"] }}</div>
+                      </span>
+                    </td>
                     <td class="align-right">{{ pathway.data['Term PValue'] | roundString(4) }}</td>
                     <td class="align-right">{{ pathway.data['Term PValue Corrected with Bonferroni step down'] | roundString(4) }}</td>
                     <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
                     <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
                   </tr>
+                  <tr v-for="(i,ix) in cluego_pathways_filtered.n_empty_rows">
+                    <!-- empty rows to so there is always the same number per page -->
+                    <td v-for="(j,jx) in 6"></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
             <div class="vertical-sep"></div>
-            <div class="grid-2-columns">
-              <div>
-                <div>
-                  <div class="button" v-bind:class="{disabled: cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">&lt;</div>
-                  {{ cluego_pathways.page }}
-                  <div class="button" v-bind:class="{disabled: cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways.page + 1)">&gt;</div>
+            <div class="grid-pathway-selection-footer">
+              <div class="noselect">
+                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(1)">
+                  <i class="fas fa-angle-double-left"></i>
+                </div>
+                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">
+                  <i class="fas fa-angle-left"></i>
+                </div>
+                {{ cluego_pathways.page }}
+                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways.page + 1)">
+                  <i class="fas fa-angle-right"></i>
+                </div>
+                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways_filtered.n_pages)">
+                  <i class="fas fa-angle-double-right"></i>
                 </div>
               </div>
               <div class="box-children-right">
-                <div v-on:click="run_with_cluego_subset()" class="button success-button" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">Reanalyze</div>
+                <input type="text" placeholder="Name your reanalysis file (optional)" size="30" v-model="reanalysis_name" v-on:input="validate_reanalysis_name()" />
+                <div v-on:click="run_with_cluego_subset()" class="button success-button" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">
+                  Reanalyze ({{ cluego_pathways_filtered.n_selected }})
+                </div>
                 <span class="horizontal-sep"></span>
-                <div v-on:click="openGeneratedFile()" class="button success-button" >Open results</div>
+                <span class="tooltip-parent">
+                  <div v-on:click="openGeneratedFile()" class="button success-button"><i class="far fa-folder-open"></i></div>
+                  <div class="tooltip">Open your results directory</div>
+                </span>
               </div>
             </div>
           </div>

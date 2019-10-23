@@ -15,13 +15,23 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
+const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
 const TABS = {
     PATH_LOCATION: "path-location",
     INPUT: "input",
     PROGRESS: "progress",
     PATHWAY_SELECTION: "pathway-selection",
 };
-const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
+const ONTOLOGY_SOURCE_TYPES = [
+    {"phrase": "biologicalprocess", "name": "Biological Process"},
+    {"phrase": "cellularcomponent", "name": "Cellular Component"},
+    {"phrase": "molecularfunction", "name": "Molecular Function"},
+    {"phrase": "human-diseases", "name": "Pathway (Human Diseases)"},
+    {"phrase": "kegg", "name": "Pathway (KEGG)"},
+    {"phrase": "wikipathways", "name": "Pathway (Wiki Pathways)"},
+    {"phrase": "pathways", "name": "Pathway (Other)"},
+];
+const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
 let vm = new Vue({
     el: "#app",
@@ -31,8 +41,8 @@ let vm = new Vue({
             "singleFC": {"text": "Single fold change", "er": false},
             "multiFC": {"text": "Multi fold change", "er": false},
             "category": {"text": "Category", "er": false},
-            "singleFC-site": {"text": "Single fold change site", "er": true},
-            "multiFC-site": {"text": "Multi fold change site", "er": true},
+            "singleFC-ptm": {"text": "Single fold change PTM", "er": true},
+            "multiFC-ptm": {"text": "Multi fold change PTM", "er": true},
         },
         species_map: {"homo sapiens": "human", "mus musculus": "mouse", "rattus norvegicus": "rat"},
         allowed_runs: ["string", "genemania", "both"],
@@ -91,11 +101,12 @@ let vm = new Vue({
             query: null,
             page: null,
             per_page: null,
-            sources: null,
             sort: null,
+            ontology_sources_filter: null,
         },
         show_config: false,
         show_about: false,
+        reanalysis_name: "",
     },
     methods: {
         run: async function(args) {
@@ -301,8 +312,8 @@ let vm = new Vue({
             this.cluego_pathways.query = "";
             this.cluego_pathways.page = 1;
             this.cluego_pathways.per_page = 5;
-            this.cluego_pathways.sources = [];
             this.cluego_pathways.sort = null;
+            this.cluego_pathways.ontology_sources_filter = "All";
         },
         set_input_defaults: function() {
             this.input.type = "";
@@ -335,16 +346,6 @@ let vm = new Vue({
             let line_reader =  readline.createInterface({
                 input: fs.createReadStream(this.session_files.cluego_pathways),
             });
-            let sources = new Set();
-            let source_types = [
-                {"phrase": "biologicalprocess", "name": "Biological Process"},
-                {"phrase": "cellularcomponent", "name": "Cellular Component"},
-                {"phrase": "molecularfunction", "name": "Molecular Function"},
-                {"phrase": "human-diseases", "name": "Pathway (Human Diseases)"},
-                {"phrase": "kegg", "name": "Pathway (KEGG)"},
-                {"phrase": "wikipathways", "name": "Pathway (Wiki Pathways)"},
-                {"phrase": "pathways", "name": "Pathway (Other)"},
-            ];
             line_reader.on("line", function(line) {
                 line = line.replace(/^\s+|\s+$/g, '');
                 let fields = line.split("\t");
@@ -359,14 +360,17 @@ let vm = new Vue({
                     for(let i = 0; i < that.cluego_pathways.header.length; i++) {
                         record["data"][that.cluego_pathways.header[i]] = fields[i];
                     }
-                    // don't split genes unless needed
-                    // record["data"]["Associated Genes Found"] = record["data"]["Associated Genes Found"].replace(/^\[|\]$/g, '').split("\t");
 
-                    /* get the ontology source */
-                    let record_source = record["data"]["Ontology Source"].toLowerCase();
-                    for(const st of source_types) {
-                        //record_source.includes();
+                    /* get ontology source category */
+                    record["data"]["Ontology Source Category"] = "Other";   // initialize to other
+                    for(const st of ONTOLOGY_SOURCE_TYPES) {
+                        if(record["data"]["Ontology Source"].toLowerCase().includes(st.phrase)) {
+                            record["data"]["Ontology Source Category"] = st.name;
+                            break;  // record should only match a single ontology source
+                        }
                     }
+
+                    cluego_pathways.push(record);
                 }
                 counter += 1;
             });
@@ -621,6 +625,32 @@ let vm = new Vue({
             }
             return this.allowed_types[this.input.type].er;
         },
+        cluego_pathways_sort: function(column, display) {
+            let numeric = NON_NUMERIC_SORT_COLUMNS.includes(column) ? false : true;
+            let sort_dir = "asc";
+            if(this.cluego_pathways.sort && this.cluego_pathways.sort.column === column && this.cluego_pathways.sort.order === "asc") {
+                sort_dir = "desc";
+            }
+            this.cluego_pathways.sort = {"column": column, "order": sort_dir, "numeric": numeric, "display": display};
+        },
+        cluego_pathways_sort_clear: function() {
+            this.cluego_pathways.sort = null;
+        },
+        cluego_pathways_unselect_all: function() {
+            for(const cpd of this.cluego_pathways.data) {
+                if(cpd.selected) {
+                    cpd.selected = false;
+                }
+            }
+        },
+        validate_reanalysis_name: function() {
+            let match = this.reanalysis_name.match(/[A-Za-z0-9\-_ ]/g);
+            if(match) {
+                this.reanalysis_name = match.join("");
+            } else {
+                this.reanalysis_name = "";
+            }
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();
@@ -628,10 +658,10 @@ let vm = new Vue({
         this.loadSession();
         this.searchForPaths();
 
-        this.session_files.cytoscape_session = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191022T145051-pine.cys"; // DEBUG:
-        this.session_files.cluego_pathways = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191022T145051-cluego-pathways.txt"; // DEBUG:
-        this.read_cluego_pathways();
-        this.switchTab(TABS.PATHWAY_SELECTION); // DEBUG:
+        //this.session_files.cytoscape_session = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191022T145051-pine.cys"; // DEBUG:
+        //this.session_files.cluego_pathways = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191022T145051-cluego-pathways.txt"; // DEBUG:
+        //this.read_cluego_pathways();
+        //this.switchTab(TABS.PATHWAY_SELECTION); // DEBUG:
     },
     filters: {
         filename: function(v) {
@@ -654,14 +684,97 @@ let vm = new Vue({
         cluego_pathways_filtered: function() {
             var that = this;
 
-            const filtered = this.cluego_pathways.data.filter(function(pathway) {
-                if(that.cluego_pathways.query === "") {
+            /* filter on query */
+            let filtered = this.cluego_pathways.data.filter(function(pathway) {
+                if(that.cluego_pathways.query !== "") {
+                    let lower = that.cluego_pathways.query.toLowerCase();
+                    if(!pathway.data['GOTerm'].toLowerCase().includes(lower)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            /* get ontology sources counts */
+            let pathways_source_name = "Pathway (All)";
+            let sources = {"All": filtered.length};
+            for(const f of filtered) {
+                const source_name = f.data["Ontology Source Category"];
+                if(!(source_name in sources)) {
+                    sources[source_name] = 0;
+                }
+                sources[source_name] += 1;
+
+                if(source_name.toLowerCase().includes("pathway")) {
+                    if(!(pathways_source_name in sources)) {
+                        sources[pathways_source_name] = 0
+                    }
+                    sources[pathways_source_name] += 1
+                }
+            }
+            let ontology_sources = [];
+            for(const s in sources) {
+                ontology_sources.push({"name": s, "count": sources[s]});
+            }
+            ontology_sources.sort(function(a,b) {
+                if(a.name === "All") return -1;
+                if(b.name === "All") return 1;
+                if(a.name < b.name) return -1;
+                if(a.name > b.name) return 1;
+                return 0;
+            });
+
+            /* filter on ontology source - filter sources after getting the category counts */
+            filtered = filtered.filter(function(pathway) {
+                if(that.cluego_pathways.ontology_sources_filter === "All") {
                     return true;
                 }
 
-                let lower = that.cluego_pathways.query.toLowerCase();
-                return pathway.data['GOTerm'].toLowerCase().includes(lower) || pathway.data['Ontology Source'].toLowerCase().includes(lower);
+                if(that.cluego_pathways.ontology_sources_filter === pathways_source_name) {
+                    return pathway.data["Ontology Source Category"].toLowerCase().includes("pathway");
+                }
+
+                return pathway.data["Ontology Source Category"] === that.cluego_pathways.ontology_sources_filter;
             });
+
+            if(this.cluego_pathways.sort) {
+                const lower = this.cluego_pathways.sort.order === "asc" ? -1 : 1;
+                const higher = lower * -1;
+                const col = this.cluego_pathways.sort.column;
+                const numeric = this.cluego_pathways.sort.numeric;
+                if(col === "selected") {
+                    filtered.sort(function(a, b) {
+                        if(a.selected && !b.selected) return lower;
+                        if(!a.selected && b.selected) return higher;
+                        return 0;
+                    });
+                } else {
+                    filtered.sort(function(a, b) {
+                        if(!(col in a.data)) return 1;
+                        if(!(col in b.data)) return -1;
+                        let a1 = a.data[col];
+                        let b1 = b.data[col];
+                        if(numeric) {
+                            a1 = Number(a1);
+                            if(isNaN(a1)) return 1;
+                            b1 = Number(b1);
+                            if(isNaN(b1)) return -1;
+                        }
+                        if(a1 < b1) return lower;
+                        if(a1 > b1) return higher;
+                        return 0;
+                    });
+                }
+            }
+
+            /* get the number of selected records */
+            let n_selected = 0;
+            for(const cpd of this.cluego_pathways.data) {
+                if(cpd.selected) {
+                    n_selected += 1;
+                }
+            }
 
             const full_length = filtered.length;
             const n_pages = Math.ceil(full_length / this.cluego_pathways.per_page);
@@ -673,8 +786,11 @@ let vm = new Vue({
 
             return {
                 data: data,
+                n_empty_rows: that.cluego_pathways.per_page - data.length,
                 full_length: full_length,
                 n_pages: n_pages,
+                ontology_sources: ontology_sources,
+                n_selected: n_selected,
             };
         },
         configuration_message: function() {
@@ -691,6 +807,9 @@ let vm = new Vue({
     watch: {
         "cluego_pathways.query": function() {
             this.cluego_pathways.page = 1;
-        }
+        },
+        "cluego_pathways.ontology_sources_filter": function() {
+            this.cluego_pathways.page = 1;
+        },
     }
 });
