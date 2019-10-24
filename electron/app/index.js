@@ -17,7 +17,6 @@ document.addEventListener("keydown", function(e) {
 
 const CLUEGO_CONFIGURATION_BASE_NAME = "ClueGOConfiguration";
 const TABS = {
-    PATH_LOCATION: "path-location",
     SETUP: "setup",
     INPUT: "input",
     PROGRESS: "progress",
@@ -33,6 +32,18 @@ const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "pathways", "name": "Pathway (Other)"},
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
+
+function is_dir(dirname) {
+    return fs.existsSync(dirname) && fs.statSync(dirname).isDirectory();
+}
+
+function is_file(filename) {
+    return fs.existsSync(filename) && fs.statSync(filename).isFile();
+}
+
+function error_popup(title, message) {
+    remote.dialog.showMessageBox({"type": "error", "buttons": ["Ok"], "defaultId": 0, "title": title, "message": message});
+}
 
 let vm = new Vue({
     el: "#app",
@@ -80,17 +91,12 @@ let vm = new Vue({
             fasta_file: null,
             mods: null,
         },
-        automatic_input: { // for messaging the user that the paths were found automatically
-            cytoscape_path: false,
-            cluego_base_path: false,
-        },
         session_dir: null,
         stdout: "",
         stderr: "",
-        error: "",
         running: false,
         tabs: TABS,
-        current_tab: TABS.PATH_LOCATION,
+        current_tab: TABS.SETUP,
         cluego_versions: null,
         cluego_picked_version: null,
         cluego_pathways: {
@@ -136,9 +142,8 @@ let vm = new Vue({
             this.switchTab(TABS.PROGRESS);
             this.stdout = "Starting PINE analysis...\n\n";
             this.stderr = "";
-            this.reset_cluego_pathways();
 
-            this.save_settings();
+            this.save_settings(this.get_settings_file());
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
@@ -174,7 +179,7 @@ let vm = new Vue({
                 if(code === 0) {
                     that.stdout += "run completed successfully\n";
                     if(new_session_dir) {
-                        that.set_session(new_session_dir);
+                        that.new_session(new_session_dir);
                     }
                 } else {
                     that.stdout += "run failed\n";
@@ -254,19 +259,48 @@ let vm = new Vue({
                 pad(now.getMinutes());
             return timestamp + "_reanalysis_PINE";
         },
-        set_session: function(dir) {
-            if(!dir) {
+        new_session: function(dir) {
+            if(!dir || !is_dir(dir)) {
+                error_popup("Session not created", "The new session could not be created");
                 return;
             }
             this.session_dir = dir;
+            if(!this.session_cluego_file || !this.session_cytoscape_file || !this.session_settings_file) {
+                this.session_dir = null;
+            }
+            this.save_settings(this.session_settings_file);
             this.read_cluego_pathways();
             this.switchTab(TABS.PATHWAY_SELECTION);
+        },
+        reset_session: function() {
+            this.session_dir = null;
+            this.reset_cluego_pathways();
+            this.switchTab(TABS.INPUT);
         },
         session_exists: function() {
             if(this.session_dir) {
                 return true;
             }
             return false;
+        },
+        user_load_session: function(e) {
+            if(!e.target.files[0].path) {
+                return;
+            }
+            let new_dir = e.target.files[0].path;
+            if(!is_dir(new_dir)) {
+                error_popup("Invalid path", "Path provided is not a directory");
+                return;
+            }
+            let old_dir = this.session_dir;
+            this.session_dir = new_dir;
+            if(!is_file(this.session_cluego_file) || !is_file(this.session_cytoscape_file) || !is_file(this.session_settings_file)) {
+                this.session_dir = old_dir;
+                error_popup("Invalid session", "The session directory you provided is not valid");
+            }
+            this.load_settings(this.session_settings_file);
+            this.read_cluego_pathways();
+            this.switchTab(TABS.PATHWAY_SELECTION);
         },
         is_cytoscape_running: async function() {
             /* check if listening on port 1234 */
@@ -341,6 +375,9 @@ let vm = new Vue({
             this.cluego_pathways.ontology_sources_filter = "All";
         },
         set_input_defaults: function() {
+            if(!this.settings_editable()) {
+                return;
+            }
             this.input.type = "";
             this.input.species = "";
             this.input.limit = 0;
@@ -422,25 +459,21 @@ let vm = new Vue({
             let path = e.target.files[0].path;
             if(name === "cytoscape_path") {
                 this.setCytoscapePath(path);
-                this.automatic_input.cytoscape_path = false;
             } else if(name === "cluego_base_path") {
                 this.setCluegoBasePath(path);
-                this.automatic_input.cluego_base_path = false;
             } else {
                 this.input[name] = path;
             }
             this.refreshTab();
         },
-        save_settings: function() {
-            let session_file = this.get_settings_file();
-            fs.writeFileSync(session_file, JSON.stringify(this.input));
+        save_settings: function(settings_file) {
+            fs.writeFileSync(settings_file, JSON.stringify(this.input, null, 4));
         },
-        load_settings: function() {
-            const session_file = this.get_settings_file();
-            if(!fs.existsSync(session_file)) {
+        load_settings: function(settings_file) {
+            if(!is_file(settings_file)) {
                 return;
             }
-            const raw = fs.readFileSync(session_file, "utf8");
+            const raw = fs.readFileSync(settings_file, "utf8");
             const saved_input = JSON.parse(raw);
             for(const key in saved_input) {
                 if(key in this.input) {
@@ -469,7 +502,8 @@ let vm = new Vue({
             }
 
             if(!this.input.cytoscape_path) {
-                const programs_path = "C:/Program Files";
+                //const programs_path = "C:/Program Files";
+                const programs_path = "";
                 let found_dirs = [];
                 if(fs.existsSync(programs_path)) {
                     const files = fs.readdirSync(programs_path);
@@ -494,7 +528,6 @@ let vm = new Vue({
                         const cyto_path = path.join(fd, "Cytoscape.exe");
                         if(fs.existsSync(cyto_path)) {
                             this.setCytoscapePath(cyto_path);
-                            this.automatic_input.cytoscape_path = true;
                             break;
                         }
                     }
@@ -502,38 +535,36 @@ let vm = new Vue({
             }
 
             if(!this.input.cluego_base_path) {
-                const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
+                //const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
+                const cluego_base_path = "";
                 if(fs.existsSync(cluego_base_path)) {
                     this.setCluegoBasePath(cluego_base_path);
-                    this.automatic_input.cluego_base_path = true;
                 }
             }
 
             this.refreshTab();
         },
         refreshTab: function() {
-            if(this.current_tab === TABS.PATH_LOCATION && this.input.cytoscape_path && this.input.cluego_base_path) {
-                this.switchTab(TABS.SETUP);
+            if(this.current_tab === TABS.SETUP && this.input.cytoscape_path && this.input.cluego_base_path) {
+                this.switchTab(TABS.INPUT);
             }
         },
         setCluegoBasePath: function(cluego_path) {
-            this.error = "";
-
             if(!fs.existsSync(cluego_path)) {
-                this.error = "ClueGO configuration file path does not exist";
+                error_popup("Path does not exist", "ClueGO configuration file path does not exist");
                 return;
             }
 
             const path_split = cluego_path.split(path.sep);
             const path_index = path_split.indexOf(CLUEGO_CONFIGURATION_BASE_NAME);
             if(path_index === -1) {
-                this.error = "ClueGO configuration directory must be named " + CLUEGO_CONFIGURATION_BASE_NAME;
+                error_popup("Invalid directory", "ClueGO configuration directory must be named " + CLUEGO_CONFIGURATION_BASE_NAME);
                 return;
             }
 
             cluego_path = path_split.slice(0, path_index + 1).join(path.sep);
             if(!fs.statSync(cluego_path).isDirectory()) {
-                this.error = CLUEGO_CONFIGURATION_BASE_NAME + " must be a directory";
+                error_popup("Invalid directory", CLUEGO_CONFIGURATION_BASE_NAME + " must be a directory");
                 return;
             }
 
@@ -600,15 +631,22 @@ let vm = new Vue({
                 });
                 this.cluego_picked_version = this.cluego_versions[0];
                 this.cluego_picked_version.latest = true;
+            } else {
+                error_popup("Invalid configuration directory", "This directory did not any valid accession files.");
             }
         },
         setCytoscapePath: function(cy_path) {
-            if(!fs.existsSync(cy_path) || !fs.statSync(cy_path).isFile()) {
+            if(!is_file(cy_path)) {
+                error_popup("Invalid path", "Cytoscape.exe must be a file");
+                return;
+            }
+            if(!cy_path.toLowerCase().endsWith("cytoscape.exe")) {
+                error_popup("Invalid file", "Please provide the Cytoscape.exe executable file");
                 return;
             }
             this.input.cytoscape_path = cy_path;
         },
-        openGeneratedFile: function() {
+        open_last_cytoscape_file: function() {
             if(!this.session_dir) {
                 return;
             }
@@ -617,25 +655,34 @@ let vm = new Vue({
             } else {
                 var cys_file = path.join(this.session_dir, "PINE.cys");
             }
-            if(!fs.existsSync(cys_file) || !fs.statSync(cys_file).isFile()) {
+            if(!is_file(cys_file)) {
+                error_popup("File doesn't exist", "Could not find last Cytoscape file for this session.");
                 return;
             }
             shell.openItem(cys_file);
         },
+        open_session_dir: function() {
+            if(!this.session_dir) {
+                error_popup("Path doesn't exist", "Session is not set");
+                return;
+            }
+            shell.openItem(this.session_dir);
+        },
         tab_reachable: function(tab_name) {
             switch(tab_name) {
-                case TABS.PATH_LOCATION:
-                    return false;
                 case TABS.SETUP:
                     return true;
                 case TABS.INPUT:
-                    return !this.running && !this.session_exists();
+                    return this.input.cytoscape_path && this.input.cluego_base_path;
                 case TABS.PROGRESS:
                     return this.running || this.stdout || this.session_exists();
                 case TABS.PATHWAY_SELECTION:
                     return !this.running && this.session_exists();
             }
             return false;
+        },
+        settings_editable: function() {
+            return !this.running && !this.session_exists();
         },
         switchTab: function(tab_name) {
             if(this.tab_reachable(tab_name)) {
@@ -690,12 +737,8 @@ let vm = new Vue({
     mounted: function() {
         this.reset_cluego_pathways();
         this.set_input_defaults();
-        this.load_settings();
+        this.load_settings(this.get_settings_file());
         this.searchForPaths();
-
-        this.session_dir = "C:\\Users\\GoJ1\\Documents\\cytoscape1\\out\\20191023T165145"; // DEBUG:
-        this.read_cluego_pathways(); // DEBUG:
-        this.switchTab(TABS.PATHWAY_SELECTION); // DEBUG:
     },
     filters: {
         filename: function(v) {
@@ -827,21 +870,23 @@ let vm = new Vue({
                 n_selected: n_selected,
             };
         },
-        configuration_message: function() {
-            if(this.automatic_input.cytoscape_path && this.automatic_input.cluego_base_path) {
-                return "The Cytoscape executable and the ClueGO configuration files were automatically detected.  They can be changed in the section below.";
-            } else if(this.automatic_input.cytoscape_path) {
-                return "The Cytoscape executable was automatically detected.  It can be changed in the section below.";
-            } else if(this.automatic_input.cluego_base_path) {
-                return "The ClueGO configuration files were automatically detected.  It can be changed in the section below.";
-            }
-            return "";
-        },
         session_cluego_file: function() {
             if(!this.session_dir) {
                 return "";
             }
             return path.join(this.session_dir, "PINE.cluego.txt");
+        },
+        session_cytoscape_file: function() {
+            if(!this.session_dir) {
+                return "";
+            }
+            return path.join(this.session_dir, "PINE.cys");
+        },
+        session_settings_file: function() {
+            if(!this.session_dir) {
+                return "";
+            }
+            return path.join(this.session_dir, "settings.txt");
         },
     },
     watch: {
