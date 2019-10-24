@@ -30,21 +30,6 @@
 
       <div class="full-section wrapper">
 
-        <div v-if="current_tab === tabs.PATH_LOCATION">
-          <section class="full-section">
-            Enter the full path of the Cytoscape executable:
-            <label class="button success-button" for="file-button-cytoscape">Select file</label>
-            <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
-            {{ input.cytoscape_path }}
-          </section>
-          <section class="full-section">
-            Enter the full path of the ClueGO files:
-            <label class="button success-button" for="file-button-cluego">Select file</label>
-            <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
-            {{ input.cluego_base_path }}
-          </section>
-        </div>
-
         <div v-if="current_tab === tabs.SETUP">
           <div class="grid-about-pine">
             <div>
@@ -61,22 +46,27 @@
           </div>
           <h4 class="full-section-header">Configuration</h4>
           <section class="full-section">
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
             <div class="grid-config-options">
               <div class="align-right">Cytoscape path</div>
               <div>
                 <label class="button success-button" for="file-button-cytoscape">Select file</label>
                 <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
               </div>
-              <div>{{ input.cytoscape_path }}</div>
+              <div>
+                {{ input.cytoscape_path }}
+                <span v-show="!input.cytoscape_path" class="small-info">To continue, please provide a path to your Cytoscape executable.</span>
+              </div>
 
               <div class="align-right">ClueGO directory</div>
               <div>
                 <label class="button success-button" for="file-button-cluego">Select file</label>
-                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
+                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" webkitdirectory />
               </div>
               <div>
                 {{ input.cluego_base_path }}
-                <select v-model="cluego_picked_version">
+                <span v-show="!input.cluego_base_path" class="small-info">To continue, please provide a path to your ClueGO data files.</span>
+                <select v-model="cluego_picked_version" v-show="input.cluego_base_path">
                   <option v-for="cv in cluego_versions" v-bind:value="cv">
                     {{ cv.version }}
                     {{ cv.latest ? "(latest)" : "" }}
@@ -122,19 +112,12 @@
         <div v-if="current_tab === tabs.INPUT">
 
           <h4 class="full-section-header">
-            <div class="grid-2-columns">
-              <div>
-                Configuration
-                <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config"><i class="fas fa-plus-circle"></i></span>
-                <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config"><i class="fas fa-minus-circle"></i></span>
-                <span class="small-info">{{ configuration_message }}</span>
-              </div>
-              <div class="box-children-right">
-                <span class="button" v-on:click="() => show_about = true"><i class="fas fa-info"></i></span>
-              </div>
-            </div>
+            Configuration
+            <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="!show_config"><i class="fas fa-plus-circle"></i></span>
+            <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config"><i class="fas fa-minus-circle"></i></span>
           </h4>
           <div class="full-section" v-show="show_config">
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
 
             <div class="grid-config-options">
               <div class="align-right">Cytoscape path</div>
@@ -147,7 +130,7 @@
               <div class="align-right">ClueGO directory</div>
               <div>
                 <label class="button success-button" for="file-button-cluego">Select file</label>
-                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
+                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" webkitdirectory />
               </div>
               <div>
                 {{ input.cluego_base_path }}
@@ -165,6 +148,7 @@
 
           <h4 class="full-section-header">Required options</h4>
           <div class="full-section">
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
             <div class="grid-options">
 
               <div class="align-right">
@@ -264,6 +248,7 @@
 
           <h4 class="full-section-header">Additional options</h4>
           <div class="full-section">
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
 
             <div class="grid-options">
 
@@ -381,9 +366,14 @@
 
 
           <section class="run-section">
-            <span class="button success-button big" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
-            <span class="horizontal-sep"></span>
-            <span class="button success-button big" v-on:click="set_input_defaults()">Reset</span>
+            <span class="button success-button big" v-show="settings_editable()" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
+            <span class="horizontal-sep" v-show="settings_editable()"></span>
+            <span class="button success-button big" v-show="settings_editable()" v-on:click="set_input_defaults()">Reset</span>
+            <span class="horizontal-sep" v-show="settings_editable()"></span>
+            <span class="button success-button big" v-show="session_exists() && !running" v-on:click="reset_session()">New Session</span>
+            <span class="horizontal-sep" v-show="session_exists() && !running"></span>
+            <label v-show="!running" class="button success-button big" for="file-button-load-session">Load session</label>
+            <input class="file-button" id="file-button-load-session" type="file" v-on:change="user_load_session($event)" webkitdirectory/>
           </section>
         </div>
 
@@ -503,8 +493,12 @@
                 </div>
                 <span class="horizontal-sep"></span>
                 <span class="tooltip-parent">
-                  <div v-on:click="openGeneratedFile()" class="button success-button"><i class="far fa-folder-open"></i></div>
+                  <div v-on:click="open_session_dir()" class="button warning-button"><i class="far fa-folder-open"></i></div>
                   <div class="tooltip">Open your results directory</div>
+                </span>
+                <span class="tooltip-parent">
+                  <div v-on:click="open_last_cytoscape_file()" class="button"><img src="assets/Cytoscape.jpg" /></div>
+                  <div class="tooltip">View your Cytoscape file</div>
                 </span>
               </div>
             </div>

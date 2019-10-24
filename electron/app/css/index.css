@@ -8,11 +8,22 @@
   margin-bottom: 1rem;
   padding: 1rem;
   border: 1px solid #483D3F;
+  position: relative;
 }
 
 .full-section.wrapper {
   height: 475px;
   overflow-y: auto;
+}
+
+.full-section-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background-color: rgba(169, 169, 169, 0.5);
 }
 
 h1, h2, h3, h4, h5, h6.full-section-header {
@@ -59,6 +70,14 @@ input.file-button {
   background-color: #FF5A5F;
   color: #F8F4E3;
   border-width: 0;
+}
+.button.warning-button {
+  background-color: #FFC000;
+  color: #483D3F;
+  border-width: 0;
+}
+.button img {
+  height: 0.75rem;
 }
 
 .grid-options {
@@ -156,7 +175,7 @@ input.file-button {
   justify-content: flex-end;
 }
 
-.box-children-center-center {
+.box-children-center-center, .full-section-cover {
   /* horizontal and vertical center */
   display: flex;
   flex-direction: column;
