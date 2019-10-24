@@ -46,16 +46,77 @@
         </div>
 
         <div v-if="current_tab === tabs.SETUP">
-          <div class="grid-setup-pine">
+          <div class="grid-about-pine">
             <div>
-              <img src="assets/pine.png" class="pine-img" />
+              <img src="assets/pine.png" class="full-img" />
             </div>
             <div>
               <h2>
                 <span class="color-3">P</span>rotein <span class="color-3">I</span>nteraction <span class="color-3">N</span>etwork <span class="color-3">E</span>xtractor
               </h2>
+              <p>
+                A tool that enables extraction and visualization of protein-protein interactions from publicly available databases to reveal complex context-specific functional networks.
+              </p>
             </div>
           </div>
+          <h4 class="full-section-header">Configuration</h4>
+          <section class="full-section">
+            <div class="grid-config-options">
+              <div class="align-right">Cytoscape path</div>
+              <div>
+                <label class="button success-button" for="file-button-cytoscape">Select file</label>
+                <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
+              </div>
+              <div>{{ input.cytoscape_path }}</div>
+
+              <div class="align-right">ClueGO directory</div>
+              <div>
+                <label class="button success-button" for="file-button-cluego">Select file</label>
+                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
+              </div>
+              <div>
+                {{ input.cluego_base_path }}
+                <select v-model="cluego_picked_version">
+                  <option v-for="cv in cluego_versions" v-bind:value="cv">
+                    {{ cv.version }}
+                    {{ cv.latest ? "(latest)" : "" }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </section>
+          <h4 class="full-section-header">Requirements</h4>
+          <section class="full-section">
+            <div class="grid-about-requirements">
+              <div class="box-children-center-center">
+                <h4>Cytoscape</h4>
+                <img class="clickable" v-on:click="open_url('https://cytoscape.org/')" src="assets/Cytoscape.jpg" />
+              </div>
+              <div class="box-children-center-center">
+                <h4>GeneMANIA</h4>
+                <img class="clickable" v-on:click="open_url('http://apps.cytoscape.org/apps/genemania')" src="assets/genemania.png" />
+              </div>
+              <div class="box-children-center-center">
+                <h4>ClueGO</h4>
+                <img class="clickable" v-on:click="open_url('http://apps.cytoscape.org/apps/cluego')" src="assets/cluego-web-logo.png" />
+              </div>
+              <div>
+                <p>
+                  To install apps within Cytoscape, go to the menu bar and choose <strong>Apps &rightarrow; App Manager...</strong>
+                </p>
+                <p>
+                  In the <strong>Install Apps</strong> tab &rightarrow; enter the required app in the <strong>Search</strong> field &rightarrow; then click on the the specified app name &rightarrow; lastly click the <strong>Install</strong> button.
+                </p>
+              </div>
+            </div>
+          </section>
+          <section class="run-section">
+            <span class="button success-button big" v-on:click="open_url('mailto:Niveda.Sundararaman@cshs.org')">Email</span>
+            <span class="horizontal-sep"></span>
+            <span class="button success-button big" v-on:click="open_url('https://google.com')">Cite Us</span>
+            <span class="horizontal-sep"></span>
+            <span class="button success-button big" v-on:click="open_url('https://google.com')">Help</span>
+          </section>
         </div>
 
         <div v-if="current_tab === tabs.INPUT">

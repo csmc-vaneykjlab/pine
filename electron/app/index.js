@@ -683,6 +683,9 @@ let vm = new Vue({
                 this.reanalysis_name = "";
             }
         },
+        open_url: function(url) {
+            shell.openExternal(url);
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();

@@ -124,10 +124,30 @@ input.file-button {
     grid-template-columns: 1fr 3fr;
 }
 
-.grid-setup-pine {
+.grid-about-pine {
     display: grid;
-    grid-template-columns: 1fr 5fr;
+    grid-template-columns: 1fr 7fr;
     column-gap: 0.5rem;
+
+    h2 {
+        text-decoration: underline;
+    }
+
+    p {
+        margin-left: 1rem;
+        margin-right: 1rem;
+    }
+}
+
+.grid-about-requirements {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 3fr;
+    column-gap: 0.5rem;
+    height: 8rem;
+
+    img {
+        width: 80%;
+    }
 }
 
 .vertical-sep {
@@ -152,6 +172,7 @@ input.file-button {
 }
 
 .box-children-center-center {
+    /* horizontal and vertical center */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -192,6 +213,7 @@ ul.tab-selector {
     border-bottom-width: 0;
     margin-bottom: 0;
     padding: 0;
+    user-select: none;
 
     li {
         display: inline-block;
@@ -288,6 +310,6 @@ ul.tab-selector {
     user-select: none;
 }
 
-.pine-img {
+.full-img {
     width: 100%;
 }
