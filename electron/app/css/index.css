@@ -175,7 +175,7 @@ input.file-button {
   justify-content: flex-end;
 }
 
-.box-children-center-center {
+.box-children-center-center, .full-section-cover {
   /* horizontal and vertical center */
   display: flex;
   flex-direction: column;

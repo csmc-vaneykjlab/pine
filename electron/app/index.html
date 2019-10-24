@@ -46,7 +46,7 @@
           </div>
           <h4 class="full-section-header">Configuration</h4>
           <section class="full-section">
-            <div v-show="!settings_editable()" class="full-section-cover"></div>
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
             <div class="grid-config-options">
               <div class="align-right">Cytoscape path</div>
               <div>
@@ -117,7 +117,7 @@
             <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config"><i class="fas fa-minus-circle"></i></span>
           </h4>
           <div class="full-section" v-show="show_config">
-            <div v-show="!settings_editable()" class="full-section-cover"></div>
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
 
             <div class="grid-config-options">
               <div class="align-right">Cytoscape path</div>
@@ -148,7 +148,7 @@
 
           <h4 class="full-section-header">Required options</h4>
           <div class="full-section">
-            <div v-show="!settings_editable()" class="full-section-cover"></div>
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
             <div class="grid-options">
 
               <div class="align-right">
@@ -248,7 +248,7 @@
 
           <h4 class="full-section-header">Additional options</h4>
           <div class="full-section">
-            <div v-show="!settings_editable()" class="full-section-cover"></div>
+            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
 
             <div class="grid-options">
 
@@ -370,8 +370,9 @@
             <span class="horizontal-sep" v-show="settings_editable()"></span>
             <span class="button success-button big" v-show="settings_editable()" v-on:click="set_input_defaults()">Reset</span>
             <span class="horizontal-sep" v-show="settings_editable()"></span>
-            <span class="button success-button big" v-show="session_exists()" v-on:click="reset_session()">New Session</span>
-            <label class="button success-button big" for="file-button-load-session">Load session</label>
+            <span class="button success-button big" v-show="session_exists() && !running" v-on:click="reset_session()">New Session</span>
+            <span class="horizontal-sep" v-show="session_exists() && !running"></span>
+            <label v-show="!running" class="button success-button big" for="file-button-load-session">Load session</label>
             <input class="file-button" id="file-button-load-session" type="file" v-on:change="user_load_session($event)" webkitdirectory/>
           </section>
         </div>

@@ -23,6 +23,7 @@ $color-light: #F8F4E3;
 }
 
 .full-section-cover {
+    @extend .box-children-center-center;
     position: absolute;
     top: 0;
     left: 0;

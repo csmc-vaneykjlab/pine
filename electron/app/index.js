@@ -41,8 +41,12 @@ function is_file(filename) {
     return fs.existsSync(filename) && fs.statSync(filename).isFile();
 }
 
-function error_popup(title, message) {
-    remote.dialog.showMessageBox({"type": "error", "buttons": ["Ok"], "defaultId": 0, "title": title, "message": message});
+function error_popup(title, message, warning) {
+    let type = "error";
+    if(warning) {
+        type = "warning";
+    }
+    remote.dialog.showMessageBox({"type": type, "buttons": ["Ok"], "defaultId": 0, "title": title, "message": message});
 }
 
 let vm = new Vue({
@@ -226,6 +230,10 @@ let vm = new Vue({
             } else {
                 var reanalysis_name = this.generate_reanalysis_name();
             }
+            if(!this.unique_reanalysis_name(reanalysis_name)) {
+                error_popup("Name in use", "This name has already been used for this session, please pick a different name", true);
+                return;
+            }
             this.last_reanalysis_name = reanalysis_name;
             const filtered_file_name = path.join(this.session_dir, reanalysis_name + ".cluego.txt");
             let file_data = [];
@@ -258,6 +266,22 @@ let vm = new Vue({
                 pad(now.getHours()) +
                 pad(now.getMinutes());
             return timestamp + "_reanalysis_PINE";
+        },
+        unique_reanalysis_name: function(name) {
+            if(!is_dir(this.session_dir)) {
+                return false;
+            }
+            check_files = [
+                path.join(this.session_dir, name + ".cluego.txt"),
+                path.join(this.session_dir, name + ".cys"),
+                path.join(this.session_dir, name + ".log"),
+            ];
+            for(const cf of check_files) {
+                if(fs.existsSync(cf)) {
+                    return false;
+                }
+            }
+            return true;
         },
         new_session: function(dir) {
             if(!dir || !is_dir(dir)) {
@@ -502,8 +526,7 @@ let vm = new Vue({
             }
 
             if(!this.input.cytoscape_path) {
-                //const programs_path = "C:/Program Files";
-                const programs_path = "";
+                const programs_path = "C:/Program Files";
                 let found_dirs = [];
                 if(fs.existsSync(programs_path)) {
                     const files = fs.readdirSync(programs_path);
@@ -535,8 +558,7 @@ let vm = new Vue({
             }
 
             if(!this.input.cluego_base_path) {
-                //const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
-                const cluego_base_path = "";
+                const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
                 if(fs.existsSync(cluego_base_path)) {
                     this.setCluegoBasePath(cluego_base_path);
                 }
@@ -651,7 +673,7 @@ let vm = new Vue({
                 return;
             }
             if(this.last_reanalysis_name) {
-                var cys_file = path.join(this.session_dir, this.last_reanalysis_name);
+                var cys_file = path.join(this.session_dir, this.last_reanalysis_name + ".cys");
             } else {
                 var cys_file = path.join(this.session_dir, "PINE.cys");
             }
@@ -662,8 +684,8 @@ let vm = new Vue({
             shell.openItem(cys_file);
         },
         open_session_dir: function() {
-            if(!this.session_dir) {
-                error_popup("Path doesn't exist", "Session is not set");
+            if(!this.session_dir || !is_dir(this.session_dir)) {
+                error_popup("Path doesn't exist", "Session is not set or session directory does not exist.");
                 return;
             }
             shell.openItem(this.session_dir);
