@@ -2972,7 +2972,11 @@ def main(argv):
     reanalyze_flag = False
     if gui_mode: # notify gui of the output directory
       print(f"COMMAND FILE-SESSION {path_to_new_dir}")
-
+      
+  if os.path.exists(cy_session):
+    eprint("Session " + cy_session + " already exists. Please provide a different name")
+    sys.exit(1)
+  
   # set up logging
   if gui_mode:
     logging = setup_logger("PINE", logging_file, with_stdout=True)
