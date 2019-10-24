@@ -303,17 +303,19 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
-                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],[all_mods_for_prot],[row[label]]] })
+                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
                   else:
                     if sites not in site_info_dict[protein_list_id]:
                        site_info_dict[protein_list_id][sites] = {}
-                       site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],[all_mods_for_prot],[row[label]]] })
+                       site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
                     else:
                       if peptide not in site_info_dict[protein_list_id][sites]:
-                        site_info_dict[protein_list_id][sites][peptide].update({peptide: [[float(get_fc_val)],[get_pval],[all_mods_for_prot],[row[label]]] })
+                        site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
                       else:
                         if row[label] not in site_info_dict[protein_list_id][sites][peptide]:
-                          site_info_dict[protein_list_id][sites][peptide].update({row[label]:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                          site_info_dict[protein_list_id][sites][peptide][0].append(float(get_fc_val))
+                          site_info_dict[protein_list_id][sites][peptide][1].append(float(get_pval))
+                          site_info_dict[protein_list_id][sites][peptide][3].append(row[label])
                         #else dup protid, sites, peptide, label
                         
                   if row[label] not in unique_labels:
@@ -400,7 +402,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               prot_list[row[protein]].update({row[label]:[float(get_fc_val),get_pval]})
       line_count+=1 
-   
+
   if len(unique_labels) > 10:
     eprint("Error: Number of unique labels should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
@@ -524,12 +526,16 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               prot_list_rearrange[each_protid][1].append(1.0)
       prot_list = {}
       prot_list = prot_list_rearrange
-
-  elif type == "5":
+  
+  elif type == "5" or type == "6":
     site_info_dict_rearrange = {}
     all_dropped_pep = {}
     all_dropped_warning = ""
     count_dropped = 0
+    if type == "5":
+      max_FC_len = 1
+    else:
+      max_FC_len = len(unique_labels)
     for each_protid in site_info_dict:
       for each_site in site_info_dict[each_protid]:
         non_unique = False
@@ -583,107 +589,36 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     if cy_debug and all_dropped_pep:
       logging.debug("Lower score query: " + str(count_dropped))
       logging.warning("WARNING - Dropping queries: " + all_dropped_warning)
-            
-  elif type == "6":
-    max_FC_len = len(unique_labels)
-    site_list_rearrange = {}
+           
+  if type == "6":
     site_info_dict_rearrange = {}
-    all_dropped_pep = {}
-    all_dropped_warning = ""
-    count_dropped = 0
-    for each_protid in site_info_dict:
-      for each_site in site_info_dict[each_protid]:
-        non_unique = False
-        keys = list(site_info_dict[each_protid][each_site].keys())
-        if len(keys) > 1:
-          for each_key_pep in site_info_dict[each_protid][each_site]:
-            for each_label in site_info_dict[each_protid][each_site][each_key_pep]:
-              all_mods = [v[2] for k,v in site_info_dict[each_protid][each_site][each_key_pep][each_label].items()]
-              unique_all_mods = [list(x) for x in set(tuple(x) for x in all_mods)]
-              if len(unique_all_mods) > 1:
-                non_unique = True
-                new_each_site = ""
-                for each_modsite in site_info_dict[each_protid][each_site][each_key_pep][each_label][2]:
-                  new_each_site_num = re.sub("[^0-9]", "", each_modsite)
-                  match = re.match(r"([A-Za-z]+)([0-9]+)", each_site)
-                  if match:
-                    if new_each_site:
-                      new_each_site += "/"
-                    new_each_site += match.group(1) + "{" + new_each_site_num + "}" + match.group(2)
-                new_each_site_info = site_info_dict[each_protid][each_site][each_label][each_key_pep]
-              
-                if each_protid not in site_info_dict_rearrange:
-                  site_info_dict_rearrange[each_protid] = {}
-                  site_info_dict_rearrange[each_protid][new_each_site] = {}
-                  site_info_dict_rearrange[each_protid][new_each_site].update({each_label:new_each_site_info})
-                else:
-                  if new_each_site not in site_info_dict_rearrange[each_protid]:
-                    site_info_dict_rearrange[each_protid][new_each_site] = {}
-                    site_info_dict_rearrange[each_protid][new_each_site].update({each_label:new_each_site_info}) 
-                  else:
-                    if each_label not in site_info_dict_rearrange[each_protid][new_each_site]:
-                      site_info_dict_rearrange[each_protid][new_each_site].update({each_label:new_each_site_info})
-              else:              
-                each_site_info, dropped_pep = ptm_scoring(site_info_dict[each_protid][each_site][each_label], enzyme, include_list)
-                for each_dropped_pep in dropped_pep:
-                  count_dropped+=1
-                  if each_protid in all_dropped_pep:
-                    all_dropped_pep[each_protid].append(each_dropped_pep)
-                    all_dropped_warning += ", " + each_dropped_pep 
-                  else:
-                    all_dropped_pep.update({each_protid:[each_dropped_pep]})
-                    all_dropped_warning += each_protid + "(" + each_dropped_pep
-                if all_dropped_warning:
-                  all_dropped_warning += ")"     
-
-          else:
-            each_site_info = site_info_dict[each_protid][each_site][each_label][keys[0]]
-          if not non_unique:
-            if each_protid not in site_info_dict_rearrange:
-              site_info_dict_rearrange[each_protid] = {}
-              site_info_dict_rearrange[each_protid][each_site] = {}
-              site_info_dict_rearrange[each_protid][each_site].update({each_label:each_site_info})
-            else:
-              if each_site not in site_info_dict_rearrange[each_protid]:
-                site_info_dict_rearrange[each_protid][each_site] = {}
-                site_info_dict_rearrange[each_protid][each_site].update({each_label:each_site_info})
-              else:
-                if each_label not in site_info_dict_rearrange[each_protid][each_site]:
-                  site_info_dict_rearrange[each_protid][each_site].update({each_label:each_site_info})
-                  
-    site_info_dict = site_info_dict_rearrange
-    if all_dropped_pep:
-      ambigious_sites = list(all_dropped_pep.keys())      
-    if cy_debug and all_dropped_pep:
-      logging.debug("Lower score query: " + str(count_dropped))
-      logging.warning("WARNING - Dropping queries: " + all_dropped_warning)      
-         
     for each_protid_site in site_info_dict:
       for each_site in site_info_dict[each_protid_site]:
         for each_label in unique_labels:
-          if each_label in site_info_dict[each_protid_site][each_site]:
-            if each_protid_site not in site_list_rearrange:
-              site_list_rearrange[each_protid_site] = {}
-              site_list_rearrange[each_protid_site].update({each_site:[(site_info_dict[each_protid_site][each_site][each_label])[0],(site_info_dict[each_protid_site][each_site][each_label])[1]]})
+          if each_label in site_info_dict[each_protid_site][each_site][3]:
+            index_of = site_info_dict[each_protid_site][each_site][3].index(each_label)
+            if each_protid_site not in site_info_dict_rearrange:
+              site_info_dict_rearrange[each_protid_site] = {}              
+              site_info_dict_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site])[0][index_of]],[(site_info_dict[each_protid_site][each_site])[1][index_of]]]})
             else:
-              if each_site not in site_list_rearrange[each_protid_site]:
-                site_list_rearrange[each_protid_site].update({each_site:[(site_info_dict[each_protid_site][each_site][each_label])[0],(site_info_dict[each_protid_site][each_site][each_label])[1]]})
+              if each_site not in site_info_dict_rearrange[each_protid_site]:
+                site_info_dict_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site])[0][index_of]],[(site_info_dict[each_protid_site][each_site])[1][index_of]]]})
               else:
-                site_list_rearrange[each_protid_site][each_site][0].extend((site_info_dict[each_protid_site][each_site][each_label])[0])
-                site_list_rearrange[each_protid_site][each_site][1].extend((site_info_dict[each_protid_site][each_site][each_label])[1])
+                site_info_dict_rearrange[each_protid_site][each_site][0].append((site_info_dict[each_protid_site][each_site])[0][index_of])
+                site_info_dict_rearrange[each_protid_site][each_site][1].append((site_info_dict[each_protid_site][each_site])[1][index_of])
           else:
-            if each_protid_site not in site_list_rearrange:
-              site_list_rearrange[each_protid_site] = {}
-              site_list_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
+            if each_protid_site not in site_info_dict_rearrange:
+              site_info_dict_rearrange[each_protid_site] = {}
+              site_info_dict_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
             else:
-              if each_site not in site_list_rearrange[each_protid_site]:
-                site_list_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
+              if each_site not in site_info_dict_rearrange[each_protid_site]:
+                site_info_dict_rearrange[each_protid_site].update({each_site:[[0],[1.0]]})
               else:
-                site_list_rearrange[each_protid_site][each_site][0].append(0.0)
-                site_list_rearrange[each_protid_site][each_site][1].append(1.0)
+                site_info_dict_rearrange[each_protid_site][each_site][0].append(0.0)
+                site_info_dict_rearrange[each_protid_site][each_site][1].append(1.0)
     site_info_dict = {}
-    site_info_dict = site_list_rearrange 
-    
+    site_info_dict = site_info_dict_rearrange 
+
   if cy_debug:
     logging.debug("Unique remaining queries: " + str(len(each_protein_list)))
   if cy_out:    
@@ -1377,7 +1312,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
       countiter = 0
       corresponding_prot_id = get_query_from_list(uniprot_query, [each])
       if list(corresponding_prot_id.keys())[0] in ambigious_sites:
-        ambigious = each + "*"
+        ambigious = each + "**"
       else:
         ambigious = each
       for each_site in site_dict[prot_val]:
