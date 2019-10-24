@@ -303,21 +303,18 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
-                    site_info_dict[protein_list_id][sites][row[label]] = {}
-                    site_info_dict[protein_list_id][sites][row[label]].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],[all_mods_for_prot],[row[label]]] })
                   else:
                     if sites not in site_info_dict[protein_list_id]:
                        site_info_dict[protein_list_id][sites] = {}
-                       site_info_dict[protein_list_id][sites][row[label]] = {}
-                       site_info_dict[protein_list_id][sites][row[label]].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                       site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],[all_mods_for_prot],[row[label]]] })
                     else:
-                      if row[label] not in site_info_dict[protein_list_id][sites]:
-                        site_info_dict[protein_list_id][sites][row[label]] = {}
-                        site_info_dict[protein_list_id][sites][row[label]].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                      if peptide not in site_info_dict[protein_list_id][sites]:
+                        site_info_dict[protein_list_id][sites][peptide].update({peptide: [[float(get_fc_val)],[get_pval],[all_mods_for_prot],[row[label]]] })
                       else:
-                        if peptide not in site_info_dict[protein_list_id][sites][row[label]]:
-                          site_info_dict[protein_list_id][sites][row[label]].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
-                        #else dup peptide
+                        if row[label] not in site_info_dict[protein_list_id][sites][peptide]:
+                          site_info_dict[protein_list_id][sites][peptide].update({row[label]:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                        #else dup protid, sites, peptide, label
                         
                   if row[label] not in unique_labels:
                     unique_labels.append(row[label])                
@@ -403,7 +400,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               prot_list[row[protein]].update({row[label]:[float(get_fc_val),get_pval]})
       line_count+=1 
-    
+   
   if len(unique_labels) > 10:
     eprint("Error: Number of unique labels should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
@@ -596,17 +593,17 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     count_dropped = 0
     for each_protid in site_info_dict:
       for each_site in site_info_dict[each_protid]:
-        for each_label in site_info_dict[each_protid][each_site]:
-          non_unique = False
-          keys = list(site_info_dict[each_protid][each_site][each_label].keys())
-          if len(keys) > 1:
-            all_mods = [v[2] for k,v in site_info_dict[each_protid][each_site][each_label].items()]
-            unique_all_mods = [list(x) for x in set(tuple(x) for x in all_mods)]
-            if len(unique_all_mods) > 1:
-              non_unique = True
-              for each_key_pep in site_info_dict[each_protid][each_site][each_label]:
+        non_unique = False
+        keys = list(site_info_dict[each_protid][each_site].keys())
+        if len(keys) > 1:
+          for each_key_pep in site_info_dict[each_protid][each_site]:
+            for each_label in site_info_dict[each_protid][each_site][each_key_pep]:
+              all_mods = [v[2] for k,v in site_info_dict[each_protid][each_site][each_key_pep][each_label].items()]
+              unique_all_mods = [list(x) for x in set(tuple(x) for x in all_mods)]
+              if len(unique_all_mods) > 1:
+                non_unique = True
                 new_each_site = ""
-                for each_modsite in site_info_dict[each_protid][each_site][each_label][each_key_pep][2]:
+                for each_modsite in site_info_dict[each_protid][each_site][each_key_pep][each_label][2]:
                   new_each_site_num = re.sub("[^0-9]", "", each_modsite)
                   match = re.match(r"([A-Za-z]+)([0-9]+)", each_site)
                   if match:
@@ -626,18 +623,18 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   else:
                     if each_label not in site_info_dict_rearrange[each_protid][new_each_site]:
                       site_info_dict_rearrange[each_protid][new_each_site].update({each_label:new_each_site_info})
-            else:              
-              each_site_info, dropped_pep = ptm_scoring(site_info_dict[each_protid][each_site][each_label], enzyme, include_list)
-              for each_dropped_pep in dropped_pep:
-                count_dropped+=1
-                if each_protid in all_dropped_pep:
-                  all_dropped_pep[each_protid].append(each_dropped_pep)
-                  all_dropped_warning += ", " + each_dropped_pep 
-                else:
-                  all_dropped_pep.update({each_protid:[each_dropped_pep]})
-                  all_dropped_warning += each_protid + "(" + each_dropped_pep
-              if all_dropped_warning:
-                all_dropped_warning += ")"     
+              else:              
+                each_site_info, dropped_pep = ptm_scoring(site_info_dict[each_protid][each_site][each_label], enzyme, include_list)
+                for each_dropped_pep in dropped_pep:
+                  count_dropped+=1
+                  if each_protid in all_dropped_pep:
+                    all_dropped_pep[each_protid].append(each_dropped_pep)
+                    all_dropped_warning += ", " + each_dropped_pep 
+                  else:
+                    all_dropped_pep.update({each_protid:[each_dropped_pep]})
+                    all_dropped_warning += each_protid + "(" + each_dropped_pep
+                if all_dropped_warning:
+                  all_dropped_warning += ")"     
 
           else:
             each_site_info = site_info_dict[each_protid][each_site][each_label][keys[0]]
@@ -1899,7 +1896,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
         else:
           fc_val.append(-100)
       else:
-        fc_val.append(-100)
+        fc_val.append(0.0)
       pval_val.append(-1)
     else:
       fc_na.append(0)    
@@ -2922,36 +2919,36 @@ def main(argv):
     help = True
     
   if help:
-    print("Cytoscape Visualization")
+    print("PINE")
     print("---------------------------------------------------------------------------------------------")
     print("Usage:         cytoscape_api.py -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz")
-    print("Argument:      -i [--in]: input file in csv format")
-    print("Argument:      -o [--output]: output directory")     
-    print("Argument:      -t [--type]: input type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm]")   
-    print("Argument:      -s [--species]: species [Supported: human, mouse, rat]")   
-    print("Argument:      -m [--mapping]: path to cluego mapping file compressed in .gz format") 
-    print("Argument:      -x [--enzyme]: enzyme name")   
+    print("Argument:      -i [--in]: input file in csv format with the following headers as applicable: ")
+    print("Argument:      -o [--output]: path to output directory")     
+    print("Argument:      -t [--type]: analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm]")   
+    print("Argument:      -s [--species]: species [Allowed: human, mouse, rat]")   
+    print("Argument:      -x [--enzyme]: enzyme name [Allowed:]")   
     print("Argument:      -d [--mods]: comma separated list of modifications of interest")
     print("Argument:      -b [--fastafile]: path to fasta file")
-    print("Argument:      -e [--cytoscape-executable]: the path to the Cytoscape executable")  
-    print("Argument(opt): -u [--run]: choose tools for interactions [Allowed: string, genemania, both; Default: both]")
-    print("Argument(opt): -l [--limit]: number of interactors [Default:0, Range:0-100]")
-    print("Argument(opt): -r [--score]: interaction confidence score [Default:0.4, Range 0-1]")
-    print("Argument(opt): -a [--inputcluego]: cluego input file in txt format.  Must be provided with the -c, --cytoscape-session-file argument")
-    print("Argument(opt): -y [--cluegopval]: cluego terms pvalue [Default: 0.05]")
-    print("Argument(opt): -g [--grouping]: cluego grouping [Allowed: global, medium, detailed; Default: medium]")
-    print("Argument(opt): -z [--visualize]: cluego analysis type [Allowed: biological process, subcellular location, molecular function, pathways, all; Default: pathways]")
-    print("Argument(opt): -h [--referencepath]: cluego custom reference path")
-    print("Argument(opt): -f [--fccutoff]: cutoff for fold change [Default: abs(FC) >= 0.0]")
-    print("Argument(opt): -p [--pvalcutoff]: cutoff for p value [Default: pval > 1.0]")
-    print("Argument(opt): -n [--significant]: outline statistically significant nodes")  
+    print("Argument:      -m [--mapping]: path to cluego mapping file compressed in .gz format") 
+    print("Argument:      -e [--cytoscape-executable]: the path to the Cytoscape executable")
+    print("Argument(opt): -f [--fccutoff]: fold change cutoff for input [Default: abs(FC) >= 0.0]")
+    print("Argument(opt): -p [--pvalcutoff]: pvalue cutoff for input [Default: pval > 1.0]")
+    print("Argument(opt): -n [--significant]: outline statistically significant nodes")    
+    print("Argument(opt): -u [--run]: interaction databases [Allowed: string, genemania, both; Default: both]")
+    print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
+    print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
+    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, subcellular location, molecular function, pathways, all; Default: pathways]")
+    print("Argument(opt): -g [--grouping]: network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium]")
+    print("Argument(opt): -y [--cluegopval]: pvalue cutoff for enrichment analysis [Default: 0.05]")
+    print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
+    print("Argument(opt): -a [--inputcluego]: filtered cluego file with ontology terms of interest")
     sys.exit()
 
   if not os.path.isdir(cy_out_dir):
     eprint("Error: output is not a directory")
     sys.exit(1)
   
-  timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+  timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
   
   # create file names
   if cy_cluego_inp_file:
@@ -2963,7 +2960,7 @@ def main(argv):
     logging_file = session_name + ".log"
     reanalyze_flag = True
   else:  
-    path_to_new_dir = os.path.join(os.path.abspath(cy_out_dir), timestamp)  
+    path_to_new_dir = os.path.join(os.path.abspath(cy_out_dir), timestamp) + "_PINE"
     os.mkdir(path_to_new_dir) 
     cy_out = os.path.join(path_to_new_dir, "Interactions.csv")
     cy_cluego_out = os.path.join(path_to_new_dir, "PINE.cluego.txt")
@@ -3095,7 +3092,8 @@ def main(argv):
     # close cytoscape
     try:
       r = requests.get("http://localhost:1234/v1/version")
-      session_filename = os.path.join(cy_out_dir, timestamp + "-exited-session.cys") # save current session
+      path_to_docs = os.path.expanduser("~\Documents")
+      session_filename = os.path.join(path_to_docs, timestamp + "-exited-session.cys") # save current session
       r = requests.get("http://localhost:1234/v1/commands/session/save%20as?file=" + urllib.parse.quote(session_filename, safe=""))
       r = requests.get("http://localhost:1234/v1/commands/command/quit")
       logging.warning("Cytoscape was already open with an existing session.  Saved existing session to: " + session_filename)
@@ -3360,9 +3358,8 @@ def main(argv):
     
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    print(cy_session)
-    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    requests.get("http://localhost:1234/v1/commands/command/quit")
+    #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
+    #requests.get("http://localhost:1234/v1/commands/command/quit")
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
