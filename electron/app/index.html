@@ -22,9 +22,10 @@
       </div>
 
       <ul class="tab-selector">
-        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tabReachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Settings</li>
-        <li v-on:click="switchTab(tabs.PROGRESS)" v-bind:class="{'disabled': !tabReachable(tabs.PROGRESS), 'active': current_tab === tabs.PROGRESS}">Log</li>
-        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tabReachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway Selection</li>
+        <li v-on:click="switchTab(tabs.SETUP)" v-bind:class="{'disabled': !tab_reachable(tabs.SETUP), 'active': current_tab === tabs.SETUP}">Setup</li>
+        <li v-on:click="switchTab(tabs.INPUT)" v-bind:class="{'disabled': !tab_reachable(tabs.INPUT), 'active': current_tab === tabs.INPUT}">Settings</li>
+        <li v-on:click="switchTab(tabs.PROGRESS)" v-bind:class="{'disabled': !tab_reachable(tabs.PROGRESS), 'active': current_tab === tabs.PROGRESS}">Log</li>
+        <li v-on:click="switchTab(tabs.PATHWAY_SELECTION)" v-bind:class="{'disabled': !tab_reachable(tabs.PATHWAY_SELECTION), 'active': current_tab === tabs.PATHWAY_SELECTION}">Pathway Selection</li>
       </ul>
 
       <div class="full-section wrapper">
@@ -42,6 +43,19 @@
             <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" />
             {{ input.cluego_base_path }}
           </section>
+        </div>
+
+        <div v-if="current_tab === tabs.SETUP">
+          <div class="grid-setup-pine">
+            <div>
+              <img src="assets/pine.png" class="pine-img" />
+            </div>
+            <div>
+              <h2>
+                <span class="color-3">P</span>rotein <span class="color-3">I</span>nteraction <span class="color-3">N</span>etwork <span class="color-3">E</span>xtractor
+              </h2>
+            </div>
+          </div>
         </div>
 
         <div v-if="current_tab === tabs.INPUT">
@@ -313,6 +327,10 @@
         </div>
 
         <div v-if="current_tab === tabs.PROGRESS">
+          <h4 class="full-section-header" v-show="running">
+            Analysis running:
+            <i class="fas fa-spinner fa-pulse"></i>
+          </h4>
           <div v-show="stderr" class="full-section">
             <div class="log-stderr">{{ stderr }}</div>
           </div>
