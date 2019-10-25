@@ -14,7 +14,8 @@ function createWindow () {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true
-    }
+    },
+    icon: path.join(__dirname, "app/assets/pine-tree.png"),
   })
   //mainWindow.openDevTools()
   mainWindow.setMenu(null);
