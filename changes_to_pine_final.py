@@ -144,7 +144,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   retain_prot_ids = []
   repeat_prot_ids_2 = {}
   to_return_unique_protids_length = 0
-  ambigious_sites = []
+  ambigious_sites = {}
   pep_to_mod = {}
   with open(inp,'r') as csv_file:
     '''
@@ -436,13 +436,14 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       each_protein_list = list(set(unique_each_protein_list))
     else:
       each_protein_list = unique_each_protein_list
-
+    
+    all_dropped = dropping_repeats + retain_prot_ids
+    all_dropped = sorted(all_dropped)
     if cy_debug:
-      if all_dropped:
+      if all_dropped:       
         logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
-        all_dropped = dropping_repeats + retain_prot_ids
-        all_dropped = sorted(all_dropped)
         logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
+    
     for each_dupe_query in all_dropped:
       line = each_dupe_query + ",,,,," + "Duplicate query;\n"
       if cy_out:
@@ -568,10 +569,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               count_dropped+=1
               if each_protid in all_dropped_pep:
                 all_dropped_pep[each_protid].append(each_dropped_pep)
-                all_dropped_warning += ", " + each_dropped_pep 
+                all_dropped_warning += ", " + each_dropped_pep
+                ambigious_sites[each_protid].append(each_site)                
               else:
                 all_dropped_pep.update({each_protid:[each_dropped_pep]})
                 all_dropped_warning += each_protid + "(" + each_dropped_pep
+                ambigious_sites.update({each_protid:each_site})
             if all_dropped_warning:
               all_dropped_warning += ")"
             
@@ -583,9 +586,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
           else:
             site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-    site_info_dict = site_info_dict_rearrange
-    if all_dropped_pep:
-      ambigious_sites = list(all_dropped_pep.keys())      
+    site_info_dict = site_info_dict_rearrange     
     if cy_debug and all_dropped_pep:
       logging.debug("Lower score query: " + str(count_dropped))
       logging.warning("WARNING - Dropping queries: " + all_dropped_warning)
@@ -1309,15 +1310,18 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
   
   elif type == "5" or type == "6":
     if prot_as_list:
-      countiter = 0
-      corresponding_prot_id = get_query_from_list(uniprot_query, [each])
-      if list(corresponding_prot_id.keys())[0] in ambigious_sites:
-        ambigious = each + "**"
-      else:
-        ambigious = each
+      countiter = 0     
       for each_site in site_dict[prot_val]:
         is_significant = 0
         is_FC_true = 0.0
+        
+        ambigious = ""
+        if prot_val in ambigious_sites:
+          if each_site in ambigious_sites[prot_val]:
+            ambigious = each_site + "**"
+        if not ambigious:
+          ambigious = each_site
+          
         if countiter!=0:
           uniprot_list['name'].append(each)
           uniprot_list['length'].append(len(each))
@@ -1334,7 +1338,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
             if (float(each_FC) > 0 or float(each_FC) < 0):
               is_FC_true = 1.0
             count_FC_uniprot+=1
-          uniprot_list.update({'query':[each],'significant':[is_significant],'FC_exists':[is_FC_true],'site':[each_site+"-"+each], 'ambigious':[ambigious]})
+          uniprot_list.update({'query':[each],'significant':[is_significant],'FC_exists':[is_FC_true],'site':[each_site+"-"+each], 'ambigious_site':[ambigious]})
           not_in_list +=1
         else:
           count_FC_uniprot = 1
@@ -1353,7 +1357,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           uniprot_list['significant'].append(is_significant)
           uniprot_list['FC_exists'].append(is_FC_true)
           uniprot_list['site'].append(each_site+"-"+each)
-          uniprot_list['ambigious'].append(ambigious)
+          uniprot_list['ambigious_site'].append(ambigious)
         countiter +=1
         
     else:
@@ -1362,7 +1366,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           term_FC = 'FC' + str(i)
           term_pval = 'pval' + str(i)
           uniprot_list.update({term_FC:[0.0], term_pval:['NA']})
-        uniprot_list.update({'query':['NA'],'significant':['NA'],'FC_exists':[0],'site':['NA'],'ambigious':['NA']})
+        uniprot_list.update({'query':['NA'],'significant':['NA'],'FC_exists':[0],'site':['NA'],'ambigious_site':['NA']})
         not_in_list +=1
       else:
         for i in range(1,max_FC_len+1):
@@ -1374,7 +1378,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
         uniprot_list['significant'].append('NA')
         uniprot_list['FC_exists'].append(0)  
         uniprot_list['site'].append('NA')
-        uniprot_list['ambigious'].append('NA')
+        uniprot_list['ambigious_site'].append('NA')
   
   else:
     if max_FC_len == 0:
@@ -1599,7 +1603,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     kappa = 0.5
   elif group.lower() == "medium":
     if len(merged_vertex) <= 500:
-      min_number_of_genes_per_term = 5
+      min_number_of_genes_per_term = 2
       min_percentage_of_genes_mapped = 2
     else:
       min_number_of_genes_per_term = 20
@@ -1794,15 +1798,14 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   pval_val = []
   val_fc_gene = {}
   get_each_site_name = []
-  include_ambigious_data = []
+  include_gene_data = []
   fc_merged_vertex = {}
   query_val = []
-  
-  for each_site_gene in uniprot_list['site']:
+  for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
     each_gene = (each_site_gene.split("-"))[1]
     each_site = (each_site_gene.split("-"))[0]
     if each_gene.lower() in merged_vertex:
-      get_each_site_name.append(each_site)
+      get_each_site_name.append(each_ambi_site)
       query_val.append("Site")
       G.add_vertex(each_site_gene)
       interaction = each_site_gene + " " + each_gene
@@ -1821,8 +1824,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
           fc_merged_vertex.update({each_gene:val})        
   for each_vertex in merged_vertex:
     if each_vertex in uniprot_list['name']:
-      indexOf = uniprot_list['name'].index(each_vertex.lower())
-      include_ambigious_data.append(uniprot_list['ambigious'][indexOf])      
+      #indexOf = uniprot_list['name'].index(each_vertex.lower())
+      include_gene_data.append(each_vertex)      
       fc_na.append(-1)
       if type == "5":
         get_fc = fc_merged_vertex[each_vertex]
@@ -1850,8 +1853,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     count_each +=1
     
   G.vs
-  
-  G.vs["name"] = get_each_site_name + include_ambigious_data
+  G.vs["name"] = get_each_site_name + include_gene_data
   G.vs["length"] = site_length + uniprot_list['length']
   
   G.vs["significant"] = uniprot_list["significant"] + sig_na
@@ -1935,7 +1937,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_ambigious_data,max_FC_len, uniprot_list)
+    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_gene_data,max_FC_len, uniprot_list)
     if pval_style:
       pval_sig = 1
     
@@ -2428,13 +2430,14 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   breadth_of = []
   
   pos_or_neg_func_value = {}
+  total_value = {} 
   merged_vertex = []
   merged_vertex_sites_only = []
   query_val_noFC = []
   count_each = 0
   all_interactions = []
   function_fc_val = {}
-  
+
   category_present = 0
   for each in each_category:
     category_present = 1
@@ -2459,6 +2462,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         breadth_of.append(val_breadth_of_val)
     
     val_pos_or_neg = 0
+    val_total = 0
     for each_gene in cluster_list[each]:
       if each_gene not in merged_vertex:
         G.add_vertex(each_gene)
@@ -2491,7 +2495,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
             for each_index in indices:
               G.add_vertex(uniprot_list['site'][each_index])
               merged_vertex.append(uniprot_list['site'][each_index])
-              merged_vertex_sites_only.append(uniprot_list['site'][each_index].split("-")[0])
+              merged_vertex_sites_only.append(uniprot_list['ambigious_site'][each_index])
               query.append('Site')
               val_length_of_val = len(each_gene) #* 15
               length_of.append(val_length_of_val)
@@ -2505,6 +2509,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         if each_gene.lower() in uniprot_list["name"]:
           index = uniprot_list["name"].index(each_gene.lower())
           FC_val_each_gene = (uniprot_list['FC1'])[index]
+          val_total += 1
           if FC_val_each_gene > 0:
             val_pos_or_neg += 1
           elif FC_val_each_gene < 0:
@@ -2515,21 +2520,30 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       for each_check_func,each_check_gene in zip(check_if_function,check_if_gene):
         if each_check_func in function_only:
           val_to_add = 0
+          val_total_56 = 0
           if each_check_gene.lower() in fc_merged_vertex:
+            val_total_56 +=1
             if fc_merged_vertex[each_check_gene.lower()] >= 0:
               val_to_add += 1
             else:
               val_to_add += -1
             if each_check_func in function_fc_val:
               function_fc_val[each_check_func] += val_to_add
+              total_value[each_check_func] += val_total_56 
             else:
-              function_fc_val.update({each_check_func:val_to_add})      
+              function_fc_val.update({each_check_func:val_to_add})
+              total_value.update({each_check_func:val_total_56})
+                    
       name_edge = each + " with " + each_gene
       G.add_edge(each,each_gene,name=name_edge)
       all_interactions.append(name_edge)
       
     pos_or_neg_func_value.update({each:val_pos_or_neg})
- 
+    if max_FC_len == 1 and not (type == "5" or type == "6"):
+      total_value.update({each:val_total})
+    print(pos_or_neg_func_value)
+    print(total_value)
+      
   G.vs
   G.vs["query"] = query
   G.vs["name"] = merged_vertex
@@ -2576,8 +2590,6 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
 
   if type == "5" or type == "6":
     search_list_for_fc = [a.lower() for a in uniprot_list["site"]]
-    print(search_list_for_fc)
-    print(fc_merged_vertex)
   else:
     search_list_for_fc = uniprot_list["name"]
   for i in range(1,max_FC_len+1):
@@ -2605,10 +2617,18 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       else:
         if max_FC_len == 1 and not (type == "5" or type == "6"):
           add_term_value = pos_or_neg_func_value[each_vertex_name]
-          if add_term_value >= 0:
-            add_term_value = 100
+          if add_term_value > 0:
+            if add_term_value/total_value[each_vertex_name]*100 >= 80:
+              add_term_value = 100
+            else:
+              add_term_value = 0
           elif add_term_value < 0:
-            add_term_value = -100
+            if abs(add_term_value)/total_value[each_vertex_name]*100 >= 80:
+              add_term_value = -100
+            else:
+              add_term_value = 0
+          else:
+            add_term_value = 0
           add_term_FC.append(add_term_value)
         
             
@@ -2657,7 +2677,6 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   my_style = cy.style.create('GAL_Style3')
   
   basic_settings = {
-    #'NODE_FILL_COLOR':"#33CCFF",
     'EDGE_TRANSPARENCY':"15",
     'NODE_BORDER_PAINT':"#999999",
     'EDGE_WIDTH':"2"
