@@ -252,7 +252,7 @@ ul.tab-selector li + li {
 .tooltip {
   display: none;
   position: absolute;
-  z-index: 1000;
+  z-index: 100;
   padding: 1rem;
   background-color: #483D3F;
   color: #F8F4E3;
