@@ -1,7 +1,7 @@
 {
-  "name": "electron-quick-start",
+  "name": "pine",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "Protein Interaction Network Extractor",
   "main": "main.js",
   "scripts": {
     "start": "npm run-script sass && electron .",
@@ -16,13 +16,24 @@
     "tutorial",
     "demo"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "Cedars-Sinai",
+  "license": "Proprietary",
   "devDependencies": {
-    "electron": "^6.0.7"
+    "electron": "^6.0.7",
+    "electron-packager": "^14.0.6",
+    "electron-builder": "^21.2.0"
   },
   "dependencies": {
-    "electron-packager": "^14.0.6",
     "vue": "^2.6.10"
+  },
+  "build": {
+    "productName": "Pine",
+    "extraResources": [
+      {"from": "../dist/changes_to_pine_final.exe", "to": "extra-resources/pine_2.exe"}
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "app/assets/pine-tree.png"
+    }
   }
 }

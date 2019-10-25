@@ -153,7 +153,7 @@ let vm = new Vue({
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
                 var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
-                var pine = spawn(path.join(__dirname, "/../../pine_2/pine_2.exe"), args);
+                var pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
             }
 
             let new_session_dir = null;

@@ -211,8 +211,8 @@
                 </span>
               </div>
               <div v-if="is_extra_options_required()">
-                <label class="button success-button" for="file-button-output">Select file</label>
-                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'fasta_file')" />
+                <label class="button success-button" for="file-button-fasta">Select file</label>
+                <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" />
                 <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | filename }}</span>
               </div>
 

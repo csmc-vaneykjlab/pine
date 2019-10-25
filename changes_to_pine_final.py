@@ -3293,8 +3293,8 @@ def main(argv):
     
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    #requests.get("http://localhost:1234/v1/commands/command/quit")
+    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
+    requests.get("http://localhost:1234/v1/commands/command/quit")
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)

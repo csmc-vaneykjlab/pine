@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['pine_2.py'],
+a = Analysis(['changes_to_pine_final.py'],
              pathex=['C:\\Users\\GoJ1\\Documents\\cytoscape1'],
              binaries=[],
              datas=[],
@@ -19,18 +19,14 @@ pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
+          a.binaries,
+          a.zipfiles,
+          a.datas,
           [],
-          exclude_binaries=True,
-          name='pine_2',
+          name='changes_to_pine_final',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
+          runtime_tmpdir=None,
           console=True )
-coll = COLLECT(exe,
-               a.binaries,
-               a.zipfiles,
-               a.datas,
-               strip=False,
-               upx=True,
-               name='pine_2')
