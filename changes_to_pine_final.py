@@ -574,7 +574,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               else:
                 all_dropped_pep.update({each_protid:[each_dropped_pep]})
                 all_dropped_warning += each_protid + "(" + each_dropped_pep
-                ambigious_sites.update({each_protid:each_site})
+                ambigious_sites.update({each_protid:[each_site]})
             if all_dropped_warning:
               all_dropped_warning += ")"
             
@@ -3270,6 +3270,7 @@ def main(argv):
       eprint("Error: Cytoscape must be open")
       sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
+      traceback.print_exc()
       eprint("Error: Cytoscape not responding. Please restart and wait for it to fully load")
       sys.exit(1)
     else:
