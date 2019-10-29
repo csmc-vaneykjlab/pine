@@ -725,13 +725,15 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   prot_with_mult_primgene = []
   query_term = ' '.join(each_protein_list)
   url = 'https://www.uniprot.org/uploadlists/'
+  ambigious_gene = []
+  all_isoforms = []
 
   params = {
   'from':'ACC+ID',
   'to':'ACC',
   'format':'tab',
   'query':query_term,
-  'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism'
+  'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,feature(NATURAL VARIANT),last-modified'
   }
   data = urllib.parse.urlencode(params).encode("utf-8")
   request = urllib2.Request(url, data)
@@ -741,36 +743,45 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   list1=decode.split('\n')
   list1 = list1[1:]
   for each_list1 in list1:
+    remaining_isoforms = []
     if each_list1 != '':
       uniprot_list = each_list1.split('\t')
       uniprot_protid = uniprot_list[0]
-      prot = uniprot_list[4]
+      prot = uniprot_list[6]
       split_prot_list = prot.split(',')
-      for each_prot in split_prot_list:
-        primary_gene = uniprot_list[1]
-        merged_out_dict[each_prot] = {}
-        comment_merged = ""
-        # Pick first gene in case of multiple primary genes for single uniprot ids 
-        if ";" in primary_gene:
-          prot_with_mult_primgene.append(each_prot + "(" + primary_gene + ") ")
-          #comment_merged = "Multiple primary genes;"
-          primary_gene = primary_gene.split(";")[0]
-        synonym_gene = uniprot_list[2]
-        synonym_gene = synonym_gene.split(" ")
-        organism_name = uniprot_list[3]
-        uniprot_query[each_prot] = {}
-        uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name})
-        # Do not add empty primary gene to list
-        if primary_gene: # Duplicates in primary gene  
-            each_primgene_list.append(primary_gene)
-        else:
-          no_primgene_val.append(each_prot)
-          comment_merged = "Primary gene unavailable;"
+      if len(split_prot_list) > 0:
+        remaining_isoforms = split_prot_list[1:]
+        all_isoforms.extend(remaining_isoforms)
+      each_prot = split_prot_list[0]
+      primary_gene = uniprot_list[1]
+      merged_out_dict[each_prot] = {}
+      comment_merged = ""
+      # Pick first gene in case of multiple primary genes for single uniprot ids 
+      if ";" in primary_gene:
+        prot_with_mult_primgene.append(each_prot + "(" + primary_gene + ") ")
+        #comment_merged = "Multiple primary genes;"
+        primary_gene = primary_gene.split(";")[0]
+        if primary_gene not in ambigious_gene:
+          ambigious_gene.append(primary_gene)
+      if remaining_isoforms:
+        if primary_gene not in ambigious_gene:
+          ambigious_gene.append(primary_gene) 
+      synonym_gene = uniprot_list[2]
+      synonym_gene = synonym_gene.split(" ")
+      organism_name = uniprot_list[3]
+      uniprot_query[each_prot] = {}
+      uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name,'Natural_variant':uniprot_list[4],'Date_modified':uniprot_list[5]})
+      # Do not add empty primary gene to list
+      if primary_gene: # Duplicates in primary gene  
+        each_primgene_list.append(primary_gene)
+      else:
+        no_primgene_val.append(each_prot)
+        comment_merged = "Primary gene unavailable;"
           
-        if uniprot_protid:
-          each_protid_list.append(uniprot_protid)
+      if uniprot_protid:
+        each_protid_list.append(uniprot_protid)
         
-        merged_out_dict[each_prot].update({'Primary':primary_gene, 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
+      merged_out_dict[each_prot].update({'Primary':primary_gene, 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
 
   for each_prot_in_input in each_protein_list:
     if each_prot_in_input not in uniprot_query:
@@ -817,7 +828,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       if each_in_list in uniprot_query:
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})
   
-  return(uniprot_query,each_primgene_list,merged_out_dict)
+  return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_query_from_list(uniprot_query, list):
   dropped_list = {}
@@ -1236,7 +1247,7 @@ def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, 
     
   return(search_dict, merged_out_dict)  
   
-def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_category, type, site_dict, ambigious_sites):
+def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_category, type, site_dict, ambigious_sites, ambigious_genes):
   '''
   For genes in merged interaction list, append other info: FC, pval, category etc
   '''  
@@ -1246,11 +1257,21 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
     length_each = len(each)
     uniprot_list.update({'length':[length_each]})
     not_in_list = 0
+    if each.lower() in [a.lower() for a in ambigious_genes]:
+      ambi_gene = each + "**"
+      uniprot_list.update({'ambigious_genes': [ambi_gene]})
+    else:
+      uniprot_list.update({'ambigious_genes': [each]})
   else:
     uniprot_list['name'].append(each)
     length_each = len(each)
     uniprot_list['length'].append(length_each)
-  
+    if each.lower() in [a.lower() for a in ambigious_genes]:
+      ambi_gene = each + "**"
+      uniprot_list['ambigious_genes'].append(ambi_gene)
+    else:
+      uniprot_list['ambigious_genes'].append(each)
+      
   prot_as_list = get_query_from_list(uniprot_query, [each])
   if prot_as_list:
     prot_val = list(prot_as_list.keys())[0]
@@ -1594,7 +1615,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   ''' 
   if group.lower() == "global":
     if len(merged_vertex) <= 500:
-      min_number_of_genes_per_term = 5
+      min_number_of_genes_per_term = 3
     else:
       min_number_of_genes_per_term = 20
     min_percentage_of_genes_mapped = 0
@@ -1603,7 +1624,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     kappa = 0.5
   elif group.lower() == "medium":
     if len(merged_vertex) <= 500:
-      min_number_of_genes_per_term = 2
+      min_number_of_genes_per_term = 3
       min_percentage_of_genes_mapped = 2
     else:
       min_number_of_genes_per_term = 20
@@ -1810,31 +1831,13 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       G.add_vertex(each_site_gene)
       interaction = each_site_gene + " " + each_gene
       site_interactions.append(interaction)
-      site_length.append(len(each_site))
-      if type == "5":
-        index_of_fc = uniprot_list['site'].index(each_site_gene)
-        fc_at_pos = uniprot_list['FC1'][index_of_fc]
-        if float(fc_at_pos) >= 0:
-          val = 1
-        else:
-          val = -1
-        if each_gene in fc_merged_vertex:
-          fc_merged_vertex[each_gene] += val
-        else:
-          fc_merged_vertex.update({each_gene:val})        
+      site_length.append(len(each_site))        
   for each_vertex in merged_vertex:
     if each_vertex in uniprot_list['name']:
-      #indexOf = uniprot_list['name'].index(each_vertex.lower())
-      include_gene_data.append(each_vertex)      
+      indexOf = uniprot_list['name'].index(each_vertex.lower())
+      include_gene_data.append(uniprot_list['ambigious_genes'][indexOf])      
       fc_na.append(-1)
-      if type == "5":
-        get_fc = fc_merged_vertex[each_vertex]
-        if get_fc >= 0:
-          fc_val.append(100)
-        else:
-          fc_val.append(-100)
-      else:
-        fc_val.append(0.0)
+      fc_val.append(0.0)
       pval_val.append(-1)
     else:
       fc_na.append(0)    
@@ -1972,6 +1975,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   G.vs
  
   G.vs["name"] = uniprot_list['name']
+  G.vs["shared name"] = uniprot_list['ambigious_genes']
   G.vs["length"] = uniprot_list['length']
   
   if max_FC_len >= 1:
@@ -2428,9 +2432,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   query = []
   length_of = []
   breadth_of = []
-  
-  pos_or_neg_func_value = {}
-  total_value = {} 
+   
   merged_vertex = []
   merged_vertex_sites_only = []
   query_val_noFC = []
@@ -2461,14 +2463,12 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           val_breadth_of_val = 50
         breadth_of.append(val_breadth_of_val)
     
-    val_pos_or_neg = 0
-    val_total = 0
     for each_gene in cluster_list[each]:
       if each_gene not in merged_vertex:
         G.add_vertex(each_gene)
         merged_vertex.append(each_gene)
-        merged_vertex_sites_only.append(each_gene)
         if each_gene in function_only:
+          merged_vertex_sites_only.append(each_gene)
           query.append('Function')
           if max_FC_len == 0 and not category_present:
             query_val_noFC.append('Function')
@@ -2483,6 +2483,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
          
         else:
           query.append('Gene')
+          indexOf = uniprot_list['name'].index(each_gene.lower())
+          merged_vertex_sites_only.append(uniprot_list['ambigious_genes'][indexOf])
           if max_FC_len == 0 and not category_present:
             index_noFC = uniprot_list["name"].index(each_gene.lower())
             query_val_noFC.append((uniprot_list["query"])[index_noFC])
@@ -2509,40 +2511,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         if each_gene.lower() in uniprot_list["name"]:
           index = uniprot_list["name"].index(each_gene.lower())
           FC_val_each_gene = (uniprot_list['FC1'])[index]
-          val_total += 1
-          if FC_val_each_gene > 0:
-            val_pos_or_neg += 1
-          elif FC_val_each_gene < 0:
-            val_pos_or_neg -= 1
-      
-      check_if_function = [each, each_gene]
-      check_if_gene = [each_gene, each]
-      for each_check_func,each_check_gene in zip(check_if_function,check_if_gene):
-        if each_check_func in function_only:
-          val_to_add = 0
-          val_total_56 = 0
-          if each_check_gene.lower() in fc_merged_vertex:
-            val_total_56 +=1
-            if fc_merged_vertex[each_check_gene.lower()] >= 0:
-              val_to_add += 1
-            else:
-              val_to_add += -1
-            if each_check_func in function_fc_val:
-              function_fc_val[each_check_func] += val_to_add
-              total_value[each_check_func] += val_total_56 
-            else:
-              function_fc_val.update({each_check_func:val_to_add})
-              total_value.update({each_check_func:val_total_56})
-                    
+          
       name_edge = each + " with " + each_gene
       G.add_edge(each,each_gene,name=name_edge)
       all_interactions.append(name_edge)
-      
-    pos_or_neg_func_value.update({each:val_pos_or_neg})
-    if max_FC_len == 1 and not (type == "5" or type == "6"):
-      total_value.update({each:val_total})
-    print(pos_or_neg_func_value)
-    print(total_value)
       
   G.vs
   G.vs["query"] = query
@@ -2616,38 +2588,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
               
       else:
         if max_FC_len == 1 and not (type == "5" or type == "6"):
-          add_term_value = pos_or_neg_func_value[each_vertex_name]
-          if add_term_value > 0:
-            if add_term_value/total_value[each_vertex_name]*100 >= 80:
-              add_term_value = 100
-            else:
-              add_term_value = 0
-          elif add_term_value < 0:
-            if abs(add_term_value)/total_value[each_vertex_name]*100 >= 80:
-              add_term_value = -100
-            else:
-              add_term_value = 0
-          else:
-            add_term_value = 0
-          add_term_FC.append(add_term_value)
-        
-            
-        elif type == "5":
-          if each_vertex_name.lower() in fc_merged_vertex:
-            if float(fc_merged_vertex[each_vertex_name.lower()]) >= 0:
-              add_term_FC.append(100)
-            else:
-              add_term_FC.append(-100)
-          
-          elif each_vertex_name in function_only:
-            if float(function_fc_val[each_vertex_name]) >= 0:
-              add_term_FC.append(100)
-            else:
-              add_term_FC.append(-100)
-            
-          else:
-            add_term_FC.append(0.0)
- 
+          add_term_FC.append(100.0)
+       
         else:
           add_term_FC.append(0.0)
           
@@ -3043,7 +2985,8 @@ def main(argv):
     sys.exit(1)
     
   try:
-    # close cytoscape
+    if cy_debug:
+      logging.debug("Starting PINE Analysis...\n\n") 
     try:
       r = requests.get("http://localhost:1234/v1/version")
       path_to_docs = os.path.expanduser("~\Documents")
@@ -3158,7 +3101,7 @@ def main(argv):
         sys.exit(1)        
       database_dict = db_handling(cy_fasta_file)
       mods_list = cy_mods.split(",") 
-      
+       
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -3179,7 +3122,7 @@ def main(argv):
       logging.debug("\nStep 2: Start the uniprot api call at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
       logging.debug("Uniprot query: " + str(len(unique_each_protein_list)))
         
-    uniprot_query,each_primgene_list,merged_out_dict = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out)
+    uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out)
         
     if cy_cluego_inp_file:
       if cy_debug:
@@ -3267,11 +3210,11 @@ def main(argv):
     uniprot_list = {}
     if not cy_cluego_inp_file:
       for each_node in unique_nodes:
-        uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites)    
+        uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)    
     else:
       lower_unique_each_primgene_list = [x.lower() for x in unique_each_primgene_list]
       for each_node in lower_unique_each_primgene_list:
-        uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites)
+        uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)
     
     # Interactors styling 
     fc_merged_vertex = {}
@@ -3310,6 +3253,9 @@ def main(argv):
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, fc_merged_vertex)
     
+    if cy_debug:
+      logging.debug("\n\nRun completed sunccessfully")
+      
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
     #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
