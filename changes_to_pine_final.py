@@ -32,7 +32,9 @@ import igraph
 import traceback
 import collections
 import subprocess
+import warnings
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
@@ -227,7 +229,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           if is_FC:
             try:
               float(row[FC])
-              get_fc_val = row[FC]
+              if math.isinf(float(row[FC])):
+                get_fc_val = 0.0
+              else:
+                get_fc_val = row[FC]
             except ValueError:
               get_fc_val = 0.0
         
@@ -624,7 +629,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     logging.debug("Unique remaining queries: " + str(len(each_protein_list)))
   if cy_out:    
     csv_file.close() 
-  
+
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -1845,7 +1850,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       indexOf = uniprot_list['name'].index(each_vertex)
       include_gene_data.append(uniprot_list['ambigious_genes'][indexOf])      
       fc_na.append(-1)
-      fc_val.append(0.0)
+      fc_val.append(-100)
       pval_val.append(-1)
     else:
       fc_na.append(0)    
@@ -1929,7 +1934,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   if type == "5":
     label_color_kv_pair = {
         "Function":"#FFFFFF",
-        "Gene":"#FFFFFF",
+        "Gene":"#000000",
         "Site":"#000000"
     }
   else:
@@ -1967,10 +1972,8 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   '''
   Styling + visualization for the entire gene list interaction network
   '''
-
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
   G = igraph.Graph()
-  
   for each in merged_vertex:
     G.add_vertex(each)
   
@@ -2599,7 +2602,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           add_term_FC.append(100.0)
        
         else:
-          add_term_FC.append(0.0)
+          add_term_FC.append(100.0)
           
         add_term_pval.append("NA")
         significant_val.append("NA")
@@ -2993,8 +2996,10 @@ def main(argv):
     sys.exit(1)
     
   try:
+    start_time = datetime.now()
     if cy_debug:
       logging.debug("Starting PINE Analysis...\n") 
+      
     try:
       r = requests.get("http://localhost:1234/v1/version")
       path_to_docs = os.path.expanduser("~\Documents")
@@ -3097,7 +3102,7 @@ def main(argv):
           eprint("Error: Species mismatch.  Species parameter provided is " + organism_name + " and species contained in path to ClueGO mapping file is " + cy_map)
           sys.exit(1)
     
-      if not (".gz" in cy_map or "gene2accession" in cy_map):
+      if not (".gz" in cy_map and "gene2accession" in cy_map):
         eprint("Error: ClueGO mapping file must refer to the species gene2accession gz file")
         sys.exit(1)
     
@@ -3235,6 +3240,8 @@ def main(argv):
     if cy_type_num == "4":    
       cy_category_style(unique_nodes, unique_merged_interactions, uniprot_list, each_category)
     
+    coverage = 0.0
+    
     if not cy_cluego_inp_file:
       if cy_debug:
         logging.debug("\nStep 6: ClueGO started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -3248,21 +3255,23 @@ def main(argv):
 
       filtered_unique_nodes, merged_out_dict = cluego_filtering(unique_nodes, cy_map, uniprot_query, cy_debug, logging, merged_out_dict, unique_each_primgene_list, cy_session, cy_out, cy_cluego_out)
     
+      
+    
       if cy_debug:
         # Number of ClueGO query + EI = x + y
         logging.debug("Total ClueGO query + EI: " + str(len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in filtered_unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))      
     
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
-      if cy_debug:
-        logging.debug("\nQuery coverage = " + str(round(coverage, 2)) + "%")
       cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval)
     
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, fc_merged_vertex)
     
     if cy_debug:
-      logging.debug("\n\nRun completed sunccessfully")
+      if not cy_cluego_inp_file:
+        logging.debug("\nQuery coverage = " + str(round(coverage, 2)) + "%")
+      logging.debug("\nRun completed sunccessfully")
       
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
@@ -3278,6 +3287,7 @@ def main(argv):
       eprint("Error: Cytoscape must be open")
       sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
+      traceback.print_exc()
       eprint("Error: Cytoscape not responding. Please restart and wait for it to fully load")
       sys.exit(1)
     else:
