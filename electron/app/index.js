@@ -193,7 +193,7 @@ let vm = new Vue({
                         that.switchTab(TABS.PATHWAY_SELECTION);
                         resolve(true);
                     } else {
-                        that.stdout += "run failed\n";
+                        that.stdout += "Run failed\n";
                         that.stderr = stderr;
                         resolve(false);
                     }

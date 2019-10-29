@@ -280,6 +280,8 @@ ul.tab-selector li + li {
 }
 
 .log-stderr {
+  white-space: pre-wrap;
+  word-wrap: break-word;
   font-size: 1.5rem;
   color: #FF5A5F;
 }

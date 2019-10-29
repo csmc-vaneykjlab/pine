@@ -579,7 +579,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               else:
                 all_dropped_pep.update({each_protid:[each_dropped_pep]})
                 all_dropped_warning += each_protid + "(" + each_dropped_pep
-                ambigious_sites.update({each_protid:each_site})
+                ambigious_sites.update({each_protid:[each_site]})
             if all_dropped_warning:
               all_dropped_warning += ")"
             
