@@ -4,6 +4,8 @@ $color3: #FFC000;
 $color-dark: #483D3F;
 $color-light: #F8F4E3;
 
+$screen-height: 475px;
+
 * {
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -18,7 +20,7 @@ $color-light: #F8F4E3;
 }
 
 .full-section.wrapper {
-    height: 475px;
+    height: $screen-height;
     overflow-y: auto;
 }
 
@@ -31,6 +33,7 @@ $color-light: #F8F4E3;
     height: 100%;
     z-index: 1000;
     background-color: rgba(169,169,169,0.5);
+    cursor: not-allowed;
 }
 
 h1,h2,h3,h4,h5,h6.full-section-header {
@@ -94,6 +97,10 @@ input.file-button {
     }
 }
 
+input.big {
+    font-size: 1rem;
+}
+
 .grid-options {
     display: grid;
     grid-template-columns: 3fr 4fr 1fr 3fr 4fr;
@@ -141,11 +148,6 @@ input.file-button {
     grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
-.grid-pathway-selection-footer {
-    display: grid;
-    grid-template-columns: 1fr 3fr;
-}
-
 .grid-about-pine {
     display: grid;
     grid-template-columns: 1fr 7fr;
@@ -165,10 +167,10 @@ input.file-button {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 3fr;
     column-gap: 0.5rem;
-    height: 8rem;
+    min-height: 8rem;
 
     img {
-        width: 80%;
+        height: 7rem;
     }
 }
 
@@ -220,8 +222,12 @@ input.file-button {
         border-bottom: solid 0.25px $color-dark;
     }
 
-    tr:nth-child(even) {
+    tbody tr:nth-child(odd) {
         background-color: $color-light;
+    }
+
+    td {
+        height: 1.5rem;
     }
 }
 
@@ -269,22 +275,25 @@ ul.tab-selector {
 
 .tooltip-parent {
     cursor: help;
+    position: relative;
 }
 
 .tooltip-parent:hover .tooltip {
     display: block;
-}
-
-.tooltip {
-    display: none;
     position: absolute;
     z-index: 100;
     padding: 1rem;
     background-color: $color-dark;
     color: $color-light;
     font-size: 1rem;
-    max-width: 200px;
+    width: 200px;
     text-align: left;
+    left: 0;
+    top: 1rem;
+}
+
+.tooltip {
+    display: none;
 }
 
 .text-small {
@@ -293,7 +302,10 @@ ul.tab-selector {
 
 .log-stdout {
     white-space: pre-wrap;
+    word-wrap: break-word;
     font-family: 'Courier New', Courier, monospace;
+    height: calc(#{$screen-height} - 75px);
+    overflow-x: auto;
 }
 
 .log-stderr {
@@ -334,4 +346,12 @@ ul.tab-selector {
 
 .full-img {
     width: 100%;
+}
+
+.icon {
+    font-size: 1.25rem;
+}
+
+img.icon {
+    height: 1.25rem;
 }

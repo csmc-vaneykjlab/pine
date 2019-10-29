@@ -46,7 +46,7 @@
           </div>
           <h4 class="full-section-header">Configuration</h4>
           <section class="full-section">
-            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
+            <div v-show="!settings_editable()" class="full-section-cover"></div>
             <div class="grid-config-options">
               <div class="align-right">Cytoscape path</div>
               <div>
@@ -117,7 +117,7 @@
             <span style="cursor: pointer" v-on:click="() => show_config = !show_config" v-show="show_config"><i class="fas fa-minus-circle"></i></span>
           </h4>
           <div class="full-section" v-show="show_config">
-            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
+            <div v-show="!settings_editable()" class="full-section-cover"></div>
 
             <div class="grid-config-options">
               <div class="align-right">Cytoscape path</div>
@@ -148,13 +148,13 @@
 
           <h4 class="full-section-header">Required options</h4>
           <div class="full-section">
-            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
+            <div v-show="!settings_editable()" class="full-section-cover"></div>
             <div class="grid-options">
 
               <div class="align-right">
                 <span class="tooltip-parent">
                   Input file <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Input file in csv format with the following headers as applicable:</div>
+                  <div class="tooltip">Input file in csv format.</div>
                 </span>
               </div>
               <div>
@@ -211,8 +211,8 @@
                 </span>
               </div>
               <div v-if="is_extra_options_required()">
-                <label class="button success-button" for="file-button-output">Select file</label>
-                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'fasta_file')" />
+                <label class="button success-button" for="file-button-fasta">Select file</label>
+                <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" />
                 <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | filename }}</span>
               </div>
 
@@ -249,7 +249,7 @@
 
           <h4 class="full-section-header">Additional options</h4>
           <div class="full-section">
-            <div v-show="!settings_editable()" class="full-section-cover"><h4>Cannot change settings while there's an active session</h4></div>
+            <div v-show="!settings_editable()" class="full-section-cover"></div>
 
             <div class="grid-options">
 
@@ -471,41 +471,39 @@
               </table>
             </div>
             <div class="vertical-sep"></div>
-            <div class="grid-pathway-selection-footer">
-              <div class="noselect">
-                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(1)">
-                  <i class="fas fa-angle-double-left"></i>
-                </div>
-                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">
-                  <i class="fas fa-angle-left"></i>
-                </div>
-                {{ cluego_pathways.page }}
-                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways.page + 1)">
-                  <i class="fas fa-angle-right"></i>
-                </div>
-                <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways_filtered.n_pages)">
-                  <i class="fas fa-angle-double-right"></i>
-                </div>
+            <div class="noselect">
+              <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(1)">
+                <i class="fas fa-angle-double-left"></i>
               </div>
-              <div class="box-children-right">
-                <input type="text" placeholder="Name your reanalysis file (optional)" size="30" v-model="reanalysis_name" v-on:input="validate_reanalysis_name()" />
-                <div v-on:click="run_with_cluego_subset()" class="button success-button" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">
-                  Reanalyze ({{ cluego_pathways_filtered.n_selected }})
-                </div>
-                <span class="horizontal-sep"></span>
-                <span class="tooltip-parent">
-                  <div v-on:click="open_session_dir()" class="button warning-button"><i class="far fa-folder-open"></i></div>
-                  <div class="tooltip">Open your results directory</div>
-                </span>
-                <span class="tooltip-parent">
-                  <div v-on:click="open_last_cytoscape_file()" class="button"><img src="assets/Cytoscape.jpg" /></div>
-                  <div class="tooltip">View your Cytoscape file</div>
-                </span>
+              <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page <= 1}" v-on:click="change_cluego_pathways_page(cluego_pathways.page - 1)">
+                <i class="fas fa-angle-left"></i>
+              </div>
+              {{ cluego_pathways.page }}
+              <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways.page + 1)">
+                <i class="fas fa-angle-right"></i>
+              </div>
+              <div class="button" v-bind:class="{'disabled-light': cluego_pathways.page >= cluego_pathways_filtered.n_pages}" v-on:click="change_cluego_pathways_page(cluego_pathways_filtered.n_pages)">
+                <i class="fas fa-angle-double-right"></i>
               </div>
             </div>
           </div>
+          <div class="run-section">
+            <input type="text" placeholder="Name your reanalysis file (optional)" size="30" v-model="reanalysis_name" v-on:input="validate_reanalysis_name()" class="big" />
+            <div v-on:click="run_with_cluego_subset()" class="button success-button big" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">
+              Reanalyze ({{ cluego_pathways_filtered.n_selected }})
+            </div>
+            <span class="horizontal-sep"></span>
+            <span class="tooltip-parent">
+              <span v-on:click="open_session_dir()" class="clickable"><i class="fas fa-folder-open color-3 icon"></i></span>
+              <div class="tooltip">Open your results directory</div>
+            </span>
+            <span class="horizontal-sep"></span>
+            <span class="tooltip-parent">
+              <span v-on:click="open_last_cytoscape_file()" class="clickable"><img class="icon" src="assets/Cytoscape.jpg" /></span>
+              <div class="tooltip">View your Cytoscape file</div>
+            </span>
+          </div>
         </div>
-
       </div>
     </div>
 

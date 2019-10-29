@@ -121,7 +121,7 @@ let vm = new Vue({
         run: async function(args) {
             let that = this;
             if(!this.runnable() || this.running) {
-                return;
+                return false;
             }
             this.running = true;
 
@@ -139,21 +139,25 @@ let vm = new Vue({
                 });
                 if(res !== 0) {
                     this.running = false;
-                    return;
+                    return false;
                 }
             }
 
             this.switchTab(TABS.PROGRESS);
-            this.stdout = "Starting PINE analysis...\n\n";
+            this.stdout = "";
             this.stderr = "";
+            let stderr = "";
 
             this.save_settings(this.get_settings_file());
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
+                var pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
+            } else if(process.env.NODE_ENV === "devj") {
+                let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
                 var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
-                var pine = spawn(path.join(__dirname, "/../../pine_2/pine_2.exe"), args);
+                var pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
             }
 
             let new_session_dir = null;
@@ -175,50 +179,34 @@ let vm = new Vue({
             });
 
             pine.stderr.on("data", function(d) {
-                that.stderr += d + "\n";
+                stderr += d + "\n";
             });
 
-            pine.on("close", function(code) { 
-                that.running = false;
-                if(code === 0) {
-                    that.stdout += "run completed successfully\n";
-                    if(new_session_dir) {
-                        that.new_session(new_session_dir);
-                    }
-                } else {
-                    that.stdout += "run failed\n";
-                    let res = remote.dialog.showMessageBoxSync({
-                        "type": "warning",
-                        "buttons": [
-                            "Restart",
-                            "Cancel",
-                        ],
-                        "defaultID": 1,
-                        "title": "Run failed",
-                        "message": that.stderr,
-                        "noLink": true,
-                    });
-                    if(res === 0) { // restart
-                        if(that.session_exists()) {
-                            that.run_with_cluego_subset();
-                        } else {
-                            that.run_full();
+            let pr = new Promise(function(resolve, _reject) {
+                pine.on("close", function(code) { 
+                    that.running = false;
+                    if(code === 0) {
+                        that.stdout += "";
+                        if(new_session_dir) {
+                            that.new_session(new_session_dir);
                         }
-                    } else { // cancel
-                        if(that.session_exists()) {
-                            that.switchTab(TABS.PATHWAY_SELECTION);
-                        } else {
-                            that.switchTab(TABS.INPUT);
-                        }
+                        that.switchTab(TABS.PATHWAY_SELECTION);
+                        resolve(true);
+                    } else {
+                        that.stdout += "run failed\n";
+                        that.stderr = stderr;
+                        resolve(false);
                     }
-                }
+                });
             });
+
+            return await pr;
         },
         run_full: function() {
             let args = this.pine_args();
             this.run(args);
         },
-        run_with_cluego_subset: function() {
+        run_with_cluego_subset: async function() {
             if(!this.runnable_with_cluego_subset()) {
                 return;
             }
@@ -248,7 +236,10 @@ let vm = new Vue({
             let args = this.pine_args();
             args.push("-a");
             args.push(filtered_file_name);
-            this.run(args);
+            let res = await this.run(args);
+            if(!res) {
+                fs.unlinkSync(filtered_file_name);
+            }
         },
         generate_reanalysis_name: function() {
             function pad(n) {
@@ -262,9 +253,10 @@ let vm = new Vue({
                 now.getFullYear().toString() +
                 pad(now.getMonth()) +
                 pad(now.getDate()) +
-                "T" +
+                "_" +
                 pad(now.getHours()) +
-                pad(now.getMinutes());
+                pad(now.getMinutes()) +
+                pad(now.getSeconds());
             return timestamp + "_reanalysis_PINE";
         },
         unique_reanalysis_name: function(name) {
@@ -294,7 +286,6 @@ let vm = new Vue({
             }
             this.save_settings(this.session_settings_file);
             this.read_cluego_pathways();
-            this.switchTab(TABS.PATHWAY_SELECTION);
         },
         reset_session: function() {
             this.session_dir = null;
@@ -697,7 +688,7 @@ let vm = new Vue({
                 case TABS.INPUT:
                     return this.input.cytoscape_path && this.input.cluego_base_path;
                 case TABS.PROGRESS:
-                    return this.running || this.stdout || this.session_exists();
+                    return this.running || this.stdout;
                 case TABS.PATHWAY_SELECTION:
                     return !this.running && this.session_exists();
             }
