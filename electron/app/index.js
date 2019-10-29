@@ -152,6 +152,9 @@ let vm = new Vue({
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
+                var pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
+            } else if(process.env.NODE_ENV == "devj") {
+                let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
                 var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
                 var pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
