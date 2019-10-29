@@ -9,13 +9,10 @@
     "devj": "npm run-script sass && set NODE_ENV=devj&& electron .",
     "sass": "sass app/index.scss app/css/index.css"
   },
-  "repository": "https://github.com/electron/electron-quick-start",
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "protein",
+    "proteomics",
+    "cytoscape"
   ],
   "author": "Cedars-Sinai",
   "license": "Proprietary",
