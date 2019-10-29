@@ -275,6 +275,8 @@ ul.tab-selector li + li {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: "Courier New", Courier, monospace;
+  height: calc(475px - 75px);
+  overflow-x: auto;
 }
 
 .log-stderr {

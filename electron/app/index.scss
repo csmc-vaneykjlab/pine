@@ -304,6 +304,8 @@ ul.tab-selector {
     white-space: pre-wrap;
     word-wrap: break-word;
     font-family: 'Courier New', Courier, monospace;
+    height: calc(#{$screen-height} - 75px);
+    overflow-x: auto;
 }
 
 .log-stderr {
