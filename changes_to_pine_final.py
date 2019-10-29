@@ -1271,7 +1271,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
       uniprot_list['ambigious_genes'].append(ambi_gene)
     else:
       uniprot_list['ambigious_genes'].append(each)
-      
+   
   prot_as_list = get_query_from_list(uniprot_query, [each])
   if prot_as_list:
     prot_val = list(prot_as_list.keys())[0]
@@ -1345,6 +1345,11 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           
         if countiter!=0:
           uniprot_list['name'].append(each)
+          if each.lower() in [a.lower() for a in ambigious_genes]:
+            ambi_gene = each + "**"
+            uniprot_list['ambigious_genes'].append(ambi_gene)
+          else:
+            uniprot_list['ambigious_genes'].append(each)
           uniprot_list['length'].append(len(each))
           
         if not_in_list == 0:
@@ -1822,6 +1827,9 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   include_gene_data = []
   fc_merged_vertex = {}
   query_val = []
+  
+  print(uniprot_list['name'])
+  print(uniprot_list['ambigious_genes'])
   for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
     each_gene = (each_site_gene.split("-"))[1]
     each_site = (each_site_gene.split("-"))[0]
@@ -1834,7 +1842,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       site_length.append(len(each_site))        
   for each_vertex in merged_vertex:
     if each_vertex in uniprot_list['name']:
-      indexOf = uniprot_list['name'].index(each_vertex.lower())
+      indexOf = uniprot_list['name'].index(each_vertex)
       include_gene_data.append(uniprot_list['ambigious_genes'][indexOf])      
       fc_na.append(-1)
       fc_val.append(0.0)
@@ -2199,7 +2207,7 @@ def singleFC(my_style, uniprot_list):
     points1 =  [
       {
         "value": min(uniprot_list['FC1']),
-        "lesser": "#0000CC" ,
+        "lesser": "#FFFF99" ,
         "equal": "#3399FF", 
         "greater": "#3399FF"
       },
@@ -2213,7 +2221,7 @@ def singleFC(my_style, uniprot_list):
         "value": max(uniprot_list['FC1']),
         "lesser": "#FF0000",
         "equal": "#FF0000", 
-        "greater": "#FF6633" 
+        "greater": "#333333" 
       }
     ]
   elif min(uniprot_list['FC1']) == 0:
@@ -2228,14 +2236,14 @@ def singleFC(my_style, uniprot_list):
         "value": max(uniprot_list['FC1']),
         "lesser": "#3399FF",
         "equal": "#3399FF",
-        "greater": "#0000CC"
+        "greater": "#333333"
       }
     ]
   else:
     points1 =  [
       {
         "value": min(uniprot_list['FC1']),
-        "lesser": "#FF6633",
+        "lesser": "#FFFF99",
         "equal": "#FF0000",
         "greater": "#FF0000"
       },
@@ -2723,8 +2731,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out):
   if cy_debug:
     logging.handlers = []
-    if path.exists("Cytoscape.log"):
-      os.remove("Cytoscape.log")
+    if path.exists("PINE.log"):
+      os.remove("PINE.log")
   if cy_session and path.exists(cy_session):
     os.remove(cy_session)
   if cy_out and path.exists(cy_out):
@@ -2986,7 +2994,7 @@ def main(argv):
     
   try:
     if cy_debug:
-      logging.debug("Starting PINE Analysis...\n\n") 
+      logging.debug("Starting PINE Analysis...\n") 
     try:
       r = requests.get("http://localhost:1234/v1/version")
       path_to_docs = os.path.expanduser("~\Documents")
@@ -3274,6 +3282,7 @@ def main(argv):
       sys.exit(1)
     else:
       traceback.print_exc()
+      eprint("Fatal error")
       sys.exit(1)
       
 if __name__ == "__main__":
