@@ -222,7 +222,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           else:
             try:
               float(row[pval])
-              get_pval = row[pval]
+              if math.isinf(float(row[pval])):
+                get_pval = 1.0
+              else:
+                get_pval = row[pval]
             except ValueError:
               get_pval = 1.0
               
@@ -1833,8 +1836,6 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   fc_merged_vertex = {}
   query_val = []
   
-  print(uniprot_list['name'])
-  print(uniprot_list['ambigious_genes'])
   for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
     each_gene = (each_site_gene.split("-"))[1]
     each_site = (each_site_gene.split("-"))[0]
@@ -2602,7 +2603,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           add_term_FC.append(100.0)
        
         else:
-          add_term_FC.append(100.0)
+          if each_vertex_name in function_only:
+            add_term_FC.append(100.0)
+          else:
+            add_term_FC.append(-100.0)
           
         add_term_pval.append("NA")
         significant_val.append("NA")
@@ -2660,18 +2664,12 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "Gene":"60",
       "Site":"60"
     }
-  if type == "5":
-    label_color_kv_pair = {
-      "Function":"#FFFFFF",
-      "Gene":"#FFFFFF",
-      "Site":"#000000"
-    }
-  else:
-    label_color_kv_pair = {
+
+  label_color_kv_pair = {
       "Function":"#FFFFFF",
       "Gene":"#000000",
       "Site":"#000000"
-    }
+  }
   node_label_size =  [
     {
       "value": "2",
@@ -3254,9 +3252,7 @@ def main(argv):
         logging.debug("ClueGO query + EI: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))  
 
       filtered_unique_nodes, merged_out_dict = cluego_filtering(unique_nodes, cy_map, uniprot_query, cy_debug, logging, merged_out_dict, unique_each_primgene_list, cy_session, cy_out, cy_cluego_out)
-    
-      
-    
+        
       if cy_debug:
         # Number of ClueGO query + EI = x + y
         logging.debug("Total ClueGO query + EI: " + str(len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in filtered_unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))      
