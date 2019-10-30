@@ -33,8 +33,8 @@ import traceback
 import collections
 import subprocess
 import warnings
-
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
@@ -724,7 +724,7 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
     
   return(unique_each_protein_list, prot_list, merged_out_dict)
  
-def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merged_out_dict, species, cy_session, cy_out, cy_cluego_out):
+def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merged_out_dict, species, cy_session, cy_out, cy_cluego_out, cy_cluego_in):
   uniprot_query = {}
   each_primgene_list = []
   each_protid_list = []
@@ -800,9 +800,21 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       comment_merged = "Uniprot query not mapped;" 
       merged_out_dict[each_prot_in_input].update({'Primary':'', 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
   
+  date_modified = [re.sub("-","",dict['Date_modified']) for dict in uniprot_query.values() if dict['Date_modified'] != ""]
+  if cy_cluego_in:
+    try:
+      parent_dir = (os.path.dirname(cy_cluego_in).split("\\")[-1]).split("_")[0]
+      for each_date_modified in date_modified:
+        if float(each_date_modified) > float(parent_dir):
+          eprint("Error: Uniprot has updated since the original run. Please restart your run")
+          sys.exit(1)
+    except:
+      eprint("Error: Please make sure " + cy_cluego_in + " is in the same location as the original run in order to check for Uniprot updates")
+      sys.exit(1)
+      
   organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA"]
   unique_organisms = list(set(organisms))
-
+  
   if len(unique_organisms) > 1:
     eprint("Error: Protein list is of more than 1 organism: " + ','.join(unique_organisms))
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
@@ -838,6 +850,66 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
+def get_dbsnp_classification(uniprot_query, prot_list):
+  variants = {}
+  for uniprot_id in uniprot_query:
+    natural_variant = uniprot_query[uniprot_id]['Natural_variant']
+    # Get all variants 
+    get_all_variants = natural_variant.split(" VARIANT")
+    for each_variant in get_all_variants:
+      m = re.search(r"\d+\s(\d+)\s([A-Z]{1}) -> ([A-Z]{1})",each_variant)
+      if m:
+        dbsnp = ""
+        disease = ""
+        ftid = ""
+        position = m.group(1)
+        AA_change_from = m.group(2)
+        AA_change_to = m.group(3)
+        if "unknown pathological significance" in each_variant:
+          classification = "Unclassified"
+        else:
+          is_disease = re.search(r"\(([A-Z0-9,\sa-z]+)", each_variant)         
+          if (is_disease and not "dbSNP" in is_disease.group(1)):
+            is_unclassified = re.search(r"[a-z]+", ((is_disease.group(1)).replace('and','')).replace('in',''))
+            if is_unclassified:
+              classification = "Unclassified"
+            else:
+              classification = "Disease"
+              disease = ((is_disease.group(1)).replace(',',';')).replace('in ','')
+          else:
+            classification = "Polymorphism"
+        dbsnp_match = re.search(r"dbSNP:(rs[0-9]+)",each_variant)
+        if dbsnp_match:
+          dbsnp = dbsnp_match.group(1)
+        ftid_match = re.search(r"/FTId=(VAR_[0-9]+)",each_variant)
+        if ftid_match:
+          ftid = ftid_match.group(1)
+    
+        if uniprot_id in variants:
+          variants[uniprot_id]['Position'].append(position)
+          variants[uniprot_id]['FTID'].append(ftid)
+          variants[uniprot_id]['AA_change_from'].append(AA_change_from)
+          variants[uniprot_id]['AA_change_to'].append(AA_change_to)
+          variants[uniprot_id]['Classification'].append(classification)
+          variants[uniprot_id]['Disease'].append(disease)
+          variants[uniprot_id]['dbSNP'].append(dbsnp)
+        else:
+          variants[uniprot_id] = {}
+          variants[uniprot_id].update({'Position':[position], 'FTID':[ftid], 'AA_change_from':[AA_change_from], 'AA_change_to':[AA_change_to], 'Classification':[classification], 'Disease':[disease], 'dbSNP':[dbsnp]})
+  
+  all_prot_site_snps = {}
+  for each_prot in variants:
+    if each_prot in prot_list:
+      for each_pos in prot_list[each_prot]:
+        combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}','[A-Za-z]'))
+        each_pos_sub = re.sub(combined_pat, '', each_pos)
+        if str(each_pos_sub) in variants[each_prot]['Position']:
+          if each_prot in all_prot_site_snps:
+            all_prot_site_snps[each_prot].append(each_pos)
+          else:
+            all_prot_site_snps.update({each_prot:[each_pos]})          
+  return(all_prot_site_snps)
+  
 def get_query_from_list(uniprot_query, list):
   dropped_list = {}
   for key in uniprot_query:
@@ -1816,7 +1888,7 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
       line_count+=1
   return(top_annotations, unique_gene)
 
-def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type):
+def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query):
   '''
   Styling + visualization for the entire gene list interaction network & its sites
   '''
@@ -1835,11 +1907,24 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   include_gene_data = []
   fc_merged_vertex = {}
   query_val = []
-  
+  is_snp = []
+
   for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
     each_gene = (each_site_gene.split("-"))[1]
     each_site = (each_site_gene.split("-"))[0]
     if each_gene.lower() in merged_vertex:
+      # Get corresponding prot, check if snp
+      corresponding_prot = get_query_from_list(uniprot_query, [each_gene])
+      if corresponding_prot:
+        if list(corresponding_prot.keys())[0] in all_prot_site_snps:
+          if each_site in all_prot_site_snps[corresponding_prot]['Position']:
+            is_snp.append(1.0)
+          else:
+            is_snp.append(0.0)
+        else:
+          is_snp.append(0.0)
+      else:
+        is_snp.append(0.0)      
       get_each_site_name.append(each_ambi_site)
       query_val.append("Site")
       G.add_vertex(each_site_gene)
@@ -1856,9 +1941,10 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     else:
       fc_na.append(0)    
     query_val.append("Gene")
+    is_snp.append(0.0)
     G.add_vertex(each_vertex)  
     sig_na.append(0)
-    
+  
   count_each = 0
   for each in merged_interactions:
     each_interaction_name = each.split(" ")
@@ -1875,6 +1961,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   
   G.vs["significant"] = uniprot_list["significant"] + sig_na
   G.vs["FC_exists"] = uniprot_list["FC_exists"] + fc_na
+  G.vs["SNP"] = is_snp
   
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
@@ -1966,9 +2053,11 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   if pval_sig == 1:
     my_style = pval(my_style)
   
+  my_style = snp_bold(my_style)
+  
   cy.style.apply(my_style, g_cy)
   return(fc_merged_vertex)
-  
+    
 def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style):
   '''
   Styling + visualization for the entire gene list interaction network
@@ -2404,8 +2493,6 @@ def pval(my_style):
   '''
   If pval significant, border node with red color
   '''
-  #"SansSerif.plain,plain,12"
-
   width_kv_pair = {
     "1":"2",
   }
@@ -2414,6 +2501,14 @@ def pval(my_style):
   }
   my_style.create_discrete_mapping(column='significant', col_type='String', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
   my_style.create_discrete_mapping(column='significant', col_type='String', vp='NODE_BORDER_PAINT', mappings=bc_kv_pair)
+  return(my_style)
+  
+def snp_bold(my_style):
+  ff_kv_pair = {
+    "1.0":"SansSerif.bold,bold,12",
+    "0.0":"SansSerif.plain,plain,12",
+  }
+  my_style.create_discrete_mapping(column='SNP', col_type='Double', vp='NODE_LABEL_FONT_FACE', mappings=ff_kv_pair)
   return(my_style)
   
 def color(my_style, uniprot_list):
@@ -2430,7 +2525,7 @@ def color(my_style, uniprot_list):
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
-def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, fc_merged_vertex):
+def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, fc_merged_vertex, all_prot_site_snps, uniprot_query):
   '''
   Based on top clusters picked, construct function interaction network + visualization and styling
   '''
@@ -2451,7 +2546,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   count_each = 0
   all_interactions = []
   function_fc_val = {}
-
+  is_snp = []
+  
   category_present = 0
   for each in each_category:
     category_present = 1
@@ -2463,6 +2559,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       merged_vertex.append(each)
       merged_vertex_sites_only.append(each)
       if each in function_only:
+        is_snp.append(0.0)
         query.append('Function')
         if max_FC_len == 0 and not category_present:
           query_val_noFC.append('Function')
@@ -2481,6 +2578,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         merged_vertex.append(each_gene)
         if each_gene in function_only:
           merged_vertex_sites_only.append(each_gene)
+          is_snp.append(0.0)
           query.append('Function')
           if max_FC_len == 0 and not category_present:
             query_val_noFC.append('Function')
@@ -2494,6 +2592,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           breadth_of.append(val_breadth_of_val)
          
         else:
+          is_snp.append(0.0)
           query.append('Gene')
           indexOf = uniprot_list['name'].index(each_gene.lower())
           merged_vertex_sites_only.append(uniprot_list['ambigious_genes'][indexOf])
@@ -2510,6 +2609,18 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
               G.add_vertex(uniprot_list['site'][each_index])
               merged_vertex.append(uniprot_list['site'][each_index])
               merged_vertex_sites_only.append(uniprot_list['ambigious_site'][each_index])
+              #get corresponding prot id and check for snps
+              get_corres_prot = get_query_from_list(uniprot_query, [each_gene])
+              if get_corres_prot:
+                if list(get_corres_prot.keys())[0] in all_prot_site_snps:
+                  if each_site in all_prot_site_snps[get_corres_prot]['Position']:
+                    is_snp.append(1.0)
+                  else:
+                    is_snp.append(0.0)
+                else:
+                  is_snp.append(0.0)
+              else:
+                is_snp.append(0.0)
               query.append('Site')
               val_length_of_val = len(each_gene) #* 15
               length_of.append(val_length_of_val)
@@ -2537,6 +2648,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   degree = G.degree()
   G.vs["degree"] = degree
   
+  if type == "5" or type == "6":
+    G.vs["SNP"] = is_snp
   is_category_present = []
   first_cat_iteration = 0
   for each in each_category:
@@ -3133,8 +3246,12 @@ def main(argv):
       logging.debug("\nStep 2: Start the uniprot api call at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
       logging.debug("Uniprot query: " + str(len(unique_each_protein_list)))
         
-    uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out)
-        
+    uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out, cy_cluego_inp_file)
+    
+    all_prot_site_snps = {}
+    if (cy_type_num == "5" or cy_type_num == "6"): 
+      all_prot_site_snps = get_dbsnp_classification(uniprot_query, site_info_dict)
+      
     if cy_cluego_inp_file:
       if cy_debug:
         logging.debug("\nStep 2.5: Start processing the input ClueGO list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -3232,7 +3349,7 @@ def main(argv):
     if not (cy_type_num == "5" or cy_type_num == "6"):         
       cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval)
     else:     
-      fc_merged_vertex = cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num)
+      fc_merged_vertex = cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query)
     
     # Category styling   
     if cy_type_num == "4":    
@@ -3262,7 +3379,7 @@ def main(argv):
       cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval)
     
     if leading_term_cluster:
-      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, fc_merged_vertex)
+      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, fc_merged_vertex, all_prot_site_snps, uniprot_query)
     
     if cy_debug:
       if not cy_cluego_inp_file:
