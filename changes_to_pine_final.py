@@ -795,12 +795,11 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if each_prot_in_input not in uniprot_query:
       no_uniprot_val.append(each_prot_in_input)
       uniprot_query[each_prot_in_input] = {}
-      uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA"})
+      uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA",'Natural_variant':"NA",'Date_modified':"NA"})
       merged_out_dict[each_prot_in_input] = {}
       comment_merged = "Uniprot query not mapped;" 
       merged_out_dict[each_prot_in_input].update({'Primary':'', 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
-  
-  date_modified = [re.sub("-","",dict['Date_modified']) for dict in uniprot_query.values() if dict['Date_modified'] != ""]
+  date_modified = [re.sub("-","",dict['Date_modified']) for dict in uniprot_query.values() if dict['Date_modified'] != "NA"]
   if cy_cluego_in:
     try:
       parent_dir = (os.path.dirname(cy_cluego_in).split("\\")[-1]).split("_")[0]
@@ -3174,9 +3173,10 @@ def main(argv):
         app_reactome = True
         ver_reactome = app_version
     
-    if not app_genemania or not ver_genemania == "3.5.1":
-      eprint("Error: Cytoscape app GeneMANIA v3.5.1 not installed or not responding properly")
-      sys.exit(1)
+    if cy_run.lower() == "genemania" or cy_run.lower() == "both":
+      if not app_genemania or not ver_genemania == "3.5.1":
+        eprint("Error: Cytoscape app GeneMANIA v3.5.1 not installed or not responding properly")
+        sys.exit(1)
       
     if not app_cluego or not (ver_cluego == "2.5.4" or ver_cluego == "2.5.5"):
       eprint("Error: Cytoscape app ClueGO v2.5.4/v2.5.5 not installed or not responding properly")
@@ -3186,15 +3186,16 @@ def main(argv):
       eprint("Error: Using ClueGO custom reference file needs version 2.5.5 of ClueGO")
       sys.exit(1)
     
-    body = dict(offline=True)
-    response = requests.post("http://localhost:1234/v1/commands/genemania/organisms", json=body)
-    genemania_bool = False
-    for each in response.json()['data']['organisms']:
-      if tax_id == str(each['taxonomyId']):
-        genemania_bool = True
-    if not genemania_bool:
-      eprint("Error: Please install " + cy_species + " dataset in Genemania")
-      sys.exit(1)
+    if cy_run.lower() == "genemania" or cy_run.lower() == "both":
+      body = dict(offline=True)
+      response = requests.post("http://localhost:1234/v1/commands/genemania/organisms", json=body)
+      genemania_bool = False
+      for each in response.json()['data']['organisms']:
+        if tax_id == str(each['taxonomyId']):
+          genemania_bool = True
+      if not genemania_bool:
+        eprint("Error: Please install " + cy_species + " dataset in Genemania")
+        sys.exit(1)
     
     if not cy_cluego_inp_file:
       # Check if cluego path exists
@@ -3388,8 +3389,8 @@ def main(argv):
       
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    requests.get("http://localhost:1234/v1/commands/command/quit")
+    #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
+    #requests.get("http://localhost:1234/v1/commands/command/quit")
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
