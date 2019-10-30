@@ -203,46 +203,48 @@ let vm = new Vue({
             return await pr;
         },
         run_full: function() {
-            /* check for genemania configuration directory - only should need to be checked on first run */
-            let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
-            let gm_check = true;
-            if(!is_dir(gm_config_dir)) {
-                gm_check = false;
-            } else {
-                let files = fs.readdirSync(gm_config_dir);
-                let dir_exists = false;
-                for(const f of files) {
-                    if(!is_dir(path.join(gm_config_dir, f))) {
-                        continue;
-                    }
-                    if(f.startsWith("gmdata")) {
-                        dir_exists = true;
-                        break;
-                    }
-                }
-                if(!dir_exists) {
+            if(this.input.run === "both" || this.input.run === "genemania") {
+                /* check for genemania configuration directory - only should need to be checked on first run */
+                let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
+                let gm_check = true;
+                if(!is_dir(gm_config_dir)) {
                     gm_check = false;
+                } else {
+                    let files = fs.readdirSync(gm_config_dir);
+                    let dir_exists = false;
+                    for(const f of files) {
+                        if(!is_dir(path.join(gm_config_dir, f))) {
+                            continue;
+                        }
+                        if(f.startsWith("gmdata")) {
+                            dir_exists = true;
+                            break;
+                        }
+                    }
+                    if(!dir_exists) {
+                        gm_check = false;
+                    }
                 }
-            }
 
-            /* if genemania can't be found, show popup confirming they want to continue */
-            if(!gm_check) {
-                let gm_message = 
-                    "No GeneMANIA dataset can be found on your system. " + 
-                    "It is recommended you open Cytoscape to install the plugin and the required species datasets before continuing. " +
-                    "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
-                const res = remote.dialog.showMessageBoxSync({
-                    "type": "warning",
-                    "buttons": [
-                        "Continue anyways",
-                        "Cancel (recommended)",
-                    ],
-                    "defaultId": 1,
-                    "title": "GeneMANIA doesn't exist",
-                    "message": gm_message,
-                });
-                if(res !== 0) {
-                    return;
+                /* if genemania can't be found, show popup confirming they want to continue */
+                if(!gm_check) {
+                    let gm_message = 
+                        "No GeneMANIA dataset can be found on your system. " + 
+                        "It is recommended you open Cytoscape to install the plugin and the required species datasets before continuing. " +
+                        "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
+                    const res = remote.dialog.showMessageBoxSync({
+                        "type": "warning",
+                        "buttons": [
+                            "Continue anyways",
+                            "Cancel (recommended)",
+                        ],
+                        "defaultId": 1,
+                        "title": "GeneMANIA doesn't exist",
+                        "message": gm_message,
+                    });
+                    if(res !== 0) {
+                        return;
+                    }
                 }
             }
 
