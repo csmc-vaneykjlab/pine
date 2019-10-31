@@ -1752,9 +1752,10 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   response = requests.put(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"select-visual-style"+SEP+visual_style, headers=HEADERS)
   
   ## 3.1 Get all available Ontologies
+  ontology_info = ""
   response = requests.get(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", headers=HEADERS)
   ontology_info = response.json()
- 
+  
   i = 0
   list_ontology = []
   for each_ontology in ontology_info:
@@ -1808,9 +1809,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   analysis_name = "ClueGO Network"
   selection = "Continue analysis"                                                                         
   response = requests.get(CLUEGO_BASE_URL+SEP+analysis_name+SEP+selection, headers=HEADERS)
-  #log_file_name = "ClueGO-log.txt"
-  #writeLines(response.text,log_file_name)
-
+  
   # Get network id (SUID) (CyRest function from Cytoscape)
   response = requests.get(CYTOSCAPE_BASE_URL+SEP+"networks"+SEP+"currentNetwork", headers=HEADERS)
   current_network_suid = response.json()['data']['networkSUID']
@@ -1828,8 +1827,7 @@ def get_interactions_dict(filtered_dict, search, merged_out_dict):
       if name.lower() == merged_out_dict[each_uniprot_query]['Primary'].lower():
         interaction_list = filtered_dict[name]
         merged_out_dict[each_uniprot_query][search] += ';'.join(interaction_list)
-        break
-        
+        break      
   return(merged_out_dict)
 
 def write_into_out(merged_out_dict, out):
@@ -3362,9 +3360,17 @@ def main(argv):
       if cy_debug:
         logging.debug("\nStep 6: ClueGO started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
   
-      #Start ClueGO  
-      requests.post('http://localhost:1234/v1/apps/cluego/start-up-cluego')
-
+      #Start ClueGO
+      wait_counter = 0
+      while wait_counter < 300: # give 5 minutes max for cluego to load
+        try:
+          response = requests.post('http://localhost:1234/v1/apps/cluego/start-up-cluego')
+          test = response.json()
+          break
+        except:
+          time.sleep(10)
+          wait_counter += 10      
+      
       if cy_debug:
         # Number of ClueGO query + EI = x + y
         logging.debug("ClueGO query + EI: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))  
