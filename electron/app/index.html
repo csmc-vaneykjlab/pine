@@ -314,7 +314,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Visualize <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Ontology type.</div>
+                  <div class="tooltip">Ontology type. Pathways include REACTOME, KEGG, CLINVAR and Wiki.</div>
                 </span>
               </div>
               <div>
@@ -494,12 +494,12 @@
             </div>
             <span class="horizontal-sep"></span>
             <span class="tooltip-parent">
-              <span v-on:click="open_session_dir()" class="clickable"><i class="fas fa-folder-open color-3 icon"></i></span>
+              <span v-on:click="open_session_dir()" class="big button success-button">Open folder <i class="fas fa-folder-open color-3"></i></span>
               <div class="tooltip">Open your results directory</div>
             </span>
             <span class="horizontal-sep"></span>
             <span class="tooltip-parent">
-              <span v-on:click="open_last_cytoscape_file()" class="clickable"><img class="icon" src="assets/Cytoscape.jpg" /></span>
+              <span v-on:click="open_last_cytoscape_file()" class="big button success-button">Open .cys file <img src="assets/Picture2.png" style="height:1rem" /></span>
               <div class="tooltip">View your Cytoscape file</div>
             </span>
           </div>
