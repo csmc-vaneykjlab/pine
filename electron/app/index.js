@@ -26,9 +26,10 @@ const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "biologicalprocess", "name": "Biological Process"},
     {"phrase": "cellularcomponent", "name": "Cellular Component"},
     {"phrase": "molecularfunction", "name": "Molecular Function"},
-    {"phrase": "human-diseases", "name": "Pathway (Human Diseases)"},
+    {"phrase": "human-diseases", "name": "Pathway (CLINVAR)"},
     {"phrase": "kegg", "name": "Pathway (KEGG)"},
-    {"phrase": "wikipathways", "name": "Pathway (Wiki Pathways)"},
+    {"phrase": "wikipathways", "name": "Pathway (Wiki)"},
+    {"phrase": "reactome", "name": "Pathway (REACTOME)"},
     {"phrase": "pathways", "name": "Pathway (Other)"},
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
