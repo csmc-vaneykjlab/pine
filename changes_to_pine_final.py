@@ -1752,7 +1752,6 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   response = requests.put(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"select-visual-style"+SEP+visual_style, headers=HEADERS)
   
   ## 3.1 Get all available Ontologies
-  ontology_info = ""
   response = requests.get(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", headers=HEADERS)
   ontology_info = response.json()
   
@@ -1772,7 +1771,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       if "MolecularFunction" in ontologies:
         list_ontology.append(str(i)+";"+"Ellipse")
     if select_terms.lower() == "pathways" or select_terms.lower() == "all":
-      if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies:
+      if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies or "CORUM" in ontologies:
         list_ontology.append(str(i)+";"+"Ellipse")
     i+=1
 
@@ -1905,7 +1904,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   fc_merged_vertex = {}
   query_val = []
   is_snp = []
-
+  print(uniprot_list)
   for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
     each_gene = (each_site_gene.split("-"))[1]
     each_site = (each_site_gene.split("-"))[0]
@@ -1966,6 +1965,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     G.vs[term_FC] = uniprot_list[term_FC] + fc_val
     G.vs[term_pval] = uniprot_list[term_pval] + pval_val
   
+  eprint(query_val)
+  eprint(uniprot_list['FC1'] + fc_val)
   G.vs["query"] = query_val
   
   degree = G.degree()
@@ -2952,7 +2953,7 @@ def main(argv):
     print("Argument(opt): -u [--run]: interaction databases [Allowed: string, genemania, both; Default: both]")
     print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
     print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
-    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, subcellular location, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR and Wiki.")
+    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, subcellular location, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki.")
     print("Argument(opt): -g [--grouping]: network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium]")
     print("Argument(opt): -y [--cluegopval]: pvalue cutoff for enrichment analysis [Default: 0.05]")
     print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
@@ -3116,7 +3117,7 @@ def main(argv):
       r = requests.get("http://localhost:1234/v1/commands/command/quit")
       logging.warning("Cytoscape was already open with an existing session.  Saved existing session to: " + session_filename)
       wait_counter = 0
-      while wait_counter < 120: # give 2 minutes to exit cytoscape
+      while wait_counter < 300: # give 5 minutes to exit cytoscape
         try:
           requests.get("http://localhost:1234/v1/version")
         except:
@@ -3129,7 +3130,7 @@ def main(argv):
     # open cytoscape
     subprocess.Popen([cy_exe])
     wait_counter = 0
-    while wait_counter < 120: # give 2 minutes max for cytoscape to open
+    while wait_counter < 300: # give 5 minutes max for cytoscape to open
       try:
         r = requests.get("http://localhost:1234/v1/version")
         test = r.json()
@@ -3395,8 +3396,8 @@ def main(argv):
       
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    requests.get("http://localhost:1234/v1/commands/command/quit")
+    #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
+    #requests.get("http://localhost:1234/v1/commands/command/quit")
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
