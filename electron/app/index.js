@@ -30,6 +30,7 @@ const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "kegg", "name": "Pathway (KEGG)"},
     {"phrase": "wikipathways", "name": "Pathway (Wiki)"},
     {"phrase": "reactome", "name": "Pathway (REACTOME)"},
+    {"phrase": "corum", "name": "Pathway (CORUM)"},
     {"phrase": "pathways", "name": "Pathway (Other)"},
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
