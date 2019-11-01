@@ -1101,6 +1101,8 @@ def drop_ei_if_query(interaction,unique_vertex,genes_before_initial_drop,each_in
 def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, cy_debug, logging, merged_out_dict, genes_before_initial_drop):
   string_db_out = {}
   string_mapping = {}
+  string_interaction = {}
+  string_unique_vertex = {}
   string_list_input = "\n".join(each_inp_list)
   
   data = {
@@ -1126,47 +1128,49 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
   'additional_network_nodes': str(limit),
   'required_score': str(score)
   }
-  response = requests.post('http://string-db.org/api/tsv-no-header/interactions', data=data)
-  string_db_out.update(pd.read_table(StringIO(response.text), header=None))
-  string1 = list(string_db_out[2].values.flatten())
-  string2 = list(string_db_out[3].values.flatten())
+  try:
+    response = requests.post('http://string-db.org/api/tsv-no-header/interactions', data=data)
+    string_db_out.update(pd.read_table(StringIO(response.text), header=None))
+    string1 = list(string_db_out[2].values.flatten())
+    string2 = list(string_db_out[3].values.flatten())
   
-  string_interaction,string_unique_vertex = remove_duplicates_within(string1,string2)
+    string_interaction,string_unique_vertex = remove_duplicates_within(string1,string2)
  
-  no_mapping = [i for i in each_inp_list if i.lower() not in [x.lower() for x in string_mapping]]
-  no_mapping_prots =  get_query_from_list(uniprot_query, no_mapping)
+    no_mapping = [i for i in each_inp_list if i.lower() not in [x.lower() for x in string_mapping]]
+    no_mapping_prots =  get_query_from_list(uniprot_query, no_mapping)
 
-  no_interactions = [i for i in list(string_mapping.keys()) if string_mapping[i].lower() not in [x.lower() for x in string_unique_vertex] ]
-  no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
-  # Drop duplicate Preferred genes
-  string_interaction,string_unique_vertex,string_dupe_preferred,merged_out_dict,dup_pref_warning = check_dup_preferred_gene(string_mapping,string_interaction,string_unique_vertex,"String", uniprot_query, cy_debug, logging, merged_out_dict)
+    no_interactions = [i for i in list(string_mapping.keys()) if string_mapping[i].lower() not in [x.lower() for x in string_unique_vertex] ]
+    no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
+    # Drop duplicate Preferred genes
+    string_interaction,string_unique_vertex,string_dupe_preferred,merged_out_dict,dup_pref_warning = check_dup_preferred_gene(string_mapping,string_interaction,string_unique_vertex,"String", uniprot_query, cy_debug, logging, merged_out_dict)
   
-  if overwrite_preferred:
-    string_interaction,string_unique_vertex,string_mapping,merged_out_dict = overwrite_values(overwrite_preferred, string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
+    if overwrite_preferred:
+      string_interaction,string_unique_vertex,string_mapping,merged_out_dict = overwrite_values(overwrite_preferred, string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
   
-  if len(genes_before_initial_drop) != len(each_inp_list):
-    string_interaction,string_unique_vertex = drop_ei_if_query(string_interaction,string_unique_vertex,genes_before_initial_drop,each_inp_list)
+    if len(genes_before_initial_drop) != len(each_inp_list):
+      string_interaction,string_unique_vertex = drop_ei_if_query(string_interaction,string_unique_vertex,genes_before_initial_drop,each_inp_list)
     
-  if cy_debug: 
-    if len(no_mapping) != 0:
-      logging.debug("String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
-      warning = []
-      for each in no_mapping_prots:
-        merged_out_dict[each]['Comment'] += "String- not mapped;"
-        warning.append(each + "(" + no_mapping_prots[each] + ") ")
-      if dup_pref_warning:
-        logging.debug("WARNING - Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
-      else:
+    if cy_debug: 
+      if len(no_mapping) != 0:
+        logging.debug("String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
+        warning = []
+        for each in no_mapping_prots:
+          merged_out_dict[each]['Comment'] += "String- not mapped;"
+          warning.append(each + "(" + no_mapping_prots[each] + ") ")
+        if dup_pref_warning:
+          logging.debug("WARNING - Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
+        else:
+          logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+    
+      if len(no_interactions) != 0:
+        logging.debug("String queries with no interactions: " + str(len(no_interactions)))
+        warning = []
+        for each in no_interactions_prots:
+          merged_out_dict[each]['Comment'] += "String- no interaction;"
+          warning.append(each + "(" + no_interactions_prots[each] + ") ")
         logging.debug("WARNING - Dropping queries: " + ','.join(warning))
-    
-    if len(no_interactions) != 0:
-      logging.debug("String queries with no interactions: " + str(len(no_interactions)))
-      warning = []
-      for each in no_interactions_prots:
-        merged_out_dict[each]['Comment'] += "String- no interaction;"
-        warning.append(each + "(" + no_interactions_prots[each] + ") ")
-      logging.debug("WARNING - Dropping queries: " + ','.join(warning))
-
+  except:
+    return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
   return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
   
 def remove_duplicates_within(node1,node2):
@@ -1196,21 +1200,11 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   genemania_node = {}
   overwrite_preferred = {}
   
+  join_genes = '|'.join(each_inp_list)
+  #body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species)
+  body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species, offline=True)
   try:
-    join_genes = '|'.join(each_inp_list)
-    #body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species)
-    body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species, offline=True)
     get_genemania = requests.post('http://localhost:1234/v1/commands/genemania/search', json=body)
-    uploaded_list = get_genemania.json()
-    current_network_suid = str(uploaded_list['data']['network'])
-    request = 'http://localhost:1234/v1/networks/' + str(uploaded_list['data']['network']) + '/tables/defaultedge'
-    resp = requests.get(request, json=body)
-    edge_info =resp.json()
-    request = 'http://localhost:1234/v1/networks/' + str(uploaded_list['data']['network']) +'/tables/defaultnode'
-    resp = requests.get(request, json=body)
-    node_info = resp.json()
-    requests.delete("http://localhost:1234/v1/networks/" + str(current_network_suid))
-    
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)  
     try:
@@ -1220,7 +1214,20 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
     except:
       eprint("Error: Cytoscape must be open")
       sys.exit(1)
-      
+   
+  try:    
+    uploaded_list = get_genemania.json()
+    current_network_suid = str(uploaded_list['data']['network'])
+    request = 'http://localhost:1234/v1/networks/' + str(uploaded_list['data']['network']) + '/tables/defaultedge'
+    resp = requests.get(request, json=body)
+    edge_info =resp.json()
+    request = 'http://localhost:1234/v1/networks/' + str(uploaded_list['data']['network']) +'/tables/defaultnode'
+    resp = requests.get(request, json=body)
+    node_info = resp.json()
+    requests.delete("http://localhost:1234/v1/networks/" + str(current_network_suid))
+  except:
+    return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
+    
   for each_node in node_info['rows']:
     genemania_node.update({each_node['shared name']:each_node['gene name']})   
     if 'query term' in each_node:
@@ -1250,7 +1257,6 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
   
   #genemania_interaction,genemania_unique_vertex,genemania_dupe_preferred,merged_out_dict = check_dup_preferred_gene(genemania_mapping,genemania_interaction,genemania_unique_vertex,"Genemania", uniprot_query, cy_debug, logging, merged_out_dict)
-
   if overwrite_preferred:
     genemania_interaction,genemania_unique_vertex,genemania_mapping,merged_out_dict = overwrite_values(overwrite_preferred, genemania_interaction,genemania_unique_vertex,genemania_mapping,merged_out_dict)
   
@@ -1962,10 +1968,11 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   val_fc_gene = {}
   get_each_site_name = []
   include_gene_data = []
-  fc_merged_vertex = {}
   query_val = []
   is_snp = []
-  print(uniprot_list)
+  all_fcs = {}
+  all_pval = {}
+  
   for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
     print(each_site_gene)
     each_gene = (each_site_gene.split("-"))[1]
@@ -1982,13 +1989,29 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
         else:
           is_snp.append(0.0)
       else:
-        is_snp.append(0.0)      
+        is_snp.append(0.0)
+      
+      indexOf = uniprot_list['site'].index(each_site_gene)
+      for i in range(1,max_FC_len+1):
+        term_FC = 'FC' + str(i)
+        term_pval = 'pval' + str(i)
+        if term_FC in all_fcs:
+          all_fcs[term_FC].append(uniprot_list[term_FC][indexOf])
+        else:
+          all_fcs.update({term_FC:[uniprot_list[term_FC][indexOf]]})
+        
+        if term_FC in all_pval:
+          all_pval[term_FC].append(uniprot_list[term_pval][indexOf])
+        else:
+          all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
+          
       get_each_site_name.append(each_ambi_site)
       query_val.append("Site")
       G.add_vertex(each_site_gene)
       interaction = each_site_gene + " " + each_gene
       site_interactions.append(interaction)
-      site_length.append(len(each_site))        
+      site_length.append(len(each_site)) 
+      
   for each_vertex in merged_vertex:
     if each_vertex in uniprot_list['name']:
       indexOf = uniprot_list['name'].index(each_vertex)
@@ -2024,8 +2047,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
-    G.vs[term_FC] = uniprot_list[term_FC] + fc_val
-    G.vs[term_pval] = uniprot_list[term_pval] + pval_val
+    G.vs[term_FC] = all_fcs[term_FC] + fc_val
+    G.vs[term_pval] = all_pval[term_pval] + pval_val
   
   eprint(query_val)
   eprint(uniprot_list['FC1'] + fc_val)
@@ -2116,7 +2139,6 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   my_style = snp_bold(my_style)
   
   cy.style.apply(my_style, g_cy)
-  return(fc_merged_vertex)
     
 def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style):
   '''
@@ -2585,7 +2607,7 @@ def color(my_style, uniprot_list):
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
-def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, fc_merged_vertex, all_prot_site_snps, uniprot_query):
+def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query):
   '''
   Based on top clusters picked, construct function interaction network + visualization and styling
   '''
@@ -3378,18 +3400,22 @@ def main(argv):
     #Merge String and Genemania interactions
     if cy_debug:
       logging.debug("\nStep 5: Merge String and Genemania interactions started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-  
+    
+    interaction_skip = False
     if not string_filtered_dict and not genemania_filtered_dict:
-      eprint("Error: No interactions found in String and Genemania")
-      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
-      sys.exit(1)
+      if not cy_cluego_inp_file: 
+        eprint("Error: No interactions found in String and Genemania")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
+        sys.exit(1)
+      else:
+        interaction_skip = True
    
     unique_merged_interactions = []
     unique_nodes = []
     #Get a list of merged interactions (ex: [node1 node2, node3 node4] etc) and a list of unique nodes (ex: [node1, node2, node3, node4])
-    if cy_run.lower() == "string" or cy_run.lower() == "both":
+    if (cy_run.lower() == "string" or cy_run.lower() == "both") and not interaction_skip:
       unique_merged_interactions,unique_nodes = get_merged_interactions(string_filtered_dict, unique_merged_interactions, unique_nodes, max_FC_len, each_category, uniprot_query, cy_type_num)
-    if cy_run.lower() == "genemania" or cy_run.lower() == "both":
+    if (cy_run.lower() == "genemania" or cy_run.lower() == "both") and not interaction_skip:
       unique_merged_interactions,unique_nodes = get_merged_interactions(genemania_filtered_dict, unique_merged_interactions, unique_nodes, max_FC_len, each_category, uniprot_query, cy_type_num)
     
     if cy_debug:
@@ -3406,12 +3432,12 @@ def main(argv):
       for each_node in lower_unique_each_primgene_list:
         uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)
     
-    # Interactors styling 
-    fc_merged_vertex = {}
-    if not (cy_type_num == "5" or cy_type_num == "6"):         
-      cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval)
-    else:     
-      fc_merged_vertex = cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query)
+    # Interactors styling   
+    if not interaction_skip: 
+      if not (cy_type_num == "5" or cy_type_num == "6"):         
+        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval)
+      else:    
+        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query)
     
     # Category styling   
     if cy_type_num == "4":    
@@ -3449,7 +3475,7 @@ def main(argv):
       cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval)
     
     if leading_term_cluster:
-      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, fc_merged_vertex, all_prot_site_snps, uniprot_query)
+      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query)
     
     if cy_debug:
       if not cy_cluego_inp_file:
@@ -3458,8 +3484,8 @@ def main(argv):
       
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    #requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    #requests.get("http://localhost:1234/v1/commands/command/quit")
+   
+    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
