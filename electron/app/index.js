@@ -30,6 +30,7 @@ const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "kegg", "name": "Pathway (KEGG)"},
     {"phrase": "wikipathways", "name": "Pathway (Wiki)"},
     {"phrase": "reactome", "name": "Pathway (REACTOME)"},
+    {"phrase": "corum", "name": "Pathway (CORUM)"},
     {"phrase": "pathways", "name": "Pathway (Other)"},
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
@@ -74,7 +75,6 @@ let vm = new Vue({
             "arg_n": "Arginine N-terminus",
             "chymotrypsin": "Chymotrypsin",
         },
-
         input: {
             cytoscape_path: "",
             cluego_base_path: "",
@@ -519,9 +519,9 @@ let vm = new Vue({
 
             let path = e.target.files[0].path;
             if(name === "cytoscape_path") {
-                this.setCytoscapePath(path);
+                this.setCytoscapePath(path, true);
             } else if(name === "cluego_base_path") {
-                this.setCluegoBasePath(path);
+                this.setCluegoBasePath(path, true);
             } else {
                 this.input[name] = path;
             }
@@ -539,9 +539,9 @@ let vm = new Vue({
             for(const key in saved_input) {
                 if(key in this.input) {
                     if(key === "cluego_base_path") {
-                        this.setCluegoBasePath(saved_input[key]);
+                        this.setCluegoBasePath(saved_input[key], false);
                     } else if(key === "cytoscape_path") {
-                        this.setCytoscapePath(saved_input[key]);
+                        this.setCytoscapePath(saved_input[key], false);
                     } else {
                         Vue.set(this.input, key, saved_input[key]);
                     }
@@ -587,7 +587,7 @@ let vm = new Vue({
                     for(const fd of found_dirs) {
                         const cyto_path = path.join(fd, "Cytoscape.exe");
                         if(fs.existsSync(cyto_path)) {
-                            this.setCytoscapePath(cyto_path);
+                            this.setCytoscapePath(cyto_path, false);
                             break;
                         }
                     }
@@ -597,7 +597,7 @@ let vm = new Vue({
             if(!this.input.cluego_base_path) {
                 const cluego_base_path = path.join(os.homedir(), "ClueGOConfiguration");
                 if(fs.existsSync(cluego_base_path)) {
-                    this.setCluegoBasePath(cluego_base_path);
+                    this.setCluegoBasePath(cluego_base_path, false);
                 }
             }
 
@@ -608,22 +608,28 @@ let vm = new Vue({
                 this.switchTab(TABS.INPUT);
             }
         },
-        setCluegoBasePath: function(cluego_path) {
+        setCluegoBasePath: function(cluego_path, show_warnings) {
             if(!fs.existsSync(cluego_path)) {
-                error_popup("Path does not exist", "ClueGO configuration file path does not exist");
+                if(show_warnings) {
+                    error_popup("Path does not exist", "ClueGO configuration file path does not exist");
+                }
                 return;
             }
 
             const path_split = cluego_path.split(path.sep);
             const path_index = path_split.indexOf(CLUEGO_CONFIGURATION_BASE_NAME);
             if(path_index === -1) {
-                error_popup("Invalid directory", "ClueGO configuration directory must be named " + CLUEGO_CONFIGURATION_BASE_NAME);
+                if(show_warnings) {
+                    error_popup("Invalid directory", "ClueGO configuration directory must be named " + CLUEGO_CONFIGURATION_BASE_NAME);
+                }
                 return;
             }
 
             cluego_path = path_split.slice(0, path_index + 1).join(path.sep);
             if(!fs.statSync(cluego_path).isDirectory()) {
-                error_popup("Invalid directory", CLUEGO_CONFIGURATION_BASE_NAME + " must be a directory");
+                if(show_warnings) {
+                    error_popup("Invalid directory", CLUEGO_CONFIGURATION_BASE_NAME + " must be a directory");
+                }
                 return;
             }
 
@@ -691,16 +697,22 @@ let vm = new Vue({
                 this.cluego_picked_version = this.cluego_versions[0];
                 this.cluego_picked_version.latest = true;
             } else {
-                error_popup("Invalid configuration directory", "This directory did not any valid accession files.");
+                if(show_warnings) {
+                    error_popup("Invalid configuration directory", "This directory did not any valid accession files.");
+                }
             }
         },
-        setCytoscapePath: function(cy_path) {
+        setCytoscapePath: function(cy_path, show_warnings) {
             if(!is_file(cy_path)) {
-                error_popup("Invalid path", "Cytoscape.exe must be a file");
+                if(show_warnings) {
+                    error_popup("Invalid path", "Cytoscape.exe must be a file");
+                }
                 return;
             }
             if(!cy_path.toLowerCase().endsWith("cytoscape.exe")) {
-                error_popup("Invalid file", "Please provide the Cytoscape.exe executable file");
+                if(show_warnings) {
+                    error_popup("Invalid file", "Please provide the Cytoscape.exe executable file");
+                }
                 return;
             }
             this.input.cytoscape_path = cy_path;
@@ -814,7 +826,13 @@ let vm = new Vue({
             } else {
                 return n.toPrecision(places);
             }
-        }
+        },
+        ontology_source_category_name: function(record) {
+            if(record["Ontology Source Category"] === "Other") {
+                return record["Ontology Source"];
+            }
+            return record["Ontology Source Category"];
+        },
     },
     computed: {
         cluego_pathways_filtered: function() {
@@ -946,6 +964,32 @@ let vm = new Vue({
                 return "";
             }
             return path.join(this.session_dir, "settings.txt");
+        },
+        selectable_species: function() {
+            let selectable = [];
+            let seen = new Set();
+            for(const mapping of this.cluego_picked_version.mapping_files) {
+                const mapping_species = mapping.species.toLowerCase();
+                if(mapping_species in this.species_map) {
+                    selectable.push({
+                        "name": this.species_map[mapping_species],
+                        "selectable": true,
+                    });
+                    seen.add(this.species_map[mapping_species]);
+                }
+            }
+            for(const key in this.species_map) {
+                const species = this.species_map[key];
+                if(seen.has(species)) {
+                    continue;
+                }
+                selectable.push({
+                    "name": species + " (not installed)",
+                    "selectable": false,
+                });
+                seen.add(species);
+            }
+            return selectable;
         },
     },
     watch: {
