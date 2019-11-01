@@ -959,6 +959,32 @@ let vm = new Vue({
             }
             return path.join(this.session_dir, "settings.txt");
         },
+        selectable_species: function() {
+            let selectable = [];
+            let seen = new Set();
+            for(const mapping of this.cluego_picked_version.mapping_files) {
+                const mapping_species = mapping.species.toLowerCase();
+                if(mapping_species in this.species_map) {
+                    selectable.push({
+                        "name": this.species_map[mapping_species],
+                        "selectable": true,
+                    });
+                    seen.add(this.species_map[mapping_species]);
+                }
+            }
+            for(const key in this.species_map) {
+                const species = this.species_map[key];
+                if(seen.has(species)) {
+                    continue;
+                }
+                selectable.push({
+                    "name": species + " (not installed)",
+                    "selectable": false,
+                });
+                seen.add(species);
+            }
+            return selectable;
+        },
     },
     watch: {
         "cluego_pathways.query": function() {

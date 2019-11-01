@@ -165,7 +165,9 @@
               </div>
               <div>
                 <select v-model="input.species" v-if="cluego_picked_version">
-                  <option v-for="mapping in cluego_picked_version.mapping_files" v-bind:value="species_map[mapping.species.toLowerCase()]">{{ species_map[mapping.species.toLowerCase()] }}</option>
+                  <option v-for="species in selectable_species" v-bind:value="species.name" :disabled="!species.selectable">
+                    {{ species.name }}
+                  </option>
                 </select>
               </div>
 
