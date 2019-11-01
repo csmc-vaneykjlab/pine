@@ -261,6 +261,7 @@ ul.tab-selector li + li {
   text-align: left;
   left: 0;
   top: 1rem;
+  word-wrap: break-word;
 }
 
 .tooltip {

@@ -826,7 +826,13 @@ let vm = new Vue({
             } else {
                 return n.toPrecision(places);
             }
-        }
+        },
+        ontology_source_category_name: function(record) {
+            if(record["Ontology Source Category"] === "Other") {
+                return record["Ontology Source"];
+            }
+            return record["Ontology Source Category"];
+        },
     },
     computed: {
         cluego_pathways_filtered: function() {

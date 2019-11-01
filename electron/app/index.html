@@ -422,7 +422,7 @@
                       {{ pathway.data['GOTerm'] }}
                       <span class="tooltip-parent">
                         <i class="fas fa-info-circle"></i>
-                        <div class="tooltip">{{ pathway.data["Ontology Source Category"] }}</div>
+                        <div class="tooltip">{{ pathway.data | ontology_source_category_name }}</div>
                       </span>
                     </td>
                     <td class="align-right">{{ pathway.data['Term PValue'] | roundString(4) }}</td>
