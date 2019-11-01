@@ -1043,7 +1043,6 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
   string_interaction = {}
   string_unique_vertex = {}
   string_list_input = "\n".join(each_inp_list)
-  merged_out_dict = {}
   
   data = {
   'identifiers': string_list_input,
@@ -1140,7 +1139,6 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   genemania_node = {}
   overwrite_preferred = {}
   
-  
   join_genes = '|'.join(each_inp_list)
   #body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species)
   body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species, offline=True)
@@ -1198,7 +1196,6 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
   
   #genemania_interaction,genemania_unique_vertex,genemania_dupe_preferred,merged_out_dict = check_dup_preferred_gene(genemania_mapping,genemania_interaction,genemania_unique_vertex,"Genemania", uniprot_query, cy_debug, logging, merged_out_dict)
-
   if overwrite_preferred:
     genemania_interaction,genemania_unique_vertex,genemania_mapping,merged_out_dict = overwrite_values(overwrite_preferred, genemania_interaction,genemania_unique_vertex,genemania_mapping,merged_out_dict)
   
@@ -3427,7 +3424,6 @@ def main(argv):
     write_into_out(merged_out_dict, cy_out)
    
     requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    #requests.get("http://localhost:1234/v1/commands/command/quit")
     
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
