@@ -355,7 +355,7 @@ let vm = new Vue({
             }
             let old_dir = this.session_dir;
             this.session_dir = new_dir;
-            if(!is_file(this.session_cluego_file) || !is_file(this.session_cytoscape_file) || !is_file(this.session_settings_file)) {
+            if(!is_file(this.session_cluego_file) || !is_file(this.session_settings_file)) {
                 this.session_dir = old_dir;
                 error_popup("Invalid session", "The session directory you provided is not valid");
             }
