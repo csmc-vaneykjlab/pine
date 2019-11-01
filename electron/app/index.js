@@ -1,5 +1,5 @@
 const Vue = require("vue/dist/vue.js");
-const { remote, net } = require("electron");
+const { remote } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -185,6 +185,10 @@ let vm = new Vue({
 
             let pr = new Promise(function(resolve, _reject) {
                 pine.on("close", function(code) { 
+                    let window = remote.getCurrentWindow();
+                    if(!window.isFocused()) {
+                        remote.getCurrentWindow().flashFrame(true);
+                    }
                     that.running = false;
                     if(code === 0) {
                         that.stdout += "";
