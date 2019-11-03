@@ -1894,75 +1894,94 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   '''
   Styling + visualization for the entire gene list interaction network & its sites
   '''
-
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
   G = igraph.Graph()
   
   site_interactions = []
-  site_length = []
   sig_na = []
   fc_na = []
-  fc_val = []
-  pval_val = []
-  val_fc_gene = {}
   get_each_site_name = []
-  include_gene_data = []
   query_val = []
   is_snp = []
   all_fcs = {}
   all_pval = {}
+   
+  all_names = []
+  all_other_fcs = []
+  all_other_pval = []
+  all_length = []
   
-  for each_site_gene,each_ambi_site in zip(uniprot_list['site'],uniprot_list['ambigious_site']):
-    each_gene = (each_site_gene.split("-"))[1]
-    each_site = (each_site_gene.split("-"))[0]
-    if each_gene.lower() in merged_vertex:
-      # Get corresponding prot, check if snp
-      corresponding_prot = get_query_from_list(uniprot_query, [each_gene])
-      if corresponding_prot:
-        if list(corresponding_prot.keys())[0] in all_prot_site_snps:
-          if each_site in all_prot_site_snps[corresponding_prot]['Position']:
-            is_snp.append(1.0)
+  for each_name,each_site_gene,each_ambi_site in zip(uniprot_list['name'],uniprot_list['site'],uniprot_list['ambigious_site']):
+    if each_site_gene != "NA":
+      each_gene = (each_site_gene.split("-"))[1]
+      each_site = (each_site_gene.split("-"))[0]
+      if each_gene.lower() in merged_vertex:
+        # Get corresponding prot, check if snp
+        corresponding_prot = get_query_from_list(uniprot_query, [each_gene])
+        if corresponding_prot:
+          if list(corresponding_prot.keys())[0] in all_prot_site_snps:
+            if each_site in all_prot_site_snps[corresponding_prot]['Position']:
+              is_snp.append(1.0)
+            else:
+              is_snp.append(0.0)
           else:
             is_snp.append(0.0)
         else:
           is_snp.append(0.0)
-      else:
-        is_snp.append(0.0)
       
-      indexOf = uniprot_list['site'].index(each_site_gene)
+        indexOf = uniprot_list['site'].index(each_site_gene)
+        for i in range(1,max_FC_len+1):
+          term_FC = 'FC' + str(i)
+          term_pval = 'pval' + str(i)
+          if term_FC in all_fcs:
+            all_fcs[term_FC].append(uniprot_list[term_FC][indexOf])
+          else:
+            all_fcs.update({term_FC:[uniprot_list[term_FC][indexOf]]})
+        
+          if term_FC in all_pval:
+            all_pval[term_FC].append(uniprot_list[term_pval][indexOf])
+          else:
+            all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
+        all_names.append(each_ambi_site) 
+        get_each_site_name.append(each_ambi_site)
+        query_val.append("Site")
+        G.add_vertex(each_site_gene)
+        interaction = each_site_gene + " " + each_gene
+        site_interactions.append(interaction)
+        all_length.append(uniprot_list['length'][indexOf]) 
+        fc_na.append(1)
+        sig_na.append(uniprot_list['significant'][indexOf])
+    else:
+      all_names.append(each_name)
+      query_val.append("EI")
+      G.add_vertex(each_name)
+      all_length.append(len(each_name))
       for i in range(1,max_FC_len+1):
         term_FC = 'FC' + str(i)
         term_pval = 'pval' + str(i)
         if term_FC in all_fcs:
-          all_fcs[term_FC].append(uniprot_list[term_FC][indexOf])
+          all_fcs[term_FC].append(0.0)
         else:
-          all_fcs.update({term_FC:[uniprot_list[term_FC][indexOf]]})
-        
+          all_fcs.update({term_FC:[0.0]})
         if term_FC in all_pval:
-          all_pval[term_FC].append(uniprot_list[term_pval][indexOf])
+          all_pval[term_FC].append(1.0)
         else:
-          all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
-          
-      get_each_site_name.append(each_ambi_site)
-      query_val.append("Site")
-      G.add_vertex(each_site_gene)
-      interaction = each_site_gene + " " + each_gene
-      site_interactions.append(interaction)
-      site_length.append(len(each_site)) 
+          all_pval.update({term_pval:[1.0]})
+      fc_na.append(0)
+      sig_na.append(0)
       
   for each_vertex in merged_vertex:
-    if each_vertex in uniprot_list['name']:
-      indexOf = uniprot_list['name'].index(each_vertex)
-      include_gene_data.append(uniprot_list['ambigious_genes'][indexOf])      
+    if each_vertex in uniprot_list['query']:
+      indexOf = uniprot_list['query'].index(each_vertex)
+      all_names.append(uniprot_list['ambigious_genes'][indexOf])         
       fc_na.append(-1)
-      fc_val.append(-100)
-      pval_val.append(-1)
-    else:
-      fc_na.append(0)    
-    query_val.append("Gene")
-    is_snp.append(0.0)
-    G.add_vertex(each_vertex)  
-    sig_na.append(0)
+      all_other_fcs.append(-100)
+      all_other_pval.append(-1)   
+      query_val.append("Gene")
+      is_snp.append(0.0)
+      G.add_vertex(each_vertex)  
+      sig_na.append(0)
+      all_length.append(len(each_vertex))
   
   count_each = 0
   for each in merged_interactions:
@@ -1975,21 +1994,18 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     count_each +=1
     
   G.vs
-  G.vs["name"] = get_each_site_name + include_gene_data
-  G.vs["length"] = site_length + uniprot_list['length']
-  
-  G.vs["significant"] = uniprot_list["significant"] + sig_na
-  G.vs["FC_exists"] = uniprot_list["FC_exists"] + fc_na
+  G.vs["name"] = all_names
+  G.vs["length"] = all_length  
+  G.vs["significant"] = sig_na
+  G.vs["FC_exists"] = fc_na
   G.vs["SNP"] = is_snp
   
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
-    G.vs[term_FC] = all_fcs[term_FC] + fc_val
-    G.vs[term_pval] = all_pval[term_pval] + pval_val
+    G.vs[term_FC] = all_fcs[term_FC] + all_other_fcs
+    G.vs[term_pval] = all_pval[term_pval] + all_other_pval
   
-  eprint(query_val)
-  eprint(uniprot_list['FC1'] + fc_val)
   G.vs["query"] = query_val
   
   degree = G.degree()
@@ -2037,26 +2053,23 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   shape_kv_pair = {
     "Function":"OCTAGON",
     "Site":"ELLIPSE",
-    "Gene":"ROUND_RECTANGLE"
+    "Gene":"ROUND_RECTANGLE",
+    "EI":"ROUND_RECTANGLE"
   }
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
-  if type == "5":
-    label_color_kv_pair = {
+
+  label_color_kv_pair = {
         "Function":"#FFFFFF",
         "Gene":"#000000",
-        "Site":"#000000"
-    }
-  else:
-    label_color_kv_pair = {
-        "Function":"#FFFFFF",
-        "Gene":"#000000",
-        "Site":"#000000"
-    }
+        "Site":"#000000",
+        "EI":"#000000"
+  }
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
   
   width_kv_pair = {
     "Function":"210",
     "Gene":"70",
+    "EI":"70",
     "Site":"60"
   }
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
@@ -2067,7 +2080,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       pval_sig = 1
     
   elif max_FC_len == 1:
-    my_style = singleFC(my_style, uniprot_list)
+    my_style = singleFC(my_style, uniprot_list, type)
     if pval_style:
       pval_sig = 1
    
@@ -2093,8 +2106,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     G.add_edge(each_interaction_name[0],each_interaction_name[1],name=each,interaction="pp")
     count_each +=1
 
-  G.vs
- 
+  G.vs 
   G.vs["name"] = uniprot_list['name']
   G.vs["shared name"] = uniprot_list['ambigious_genes']
   G.vs["length"] = uniprot_list['length']
@@ -2178,7 +2190,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     just_color = 1
     
   elif max_FC_len == 1:
-    my_style = singleFC(my_style, uniprot_list)
+    my_style = singleFC(my_style, uniprot_list, "1")
     if pval_style:
       pval_sig = 1
   
@@ -2308,13 +2320,14 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   ]
   response = requests.put("http://localhost:1234/v1/styles/Category-Network-Style/dependencies", json=data)
   
-def singleFC(my_style, uniprot_list):
+def singleFC(my_style, uniprot_list, type):
   '''
   Styling specific to singleFC case
   '''
   basic_settings = {
     'EDGE_TRANSPARENCY':"15",
-    'NODE_BORDER_PAINT':"#999999"
+    'NODE_BORDER_PAINT':"#999999",
+    'NODE_FILL_COLOR':"#E2E2E2"
   }
   if min(uniprot_list['FC1']) != 0 and max(uniprot_list['FC1']) != 0:
     points1 =  [
@@ -2326,9 +2339,9 @@ def singleFC(my_style, uniprot_list):
       },
       {
         "value": 0,
-        "lesser": "#E2E2E2",
-        "equal": "#E2E2E2",
-        "greater": "#E2E2E2"
+        "lesser": "#FFFFFF",
+        "equal": "#FFFFFF",
+        "greater": "#FFFFFF"
       },
       {
         "value": max(uniprot_list['FC1']),
@@ -2341,9 +2354,9 @@ def singleFC(my_style, uniprot_list):
     points1 =  [
       {
         "value": 0,
-        "lesser": "#E2E2E2",
-        "equal": "#E2E2E2",
-        "greater": "#E2E2E2"
+        "lesser": "#FFFF99",
+        "equal": "#FFFFFF",
+        "greater": "#FFFFFF"
       },
       {
         "value": max(uniprot_list['FC1']),
@@ -2362,12 +2375,29 @@ def singleFC(my_style, uniprot_list):
       },
       {
         "value": 0,
-        "lesser": "#E2E2E2",
-        "equal": "#E2E2E2",
-        "greater": "#E2E2E2"
+        "lesser": "#FFFFFF",
+        "equal": "#FFFFFF",
+        "greater": "#333333"
       }
     ]
   my_style.create_continuous_mapping(column='FC1',vp='NODE_FILL_COLOR',col_type='Double',points=points1)
+  
+  if type == "5":
+    data = {
+      "bypass": "true",
+      "nodeList": "query:EI",
+      "propertyList": "Fill Color",
+      "valueList": "#E2E2E2"
+    }
+    
+  else:
+    data = {
+      "bypass": "true",
+      "nodeList": "FC_exists:0.0",
+      "propertyList": "Fill Color",
+      "valueList": "#E2E2E2"
+    }
+  response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
   return(my_style)
   
 def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list):
@@ -2549,6 +2579,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   '''
   Based on top clusters picked, construct function interaction network + visualization and styling
   '''
+  print(uniprot_list)
   G = igraph.Graph()
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
   
@@ -2613,8 +2644,11 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
          
         else:
           is_snp.append(0.0)
-          query.append('Gene')
           indexOf = uniprot_list['name'].index(each_gene.lower())
+          if uniprot_list['query'][indexOf] != "NA":
+            query.append('Gene')
+          else:
+            query.append("EI")
           merged_vertex_sites_only.append(uniprot_list['ambigious_genes'][indexOf])
           if max_FC_len == 0 and not category_present:
             index_noFC = uniprot_list["name"].index(each_gene.lower())
@@ -2626,29 +2660,30 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           if type == "5" or type == "6":
             indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
             for each_index in indices:
-              G.add_vertex(uniprot_list['site'][each_index])
-              merged_vertex.append(uniprot_list['site'][each_index])
-              merged_vertex_sites_only.append(uniprot_list['ambigious_site'][each_index])
-              #get corresponding prot id and check for snps
-              get_corres_prot = get_query_from_list(uniprot_query, [each_gene])
-              if get_corres_prot:
-                if list(get_corres_prot.keys())[0] in all_prot_site_snps:
-                  if each_site in all_prot_site_snps[get_corres_prot]['Position']:
-                    is_snp.append(1.0)
+              if uniprot_list['site'][each_index] != "NA":
+                G.add_vertex(uniprot_list['site'][each_index])
+                merged_vertex.append(uniprot_list['site'][each_index])
+                merged_vertex_sites_only.append(uniprot_list['ambigious_site'][each_index])
+                #get corresponding prot id and check for snps
+                get_corres_prot = get_query_from_list(uniprot_query, [each_gene])
+                if get_corres_prot:
+                  if list(get_corres_prot.keys())[0] in all_prot_site_snps:
+                    if each_site in all_prot_site_snps[get_corres_prot]['Position']:
+                      is_snp.append(1.0)
+                    else:
+                      is_snp.append(0.0)
                   else:
                     is_snp.append(0.0)
                 else:
                   is_snp.append(0.0)
-              else:
-                is_snp.append(0.0)
-              query.append('Site')
-              val_length_of_val = len(each_gene) #* 15
-              length_of.append(val_length_of_val)
-              val_breadth_of_val = 30
-              breadth_of.append(val_breadth_of_val)
-              name_edge = uniprot_list['site'][each_index] + " with " + each_gene
-              G.add_edge(uniprot_list['site'][each_index],each_gene,name=name_edge)
-              all_interactions.append(name_edge)
+                query.append('Site')
+                val_length_of_val = len(each_gene) #* 15
+                length_of.append(val_length_of_val)
+                val_breadth_of_val = 30
+                breadth_of.append(val_breadth_of_val)
+                name_edge = uniprot_list['site'][each_index] + " with " + each_gene
+                G.add_edge(uniprot_list['site'][each_index],each_gene,name=name_edge)
+                all_interactions.append(name_edge)
               
       if max_FC_len == 1 and not (type == "5" or type == "6"):
         if each_gene.lower() in uniprot_list["name"]:
@@ -2725,6 +2760,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         if fc_exists_count == 0:
           if ((uniprot_list[term_FC])[index]) != 0:
             FC_exists.append(1.0)
+          elif each_vertex_name in function_only:
+            FC_exists.append(-1.0)
           else:
             FC_exists.append(0.0)
         else:
@@ -2744,8 +2781,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         add_term_pval.append("NA")
         significant_val.append("NA")
         
-        if fc_exists_count == 0:
-          FC_exists.append(0.0)    
+        if fc_exists_count == 0 and each_vertex_name in function_only:
+          FC_exists.append(-1.0)
+        else:
+          FC_exists.append(0.0)   
              
       k+=1
     fc_exists_count+=1
@@ -2824,7 +2863,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
 
   pval_sig = 0
   if max_FC_len == 1:
-    my_style = singleFC(my_style, uniprot_list)
+    my_style = singleFC(my_style, uniprot_list, type)
     if pval_style:
       pval_sig = 1
   
@@ -3388,11 +3427,12 @@ def main(argv):
         logging.debug("\nStep 6: ClueGO started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
   
       #Start ClueGO
+      response = requests.post('http://localhost:1234/v1/apps/cluego/start-up-cluego')
       wait_counter = 0
       while wait_counter < 300: # give 5 minutes max for cluego to load
         try:
-          response = requests.post('http://localhost:1234/v1/apps/cluego/start-up-cluego')
-          test = response.json()
+          response = requests.get(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", headers=HEADERS)
+          ontology_info = response.json()
           break
         except:
           time.sleep(10)
