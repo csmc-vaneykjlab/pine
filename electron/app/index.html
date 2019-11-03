@@ -51,7 +51,7 @@
               <div class="align-right">Cytoscape path</div>
               <div>
                 <label class="button success-button" for="file-button-cytoscape">Select file</label>
-                <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" />
+                <input class="file-button" id="file-button-cytoscape" v-on:change="inputFileChange($event, 'cytoscape_path')" type="file" accept=".exe" />
               </div>
               <div>
                 {{ input.cytoscape_path }}
@@ -124,7 +124,7 @@
               </div>
               <div>
                 <label class="button success-button" for="file-button-input">Select file</label>
-                <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" />
+                <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" accept=".csv" />
                 <span class="text-small" v-show="input.in" v-bind:title="input.in">{{ input.in | filename }}</span>
               </div>
 
@@ -179,7 +179,7 @@
               </div>
               <div v-if="is_extra_options_required()">
                 <label class="button success-button" for="file-button-fasta">Select file</label>
-                <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" />
+                <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" accept=".fasta" />
                 <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | filename }}</span>
               </div>
 
@@ -322,7 +322,7 @@
               </div>
               <div>
                 <label class="button success-button" for="file-button-reference">Select file</label>
-                <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" />
+                <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" accept=".txt" />
                 <div class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">{{ input.reference_path | filename }}</div>
               </div>
 

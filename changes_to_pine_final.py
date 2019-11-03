@@ -148,6 +148,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   to_return_unique_protids_length = 0
   ambigious_sites = {}
   pep_to_mod = {}
+  duplicate_inc_ptm_proteins = []
+  duplicate_inc_ptm_proteins_set = set()
+  duplicate_ptm_proteins = []
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
@@ -287,47 +290,80 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             sites = sites.strip("/")
             if sites: 
               if type == "5":
+                if (protein_list_id, sites, peptide) in duplicate_inc_ptm_proteins_set:
+                  # this is already a bad label, skip
+                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, float(get_fc_val), get_pval))
+                  continue
                 max_FC_len = 1
                 if is_prot_col and is_FC:
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
                     site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                  elif sites not in site_info_dict[protein_list_id]:
+                    site_info_dict[protein_list_id][sites] = {}
+                    site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                  elif not peptide in site_info_dict[protein_list_id][sites]:
+                    site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
                   else:
-                    if sites not in site_info_dict[protein_list_id]:
-                      site_info_dict[protein_list_id][sites] = {}
-                      site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                    # duplicate
+                    peptide_list = site_info_dict[protein_list_id][sites][peptide]
+                    if peptide_list[0][0] != float(get_fc_val) or peptide_list[1][0] != get_pval:
+                      duplicate_inc_ptm_proteins_set.add((protein_list_id, sites, peptide))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, float(get_fc_val), get_pval))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, peptide_list[0][0], peptide_list[1][0]))
+                      del site_info_dict[protein_list_id][sites][peptide]
+                      if len(site_info_dict[protein_list_id][sites]) == 0:
+                        del site_info_dict[protein_list_id][sites]
+                        if len(site_info_dict[protein_list_id]) == 0:
+                          del site_info_dict[protein_list_id]
                     else:
-                      if not peptide in site_info_dict[protein_list_id][sites]:
-                        site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
-                      
+                      duplicate_ptm_proteins.append((protein_list_id, sites, peptide, float(get_fc_val), get_pval))
+                    continue
                 else:
                   eprint("Error: Required columns- ProteinID, Peptide, FC")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
                   sys.exit(1)
               
               if type == "6":              
+                if (protein_list_id, sites, peptide, row[label]) in duplicate_inc_ptm_proteins_set:
+                  # this is already a bad label, skip
+                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), float(get_pval)))
+                  continue
                 if is_prot_col and is_FC and is_label_col:
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
                     site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                  elif sites not in site_info_dict[protein_list_id]:
+                    site_info_dict[protein_list_id][sites] = {}
+                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                  elif peptide not in site_info_dict[protein_list_id][sites]:
+                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                  elif row[label] not in site_info_dict[protein_list_id][sites][peptide][3]:
+                    site_info_dict[protein_list_id][sites][peptide][0].append(float(get_fc_val))
+                    site_info_dict[protein_list_id][sites][peptide][1].append(float(get_pval))
+                    site_info_dict[protein_list_id][sites][peptide][3].append(row[label])
                   else:
-                    if sites not in site_info_dict[protein_list_id]:
-                       site_info_dict[protein_list_id][sites] = {}
-                       site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                    # duplicate
+                    peptide_list = site_info_dict[protein_list_id][sites][peptide]
+                    ix = peptide_list[3].index(row[label])
+                    if peptide_list[0][ix] != float(get_fc_val) or peptide_list[1][ix] != float(get_pval):
+                      duplicate_inc_ptm_proteins_set.add((protein_list_id, sites, peptide, row[label]))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), float(get_pval)))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], peptide_list[0][ix], peptide_list[1][ix]))
+                      del peptide_list[0][ix]
+                      del peptide_list[1][ix]
+                      del peptide_list[3][ix]
+                      if len(peptide_list[0]) == 0:
+                        del site_info_dict[protein_list_id][sites][peptide]
+                        if len(site_info_dict[protein_list_id][sites]) == 0:
+                          del site_info_dict[protein_list_id][sites]
+                          if len(site_info_dict[protein_list_id]) == 0:
+                            del site_info_dict[protein_list_id]
                     else:
-                      if peptide not in site_info_dict[protein_list_id][sites]:
-                        site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
-                      else:
-                        if row[label] not in site_info_dict[protein_list_id][sites][peptide]:
-                          site_info_dict[protein_list_id][sites][peptide][0].append(float(get_fc_val))
-                          site_info_dict[protein_list_id][sites][peptide][1].append(float(get_pval))
-                          site_info_dict[protein_list_id][sites][peptide][3].append(row[label])
-                        #else dup protid, sites, peptide, label
-                        
-                  if row[label] not in unique_labels:
-                    unique_labels.append(row[label])                
+                      duplicate_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
+                    continue
                 else:
                   eprint("Error: Required columns- ProteinID, Peptide, FC, Label")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
@@ -411,6 +447,16 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               prot_list[row[protein]].update({row[label]:[float(get_fc_val),get_pval]})
       line_count+=1 
 
+  if type == "6":
+    # need to calculate unique labels outside loop since inconsistent labels are deleted
+    unique_labels = set()
+    for prot_id in site_info_dict:
+      for site in site_info_dict[prot_id]:
+        for peptide in site_info_dict[prot_id][site]:
+          for label in site_info_dict[prot_id][site][peptide][3]:
+            unique_labels.add(label)
+    unique_labels = list(unique_labels)
+
   if len(unique_labels) > 10:
     eprint("Error: Number of unique labels should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
@@ -429,6 +475,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     logging.debug("Initial query: " + str(len(each_protein_list)))
   initial_length = len(each_protein_list)
   to_return_unique_protids_length = len(set(each_protein_list))
+
+  if type == "5" or type == "6":
+    # need to recalc each_protein_list since some inconsistent protein ids are deleted
+    each_protein_list = list(site_info_dict.keys())
 
   if type == "1": 
     dropping_repeats = []    
@@ -598,7 +648,18 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     if cy_debug and all_dropped_pep:
       logging.debug("Lower score query: " + str(count_dropped))
       logging.warning("WARNING - Dropping queries: " + all_dropped_warning)
-           
+      if len(duplicate_ptm_proteins) > 0:
+        if type == "5":
+          msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
+        else:
+          msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
+        logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
+      if len(duplicate_inc_ptm_proteins) > 0:
+        if type == "5":
+          msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_inc_ptm_proteins])
+        else:
+          msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_inc_ptm_proteins])
+        logging.warning("WARNING - Dropping queries due to inconsistent fold changes or p-values between duplicates: " + msg_inc)
   if type == "6":
     site_info_dict_rearrange = {}
     for each_protid_site in site_info_dict:
@@ -1905,7 +1966,6 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   is_snp = []
   all_fcs = {}
   all_pval = {}
-   
   all_names = []
   all_other_fcs = []
   all_other_pval = []
