@@ -166,7 +166,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           if "proteinid" in row[i].lower():
             protein = i
             is_prot_col = True
-          if type == "2" or type == "1":
+          if type == "2" or type == "1" or type == "5" or type == "6":
             if "fc" in row[i].lower():
               FC=i
               is_FC = True  
@@ -228,7 +228,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if math.isinf(float(row[pval])):
                 get_pval = 1.0
               else:
-                get_pval = row[pval]
+                get_pval = float(row[pval])
             except ValueError:
               get_pval = 1.0
               
@@ -328,7 +328,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if type == "6":              
                 if (protein_list_id, sites, peptide, row[label]) in duplicate_inc_ptm_proteins_set:
                   # this is already a bad label, skip
-                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), float(get_pval)))
+                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
                   continue
                 if is_prot_col and is_FC and is_label_col:
                   if protein_list_id not in site_info_dict:
@@ -342,15 +342,15 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
                   elif row[label] not in site_info_dict[protein_list_id][sites][peptide][3]:
                     site_info_dict[protein_list_id][sites][peptide][0].append(float(get_fc_val))
-                    site_info_dict[protein_list_id][sites][peptide][1].append(float(get_pval))
+                    site_info_dict[protein_list_id][sites][peptide][1].append(get_pval)
                     site_info_dict[protein_list_id][sites][peptide][3].append(row[label])
                   else:
                     # duplicate
                     peptide_list = site_info_dict[protein_list_id][sites][peptide]
                     ix = peptide_list[3].index(row[label])
-                    if peptide_list[0][ix] != float(get_fc_val) or peptide_list[1][ix] != float(get_pval):
+                    if peptide_list[0][ix] != float(get_fc_val) or peptide_list[1][ix] != get_pval:
                       duplicate_inc_ptm_proteins_set.add((protein_list_id, sites, peptide, row[label]))
-                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), float(get_pval)))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
                       duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], peptide_list[0][ix], peptide_list[1][ix]))
                       del peptide_list[0][ix]
                       del peptide_list[1][ix]
@@ -652,13 +652,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if type == "5":
           msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
         else:
-          msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
+          msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
         logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
       if len(duplicate_inc_ptm_proteins) > 0:
         if type == "5":
           msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_inc_ptm_proteins])
         else:
-          msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_inc_ptm_proteins])
+          msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_inc_ptm_proteins])
         logging.warning("WARNING - Dropping queries due to inconsistent fold changes or p-values between duplicates: " + msg_inc)
   if type == "6":
     site_info_dict_rearrange = {}
