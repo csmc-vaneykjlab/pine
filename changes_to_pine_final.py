@@ -466,11 +466,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Number of categories should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out)
     sys.exit(1)
-  
+  '''
   if cy_out:
     csv_file = open(cy_out,'w')
     csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
-
+  '''
   if cy_debug:
     logging.debug("Initial query: " + str(len(each_protein_list)))
   initial_length = len(each_protein_list)
@@ -501,22 +501,24 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if all_dropped:       
         logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
         logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
-    
+    '''
     for each_dupe_query in all_dropped:
       line = each_dupe_query + ",,,,," + "Duplicate query;\n"
       if cy_out:
         csv_file.write(line)  
-      
+    '''  
   elif type == "3":
     if repeat_prot_ids:
       unique_each_protein_list = list(set(each_protein_list))    
       if cy_debug:
         logging.debug("Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
         logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids)) 
+      '''
       for each_dupe_query in repeat_prot_ids:
         line = each_dupe_query + ",,,," + "Duplicate query;\n"
         if cy_out:
-          csv_file.write(line) 
+          csv_file.write(line)
+      '''          
       each_protein_list = unique_each_protein_list      
 
   elif type == "4":
@@ -525,22 +527,25 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if cy_debug:
         logging.debug("Duplicate query: " + str(len(retain_prot_ids)))
         logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids)) 
+      '''  
       for each_dupe_query in retain_prot_ids:
         line = each_dupe_query + ",,,," + "Duplicate query;\n"
         if cy_out:
-          csv_file.write(line) 
+          csv_file.write(line)
+      '''          
     each_protein_list = unique_each_protein_list
 
   elif type == "2":
       unique_each_protein_list = list(set(each_protein_list))
       count_dropped = 0
       additional_dropped = []
+      '''
       if retain_prot_ids:
         for each_dupe_query in retain_prot_ids:
           line = each_dupe_query + ",,,," + "Duplicate query;\n"
-
           if cy_out:
             csv_file.write(line)
+      '''
       if repeat_prot_ids_2:  
         unique_each_protein_list = [x for x in unique_each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids_2]]        
         for each_prot_2 in repeat_prot_ids_2.keys():
@@ -560,12 +565,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if list_of_duplicates:
           logging.debug("Duplicate query: " + str(len(list_of_duplicates)))
           logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
-      
+      '''
       for each_dupe_query in list_of_duplicates:
         line = each_dupe_query + ",,,," + "Duplicate query;\n"
         if cy_out:
           csv_file.write(line)
-    
+      '''
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
@@ -691,10 +696,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
 
   if cy_debug:
     logging.debug("Unique remaining queries: " + str(len(each_protein_list)))
+  '''
   if cy_out:    
     csv_file.close() 
-
-  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites)
+  '''
+  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
   enzyme_info = {'trypsin':{'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}, 
@@ -1463,7 +1469,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           term_FC = 'FC' + str(i)
           term_pval = 'pval' + str(i)
           uniprot_list.update({term_FC:[0.0], term_pval:['NA']})
-        uniprot_list.update({'query':['NA'],'significant':['NA'],'FC_exists':[0]})
+        uniprot_list.update({'query':['NA'],'significant':[0],'FC_exists':[0]})
         not_in_list +=1
       else:
         for i in range(1,max_FC_len+1):
@@ -1472,7 +1478,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           uniprot_list[term_FC].append(0.0)
           uniprot_list[term_pval].append('NA')
         uniprot_list['query'].append('NA')
-        uniprot_list['significant'].append('NA')
+        uniprot_list['significant'].append(0)
         uniprot_list['FC_exists'].append(0)
   
   elif type == "5" or type == "6":
@@ -1538,7 +1544,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           term_FC = 'FC' + str(i)
           term_pval = 'pval' + str(i)
           uniprot_list.update({term_FC:[0.0], term_pval:['NA']})
-        uniprot_list.update({'query':['NA'],'significant':['NA'],'FC_exists':[0],'site':['NA'],'ambigious_site':['NA']})
+        uniprot_list.update({'query':['NA'],'significant':[0],'FC_exists':[0],'site':['NA'],'ambigious_site':['NA']})
         not_in_list +=1
       else:
         for i in range(1,max_FC_len+1):
@@ -1547,7 +1553,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
           uniprot_list[term_FC].append(0.0)
           uniprot_list[term_pval].append('NA')
         uniprot_list['query'].append('NA')
-        uniprot_list['significant'].append('NA')
+        uniprot_list['significant'].append(0)
         uniprot_list['FC_exists'].append(0)  
         uniprot_list['site'].append('NA')
         uniprot_list['ambigious_site'].append('NA')
@@ -1951,7 +1957,7 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
       line_count+=1
   return(top_annotations, unique_gene)
 
-def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query):
+def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels):
   '''
   Styling + visualization for the entire gene list interaction network & its sites
   '''
@@ -2036,7 +2042,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       all_names.append(uniprot_list['ambigious_genes'][indexOf])         
       fc_na.append(-1)
       all_other_fcs.append(-100)
-      all_other_pval.append(-1)   
+      all_other_pval.append(1.0)   
       query_val.append("Gene")
       is_snp.append(0.0)
       G.add_vertex(each_vertex)  
@@ -2063,8 +2069,14 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
-    G.vs[term_FC] = all_fcs[term_FC] + all_other_fcs
-    G.vs[term_pval] = all_pval[term_pval] + all_other_pval
+    if unique_labels:
+      val_term_FC = unique_labels[i-1]
+      val_term_pval = unique_labels[i-1] + " pval"
+    else:
+      val_term_FC = term_FC
+      val_term_pval = term_pval
+    G.vs[val_term_FC] = all_fcs[term_FC] + all_other_fcs
+    G.vs[val_term_pval] = all_pval[term_pval] + all_other_pval
   
   G.vs["query"] = query_val
   
@@ -2135,7 +2147,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",get_each_site_name + include_gene_data,max_FC_len, uniprot_list)
+    my_style = multipleFC(my_style,uniprot_list["FC_exists"] + fc_na,query_val,"-1",all_names,max_FC_len, uniprot_list, unique_labels)
     if pval_style:
       pval_sig = 1
     
@@ -2151,7 +2163,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   
   cy.style.apply(my_style, g_cy)
     
-def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style):
+def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels):
   '''
   Styling + visualization for the entire gene list interaction network
   '''
@@ -2178,8 +2190,14 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
-    G.vs[term_FC] = uniprot_list[term_FC]
-    G.vs[term_pval] = uniprot_list[term_pval]
+    if unique_labels:
+      val_term_FC = unique_labels[i-1]
+      val_term_pval = unique_labels[i-1] + " pval"
+    else:
+      val_term_FC = term_FC
+      val_term_pval = term_pval
+    G.vs[val_term_FC] = uniprot_list[term_FC]
+    G.vs[val_term_pval] = uniprot_list[term_pval]
   
   G.vs["query"] = uniprot_list["query"]
   
@@ -2242,7 +2260,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list)
+    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list, unique_labels)
     if pval_style:
       pval_sig = 1
     
@@ -2460,7 +2478,7 @@ def singleFC(my_style, uniprot_list, type):
   response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
   return(my_style)
   
-def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list):
+def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, unique_labels):
   '''
   Styling specific to multipleFC case
   '''
@@ -2471,6 +2489,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list):
   max_fc = 0
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
+    term_val_FC = unique_labels[i-1]
     if i == 1:
       min_fc = min(uniprot_list[term_FC])
       max_fc = max(uniprot_list[term_FC])
@@ -2479,7 +2498,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list):
         min_fc = min(uniprot_list[term_FC])
       if max(uniprot_list[term_FC]) > max_fc:
         max_fc = max(uniprot_list[term_FC])
-    bar_columns = bar_columns + '\"' + term_FC + '\"' + ","
+    bar_columns = bar_columns + '\"' + term_val_FC + '\"' + ","
     color_columns = color_columns + '\"' + color_code[i-1] + '\"' + ","
   bar_columns = bar_columns[:-1]
   color_columns = color_columns[:-1]
@@ -2635,11 +2654,10 @@ def color(my_style, uniprot_list):
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
-def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query):
+def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels):
   '''
   Based on top clusters picked, construct function interaction network + visualization and styling
   '''
-  print(uniprot_list)
   G = igraph.Graph()
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
   
@@ -2808,6 +2826,12 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     k = 0
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
+    if unique_labels:
+      val_term_FC = unique_labels[i-1]
+      val_term_pval = unique_labels[i-1] + " pval"
+    else:
+      val_term_FC = term_FC
+      val_term_pval = term_pval
     add_term_FC = []
     add_term_pval = []
     significant_val = []
@@ -2838,8 +2862,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           else:
             add_term_FC.append(-100.0)
           
-        add_term_pval.append("NA")
-        significant_val.append("NA")
+        add_term_pval.append(1.0)
+        significant_val.append(0.0)
         
         if fc_exists_count == 0 and each_vertex_name in function_only:
           FC_exists.append(-1.0)
@@ -2849,8 +2873,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       k+=1
     fc_exists_count+=1
 
-    G.vs[term_FC] = add_term_FC
-    G.vs[term_pval] = add_term_pval
+    G.vs[val_term_FC] = add_term_FC
+    G.vs[val_term_pval] = add_term_pval
     G.vs["significant"] = significant_val
     G.vs["FC_exists"] = FC_exists
     
@@ -2928,7 +2952,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       pval_sig = 1
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len, uniprot_list)
+    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len, uniprot_list, unique_labels)
 
     if pval_style:
       pval_sig = 1
@@ -3350,10 +3374,10 @@ def main(argv):
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme)
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme)
     
     # FC and Pval cutoff
-    if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
+    if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
       unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict)
     
     # Limit query inpt number = 1500
@@ -3472,9 +3496,9 @@ def main(argv):
     # Interactors styling   
     if not interaction_skip: 
       if not (cy_type_num == "5" or cy_type_num == "6"):         
-        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval)
+        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels)
       else:    
-        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query)
+        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels)
     
     # Category styling   
     if cy_type_num == "4":    
@@ -3513,7 +3537,7 @@ def main(argv):
       cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval)
     
     if leading_term_cluster:
-      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query)
+      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels)
     
     if cy_debug:
       if not cy_cluego_inp_file:
