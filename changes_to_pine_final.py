@@ -47,6 +47,32 @@ def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
     logger.addHandler(logging.StreamHandler(sys.stdout))
   return logger
 
+def request_retry(url, protocol, headers=None, data=None, timeout=300):
+  if protocol == "GET":
+    func = requests.get
+  elif protocol == "PUT":
+    func = requests.put
+  elif protocol == "POST":
+    func = requests.post
+
+  kwargs = {}
+  if headers:
+    kwargs["headers"] = headers
+  if data:
+    kwargs["data"] = data
+
+  time_count = 0
+  while time_count < timeout:
+    try:
+      res = func(url, **kwargs)
+      res.raise_for_status()
+      return res
+    except Exception as e:
+      time.sleep(10)
+      time_count += 10
+      last_exception = e
+  raise last_exception
+
 def db_handling(db_file):
   database_dict = {}
   proteinID = ""
@@ -1797,20 +1823,20 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     kappa = 0.4
     
   #### Select the ClueGO Organism to analyze ####
-  response = requests.put(CLUEGO_BASE_URL+SEP+"organisms"+SEP+"set-organism"+SEP+str(organism_name), headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"organisms"+SEP+"set-organism"+SEP+str(organism_name), "PUT", headers=HEADERS)
   
   ## Use custom reference file
   if reference_file:
-    response = requests.put(CLUEGO_BASE_URL+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+SEP+reference_file)
+    response = request_retry(CLUEGO_BASE_URL+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+SEP+reference_file, "PUT")
   
   # Set the number of Clusters
   number = 1
   max_input_panel_number = number
-  response = requests.put(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"max-input-panel"+SEP+str(max_input_panel_number))
+  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"max-input-panel"+SEP+str(max_input_panel_number), "PUT")
   
   cluster = 1
   gene_list = json.dumps(merged_vertex)
-  response = requests.put(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"upload-ids-list"+SEP+quote(str(cluster)), data=gene_list, headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"upload-ids-list"+SEP+quote(str(cluster)), "PUT", data=gene_list, headers=HEADERS)
   
   # 2.5 Set analysis properties for a Cluster
   input_panel_index = 1
@@ -1818,14 +1844,14 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   cluster_color = "#ff0000" # The color in hex, e.g. #F3A455
   
   no_restrictions = False # "True" for no restricions in number and percentage per term
-  response = requests.put(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"set-analysis-properties"+SEP+str(input_panel_index)+SEP+node_shape+SEP+quote(cluster_color)+SEP+str(min_number_of_genes_per_term)+SEP+str(min_percentage_of_genes_mapped)+SEP+str(no_restrictions), headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"set-analysis-properties"+SEP+str(input_panel_index)+SEP+node_shape+SEP+quote(cluster_color)+SEP+str(min_number_of_genes_per_term)+SEP+str(min_percentage_of_genes_mapped)+SEP+str(no_restrictions), "PUT", headers=HEADERS)
   
   #Select visual style
   visual_style = "ShowClusterDifference"
-  response = requests.put(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"select-visual-style"+SEP+visual_style, headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"select-visual-style"+SEP+visual_style, "PUT", headers=HEADERS)
   
   ## 3.1 Get all available Ontologies
-  response = requests.get(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", "GET", headers=HEADERS)
   ontology_info = response.json()
   
   i = 0
@@ -1851,30 +1877,30 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   ####Select Ontologies
   #selected_ontologies = json.dumps(["0;Ellipse","1;Triangle","2;Rectangle","3;Ellipse","4;Triangle","5;Rectangle","6;Ellipse","7;Triangle","8;Rectangle","9;Ellipse","10;Triangle","11;Rectangle","12;Ellipse"]) # (run "3.1 Get all available Ontologies" to get all options)
   selected_ontologies = json.dumps(list_ontology)
-  response = requests.put(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", data=selected_ontologies, headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
   
   ## 3.1 Set kappa Score
-  response = requests.put(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-kappa-score-level"+SEP+str(kappa))
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-kappa-score-level"+SEP+str(kappa), "PUT")
   
   ## 3.2 Select Evidence Codes
   evidence_codes = json.dumps(["All"]) # (run "3.3 Get all available Evidence Codes" to get all options)
-  response = requests.put(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-evidence-codes", data=evidence_codes, headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-evidence-codes", "PUT", data=evidence_codes, headers=HEADERS)
 
   ## 3.3 Get all available Evidence Codes
-  response = requests.get(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-evidence-code-info", headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-evidence-code-info", "GET", headers=HEADERS)
   
   ## 3.4 Use GO Fusion
-  response = requests.put(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"true", headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"true", "PUT", headers=HEADERS)
   
   ## 3.5 Set min/max level for GO
-  response = requests.put(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-min-max-levels"+SEP+str(min_go)+SEP+str(max_go)+SEP+"false", headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-min-max-levels"+SEP+str(min_go)+SEP+str(max_go)+SEP+"false", "PUT", headers=HEADERS)
   
   ## 3.6 GO Grouping
   # Highest%20Significance, %23Genes%20%2F%20Term, %25Genes%20%2F%20Term, %25Genes%20%2F%20Term%20vs%20Cluster
-  response = requests.put(CLUEGO_BASE_URL+SEP+"grouping"+SEP+"true"+SEP+"Random"+SEP+leading_term_selection+SEP+"Kappa%20Score"+SEP+str(1)+SEP+str(30)+SEP+str(30), headers=HEADERS)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"grouping"+SEP+"true"+SEP+"Random"+SEP+leading_term_selection+SEP+"Kappa%20Score"+SEP+str(1)+SEP+str(30)+SEP+str(30), "PUT", headers=HEADERS)
   
   ## 3.7 Set Pval
-  response = requests.put(CLUEGO_BASE_URL+SEP+"ontologies/true"+SEP+str(cluego_pval))
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies/true"+SEP+str(cluego_pval), "PUT")
   
   #### Run ClueGO Analysis ####
   # Run the analysis an save log file
@@ -1883,7 +1909,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   response = requests.get(CLUEGO_BASE_URL+SEP+analysis_name+SEP+selection, headers=HEADERS)
   
   # Get network id (SUID) (CyRest function from Cytoscape)
-  response = requests.get(CYTOSCAPE_BASE_URL+SEP+"networks"+SEP+"currentNetwork", headers=HEADERS)
+  response = request_retry(CYTOSCAPE_BASE_URL+SEP+"networks"+SEP+"currentNetwork", "GET", headers=HEADERS)
   current_network_suid = response.json()['data']['networkSUID']
   
   # 4.2 Get ClueGO result table
@@ -3512,15 +3538,6 @@ def main(argv):
   
       #Start ClueGO
       response = requests.post('http://localhost:1234/v1/apps/cluego/start-up-cluego')
-      wait_counter = 0
-      while wait_counter < 300: # give 5 minutes max for cluego to load
-        try:
-          response = requests.get(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", headers=HEADERS)
-          ontology_info = response.json()
-          break
-        except:
-          time.sleep(10)
-          wait_counter += 10      
       
       if cy_debug:
         # Number of ClueGO query + EI = x + y
