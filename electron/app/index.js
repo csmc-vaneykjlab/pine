@@ -126,6 +126,13 @@ let vm = new Vue({
             }
             this.running = true;
 
+            let file_check = this.runnable_file_check();
+            if(!file_check["success"]) {
+                error_popup("File doesn't exist", `${file_check["file"]} doesn't exist.`);
+                this.running = false;
+                return false;
+            }
+
             /* warn user about cytoscape running and give them a chance to stop */
             if(await this.is_cytoscape_running()) {
                 const res = remote.dialog.showMessageBoxSync({
@@ -426,6 +433,22 @@ let vm = new Vue({
                 }
             }
             return false;
+        },
+        runnable_file_check: function() {
+            let msg = null;
+            if(!is_file(this.input.in)) {
+                msg = "Input file";
+            } else if(!is_dir(this.input.output)) {
+                msg = "Output directory";
+            } else if(this.is_extra_options_required() && !is_file(this.input.fasta_file)) {
+                msg = "Fasta file";
+            } else if(this.input.reference_path && !is_file(this.input.reference_path)) {
+                msg = "Reference path file";
+            }
+            if(msg) {
+                return {"success": false, "file": msg};
+            }
+            return {"success": true};
         },
         runnable_with_cluego_subset: function() {
             return this.runnable() && this.session_exists() && this.cluego_pathways.data.filter((x) => x.selected === true).length > 0;
