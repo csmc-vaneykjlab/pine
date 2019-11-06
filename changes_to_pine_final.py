@@ -2356,21 +2356,33 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   additional_len = []
   additional_query = []
   additional_each = []
-  additional_category_true = []
+  category_true = []
   length_of = []
   breadth_of = []
+  all_names = []
+  category_values = {}
   
   for each in merged_vertex:
+    indexOf = uniprot_list['name'].index(each)
+    if uniprot_list['query'][indexOf] == "NA":
+      continue
     G.add_vertex(each)
     additional_query.append("Gene")
+    all_names.append(each)
     val_length_of_val = len(each) #* 15
     length_of.append(val_length_of_val)
     val_breadth_of_val = 30
+    for each in each_category:
+      if each in category_values:
+        category_values[each].append(uniprot_list[each][indexOf])
+      else:
+        category_values.update({each:[uniprot_list[each][indexOf]]})
     breadth_of.append(val_breadth_of_val)
+    category_true.append(uniprot_list['category_true'][indexOf])
     
   for each in each_category:
     G.add_vertex(each)
-    additional_nodes.append(each)
+    all_names.append(each)
     val_length_of = len(each)
     length_of.append(val_length_of)
     if val_length_of > 18:
@@ -2381,7 +2393,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
    
     additional_query.append("Function")
     additional_each.append(0.0)
-    additional_category_true.append(0.0)
+    category_true.append(0.0)
   
   for each_node in merged_vertex:
     for each_cat in each_category:
@@ -2389,15 +2401,15 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
       if uniprot_list[each_cat][index] == 1.0:
         G.add_edge(each_node,each_cat,name=each_node + " " + each_cat,interaction="with")
   G.vs
-  G.vs["name"] = uniprot_list['name'] + additional_nodes
+  G.vs["name"] = all_names
   G.vs["length"] = length_of
   G.vs["breadth"] = breadth_of
   G.vs["query"] = additional_query
   
   for each in each_category:
-    G.vs[each] = uniprot_list[each] + additional_each
+    G.vs[each] = category_values[each] + additional_each
     
-  G.vs['category_true'] = uniprot_list['category_true'] + additional_category_true
+  G.vs['category_true'] = category_true
 
   degree = G.degree()
   G.vs["degree"] = degree
@@ -2452,7 +2464,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
 
-  my_style = get_category(my_style,uniprot_list['category_true']+additional_category_true,"2",additional_query,uniprot_list['name']+additional_nodes,each_category)
+  my_style = get_category(my_style,category_true,"2",additional_query,all_names,each_category)
   
   cy.style.apply(my_style, g_cy)
   data = [
@@ -3143,8 +3155,12 @@ def main(argv):
   except getopt.GetoptError as e:
     help = True
     
-  if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe:
+  if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe or not cy_map:
     help = True
+    
+  if not cy_map:
+    eprint("Error: ClueGO mapping file path must be provided")
+    sys.exit(1)  
     
   if help:
     print("PINE")
@@ -3410,11 +3426,7 @@ def main(argv):
         sys.exit(1)
     
     if not cy_cluego_inp_file:
-      # Check if cluego path exists
-      if not cy_map:
-        eprint("Error: ClueGO mapping file path must be provided")
-        sys.exit(1)
-        
+      # Check if cluego path exists        
       if not path.exists(cy_map):
         eprint("Error: Path to ClueGO mapping file " + cy_map + " does not exist")
         sys.exit(1)
