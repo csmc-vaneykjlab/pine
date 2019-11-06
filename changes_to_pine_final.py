@@ -973,7 +973,6 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     for each_in_list in prot_list:
       if each_in_list in uniprot_query:
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})
-  
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_dbsnp_classification(uniprot_query, prot_list):
@@ -1495,7 +1494,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
       if not_in_list == 0:
         count_FC_uniprot = 1
         for each_FC,each_pval in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal']):
-          if each_pval and float(each_pval) < 0.05:
+          if float(each_pval) < 0.05:
             is_significant = 1
             each_pval = float(each_pval)
           term_FC = 'FC' + str(count_FC_uniprot)
@@ -1509,7 +1508,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
       else:
         count_FC_uniprot = 1
         for each_FC,each_pval in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal']):    
-          if each_pval and float(each_pval) < 0.05:
+          if float(each_pval) < 0.05:
             is_significant = 1
             each_pval = float(each_pval)
           term_FC = 'FC' + str(count_FC_uniprot)
@@ -1567,7 +1566,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
         if not_in_list == 0:
           count_FC_uniprot = 1
           for each_FC,each_pval in zip(site_dict[prot_val][each_site][0],site_dict[prot_val][each_site][1]):
-            if each_pval and float(each_pval) < 0.05:
+            if float(each_pval) < 0.05:
               is_significant = 1
               each_pval = float(each_pval)
             term_FC = 'FC' + str(count_FC_uniprot)
@@ -1581,7 +1580,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
         else:
           count_FC_uniprot = 1
           for each_FC,each_pval in zip(site_dict[prot_val][each_site][0],site_dict[prot_val][each_site][1]):    
-            if each_pval and float(each_pval) < 0.05:
+            if float(each_pval) < 0.05:
               is_significant = 1
               each_pval = float(each_pval)
             term_FC = 'FC' + str(count_FC_uniprot)
@@ -2070,8 +2069,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
           else:
             all_fcs.update({term_FC:[uniprot_list[term_FC][indexOf]]})
         
-          if term_FC in all_pval:
-            all_pval[term_FC].append(uniprot_list[term_pval][indexOf])
+          if term_pval in all_pval:
+            all_pval[term_pval].append(uniprot_list[term_pval][indexOf])
           else:
             all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
         all_names.append(each_ambi_site) 
@@ -2095,8 +2094,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
           all_fcs[term_FC].append(0.0)
         else:
           all_fcs.update({term_FC:[0.0]})
-        if term_FC in all_pval:
-          all_pval[term_FC].append(1.0)
+        if term_pval in all_pval:
+          all_pval[term_pval].append(1.0)
         else:
           all_pval.update({term_pval:[1.0]})
       fc_na.append(0)
@@ -2686,16 +2685,16 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   
 def pval(my_style):
   '''
-  If pval significant, border node with red color
+  If pval significant, border node with black color, width = 3
   '''
   width_kv_pair = {
-    "1":"2",
+    "1":"3",
   }
   bc_kv_pair = {
-    "1":"#0000FF",
+    "1":"#000000",
   }
-  my_style.create_discrete_mapping(column='significant', col_type='String', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
-  my_style.create_discrete_mapping(column='significant', col_type='String', vp='NODE_BORDER_PAINT', mappings=bc_kv_pair)
+  my_style.create_discrete_mapping(column='significant', col_type='Double', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
+  my_style.create_discrete_mapping(column='significant', col_type='Double', vp='NODE_BORDER_PAINT', mappings=bc_kv_pair)
   return(my_style)
   
 def snp_bold(my_style):
