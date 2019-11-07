@@ -1815,11 +1815,10 @@ CYTOSCAPE_BASE_URL = "http://"+HOST_ADDRESS+":"+PORT_NUMBER+SEP+"v1"
 CLUEGO_BASE_URL = CYTOSCAPE_BASE_URL+SEP+"apps"+SEP+"cluego"+SEP+"cluego-manager"
 
 def writeLines(lines,out_file):
-    file = open(out_file,'w')
-    for line in lines:
-        file.write(line)
-    file.close()
-
+    df = pd.read_csv(StringIO(lines), sep='\t')
+    df = df.drop_duplicates(subset=['GOTerm','Ontology Source', 'Nr. Genes', 'Associated Genes Found'])
+    df.to_csv(out_file, header=True, index=False, sep='\t', mode='w')
+ 
 def writeBin(raw,out_file):
     file = open(out_file,'wb')
     file.write(raw)
