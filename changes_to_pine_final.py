@@ -506,11 +506,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Number of categories should not exceed 10")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
-  '''
-  if cy_out:
-    csv_file = open(cy_out,'w')
-    csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
-  '''
+
   if cy_debug:
     logging.debug("Initial query: " + str(len(each_protein_list)))
   initial_length = len(each_protein_list)
@@ -541,24 +537,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if all_dropped:       
         logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
         logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
-    '''
-    for each_dupe_query in all_dropped:
-      line = each_dupe_query + ",,,,," + "Duplicate query;\n"
-      if cy_out:
-        csv_file.write(line)  
-    '''  
+ 
   elif type == "3":
     if repeat_prot_ids:
       unique_each_protein_list = list(set(each_protein_list))    
       if cy_debug:
         logging.debug("Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids)) 
-      '''
-      for each_dupe_query in repeat_prot_ids:
-        line = each_dupe_query + ",,,," + "Duplicate query;\n"
-        if cy_out:
-          csv_file.write(line)
-      '''          
+        logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids))           
       each_protein_list = unique_each_protein_list      
 
   elif type == "4":
@@ -566,26 +551,14 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     if retain_prot_ids:
       if cy_debug:
         logging.debug("Duplicate query: " + str(len(retain_prot_ids)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids)) 
-      '''  
-      for each_dupe_query in retain_prot_ids:
-        line = each_dupe_query + ",,,," + "Duplicate query;\n"
-        if cy_out:
-          csv_file.write(line)
-      '''          
+        logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids))           
     each_protein_list = unique_each_protein_list
 
   elif type == "2":
       unique_each_protein_list = list(set(each_protein_list))
       count_dropped = 0
       additional_dropped = []
-      '''
-      if retain_prot_ids:
-        for each_dupe_query in retain_prot_ids:
-          line = each_dupe_query + ",,,," + "Duplicate query;\n"
-          if cy_out:
-            csv_file.write(line)
-      '''
+
       if repeat_prot_ids_2:  
         unique_each_protein_list = [x for x in unique_each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids_2]]        
         for each_prot_2 in repeat_prot_ids_2.keys():
@@ -605,12 +578,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if list_of_duplicates:
           logging.debug("Duplicate query: " + str(len(list_of_duplicates)))
           logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
-      '''
-      for each_dupe_query in list_of_duplicates:
-        line = each_dupe_query + ",,,," + "Duplicate query;\n"
-        if cy_out:
-          csv_file.write(line)
-      '''
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
@@ -975,7 +942,9 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
-def get_dbsnp_classification(uniprot_query, prot_list):
+def get_dbsnp_classification(uniprot_query, prot_list, merged_out_dict):
+  print(merged_out_dict)
+  sys.exit()
   variants = {}
   for uniprot_id in uniprot_query:
     natural_variant = uniprot_query[uniprot_id]['Natural_variant']
@@ -1021,19 +990,30 @@ def get_dbsnp_classification(uniprot_query, prot_list):
         else:
           variants[uniprot_id] = {}
           variants[uniprot_id].update({'Position':[position], 'FTID':[ftid], 'AA_change_from':[AA_change_from], 'AA_change_to':[AA_change_to], 'Classification':[classification], 'Disease':[disease], 'dbSNP':[dbsnp]})
-  
+
   all_prot_site_snps = {}
   for each_prot in variants:
     if each_prot in prot_list:
       for each_pos in prot_list[each_prot]:
         combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}','[A-Za-z]'))
+        combined_pat2 = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}','[0-9]'))
         each_pos_sub = re.sub(combined_pat, '', each_pos)
+        each_aa_sub = re.sub(combined_pat2, '', each_pos)
         if str(each_pos_sub) in variants[each_prot]['Position']:
-          if each_prot in all_prot_site_snps:
-            all_prot_site_snps[each_prot].append(each_pos)
-          else:
-            all_prot_site_snps.update({each_prot:[each_pos]})          
-  return(all_prot_site_snps)
+          indexOf = variants[each_prot]['Position'].index(str(each_pos_sub))
+          if (each_aa_sub.lower() == variants[each_prot]['AA_change_from'][indexOf].lower()) or (each_aa_sub.lower() == variants[each_prot]['AA_change_to'][indexOf].lower()):
+            if each_prot in all_prot_site_snps:
+              all_prot_site_snps[each_prot].append(each_pos)
+            else:
+              all_prot_site_snps.update({each_prot:[each_pos]})
+  '''
+  for each_prot in prot_list:
+    if each_prot in all_prot_site_snps:
+      for each_pos in all_prot_site_snps[each_prot]:
+        indexOf = variants[each_prot]['Position'].index(all_prot_site_snps[each_prot][each_pos])
+        merged_out_dict[each_prot].update({'SNP Location':    
+  '''
+  return(all_prot_site_snps, variants)
   
 def get_query_from_list(uniprot_query, list):
   dropped_list = {}
@@ -1970,6 +1950,9 @@ def write_into_out(merged_out_dict, out):
   if not out:
     return
   with open(out,'a') as csv_file:
+    csv_file = open(out,'w')
+    csv_file.write("ProteinID,Primary Gene,String,Genemania,Comment,\n")
+    
     for each_prot in merged_out_dict:
       line = each_prot + "," + merged_out_dict[each_prot]['Primary'] + "," + merged_out_dict[each_prot]['String'] + "," + merged_out_dict[each_prot]['Genemania'] + "," + merged_out_dict[each_prot]['Comment'] + "\n"
       csv_file.write(line)
@@ -3165,18 +3148,18 @@ def main(argv):
     print("PINE")
     print("---------------------------------------------------------------------------------------------")
     print("Usage:         cytoscape_api.py -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz")
-    print("Argument:      -i [--in]: input file in csv format with the following headers as applicable: ")
+    print("Argument:      -i [--in]: input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide")
     print("Argument:      -o [--output]: path to output directory")     
     print("Argument:      -t [--type]: analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm]")   
     print("Argument:      -s [--species]: species [Allowed: human, mouse, rat]")   
-    print("Argument:      -x [--enzyme]: enzyme name [Allowed:]")   
-    print("Argument:      -d [--mods]: comma separated list of modifications of interest")
+    print("Argument:      -x [--enzyme]: enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c]")   
+    print("Argument:      -d [--mods]: comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]]")
     print("Argument:      -b [--fastafile]: path to fasta file")
     print("Argument:      -m [--mapping]: path to cluego mapping file compressed in .gz format") 
     print("Argument:      -e [--cytoscape-executable]: the path to the Cytoscape executable")
     print("Argument(opt): -f [--fccutoff]: fold change cutoff for input [Default: abs(FC) >= 0.0]")
     print("Argument(opt): -p [--pvalcutoff]: pvalue cutoff for input [Default: pval > 1.0]")
-    print("Argument(opt): -n [--significant]: outline statistically significant nodes")    
+    print("Argument(opt): -n [--significant]: outline statistically significant nodes, i.e pval>0.0")    
     print("Argument(opt): -u [--run]: interaction databases [Allowed: string, genemania, both; Default: both]")
     print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
     print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
@@ -3190,7 +3173,23 @@ def main(argv):
   if not os.path.isdir(cy_out_dir):
     eprint("Error: output is not a directory")
     sys.exit(1)
-  
+    
+  if not path.exists(cy_in):
+    eprint("Error: Path to Input file " + cy_in + " does not exist")
+    sys.exit(1)
+    
+  if not path.exists(cy_fasta_file):
+    eprint("Error: Path to FASTA file " + cy_fasta_file + " does not exist")
+    sys.exit(1)
+    
+  if not path.exists(cy_cluego_inp_file):
+    eprint("Error: Path to ClueGO Input file " + cy_cluego_inp_file + " does not exist")
+    sys.exit(1)
+    
+  if not path.exists(cluego_reference_file):
+    eprint("Error: Path to ClueGO Reference file " + cluego_reference_file + " does not exist")
+    sys.exit(1)
+    
   timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
   
   path_to_new_dir = ""
@@ -3474,7 +3473,7 @@ def main(argv):
     
     all_prot_site_snps = {}
     if (cy_type_num == "5" or cy_type_num == "6"): 
-      all_prot_site_snps = get_dbsnp_classification(uniprot_query, site_info_dict)
+      all_prot_site_snps = get_dbsnp_classification(uniprot_query, site_info_dict, merged_out_dict)
       
     if cy_cluego_inp_file:
       if cy_debug:
