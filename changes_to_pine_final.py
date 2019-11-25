@@ -159,7 +159,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   is_FC = False
   is_pval = False
   is_cat = False
-  is_multFC = False
   is_label_col = False
   is_pep_col = False
   each_protein_list = []
@@ -180,6 +179,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   duplicate_ptm_proteins = []
   mapping_multiple_regions = {}
   pep_not_in_fasta = {}
+  dropped_invalid_fc_pval = {}
   
   with open(inp,'r') as csv_file:
     '''
@@ -188,66 +188,112 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     '''
     input_file = csv.reader(csv_file, delimiter=',')
     line_count = 0
-    for row in input_file:            
+    col_count = 0
+    for row in input_file:
+      skip_val = False    
       if line_count == 0:
         header = row
+        col_count = len(row)
         # Get header
         for i in range(len(row)):                                                                               
           if "proteinid" in row[i].lower():
             protein = i
             is_prot_col = True
-          if type == "2" or type == "1" or type == "5" or type == "6":
-            if "fc" in row[i].lower():
-              FC=i
-              is_FC = True  
-            elif "adj.pval" in row[i].lower():
-              pval = i
-              is_pval = True
-            elif "pval" in row[i].lower() and not is_pval:
-              pval=i
-              is_pval = True  
-          if type == "4":
-            if "category" in row[i].lower():
-              cat = i
-              is_cat = True
-          if type == "2" or type == "6":
-            is_multFC = True
-            if "label" in row[i].lower():
-              label = i  
-              is_label_col = True
-          if type == "5" or type == "6":
-            if "peptide" in row[i].lower():
-              peptide_col = i
-              is_pep_col = True
-            elif "fc" in row[i].lower():
-              FC = i
-              is_FC = True          
+          elif "fc" in row[i].lower():
+            FC=i
+            is_FC = True  
+          elif "adj.pval" in row[i].lower():
+            pval = i
+            is_pval = True
+          elif "pval" in row[i].lower() and not is_pval:
+            pval=i
+            is_pval = True  
+          elif "category" in row[i].lower():
+            cat = i
+            is_cat = True
+          elif "label" in row[i].lower():
+            label = i  
+            is_label_col = True
+          elif "peptide" in row[i].lower():
+            peptide_col = i
+            is_pep_col = True         
         
-        if not is_prot_col:
-          eprint("Error: Column 'ProteinID' not found")
-          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
-          sys.exit(1)
-      else: 
-        if '/' in row[protein]:
-          split_val = row[protein].split('/')
-          if len(split_val) > 2:
-            eprint("Error: Multiple protein IDs not considered")
+        if type == "1":
+          if not (is_prot_col and is_FC): 
+            eprint("Error: Columns 'ProteinID' and 'FC' required for singleFC run type")
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
             sys.exit(1)
-          elif len(split_val) == 2:
-            if not bool(re.match('^[0-9]$', split_val[0])):
-              eprint("Error: Multiple protein IDs not considered")
-              remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
-              sys.exit(1)
+          if (is_cat or is_label_col or is_pep_col):
+            eprint("Error: SingleFC run chosen but other headers found. Please check that the run selected is correct")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
         
-        if '|' in row[protein]:
-          row[protein] = row[protein].split('|')[1]
-          
-        if not bool(re.match('^[A-Za-z0-9\-]+$', row[protein])):
-          err_msg = "Error: Invalid proteinID: " + row[protein]
+        elif type == "2":
+          if not (is_prot_col and is_FC and is_label_col):
+            eprint("Error: Columns 'ProteinID', 'FC' and 'Label' required for multiFC run type")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+          if (is_cat or is_pep_col):
+            eprint("Error: MultiFC run chosen but other headers found. Please check that the run selected is correct")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+        
+        elif type == "3":
+          if not (is_prot_col):
+            eprint("Error: Columns 'ProteinID' required for list only run type")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+          if (is_cat or is_pep_col or is_FC or is_label_col or is_pval):
+            eprint("Error: List Only run chosen but other headers found. Please check that the run selected is correct")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+        
+        elif type == "4":
+          if not (is_prot_col and is_cat):
+            eprint("Error: Columns 'ProteinID' and 'Category' required for category run type")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+          if (is_pep_col or is_FC or is_label_col or is_pval):
+            eprint("Error: Category run chosen but other headers found. Please check that the run selected is correct")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+            
+        elif type == "5":
+          if not (is_prot_col and is_pep_col and is_FC):
+            eprint("Error: Columns 'ProteinID', 'Peptide' and 'FC' required for singlefc-ptm")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+          if (is_cat or is_label_col):
+            eprint("Error: Singlefc-ptm run chosen but other headers found. Please check that the run selected is correct")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+            
+        elif type == "6":
+          if not (is_prot_col and is_pep_col and is_FC and is_label_col):
+            eprint("Error: Columns 'ProteinID', 'Peptide', 'FC' and 'Label' required for List Only")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+          if (is_cat):
+            eprint("Error: Multifc-ptm run chosen but other headers found. Please check that the run selected is correct")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)
+            
+      else: 
+        str_each_row = ",".join(row)      
+        str_each_row = str_each_row.replace(",","")
+        if not str_each_row:
+          continue
+        '''
+        if len(row) != col_count:
+          eprint("Error: Number of columns in row " + str(line_count+1) + " does not match headers. Please check formatting")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
           sys.exit(1)
-        
+        ''' 
+        if not bool(re.match('^[A-Za-z0-9\-]+$', row[protein])):
+          eprint("Error: Invalid proteinID: " + row[protein] + " in line " + str(line_count+1))
+          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+          sys.exit(1) 
+          
         if type == "1" or type == "2" or type == "5" or type == "6":
           skip = False
           if not is_pval:
@@ -256,31 +302,52 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             try:
               float(row[pval])
               if math.isinf(float(row[pval])):
-                get_pval = 1.0
+                skip_val = True 
               else:
                 get_pval = float(row[pval])
             except ValueError:
-              get_pval = 1.0
+              skip_val = True
               
           if is_FC:
             try:
               float(row[FC])
               if math.isinf(float(row[FC])):
-                get_fc_val = 0.0
+                skip_val = True
               else:
                 get_fc_val = row[FC]
             except ValueError:
-              get_fc_val = 0.0
-
+              skip_val = True
+              
+          if skip_val:
+            if is_pep_col:
+              if is_label_col:
+                if row[protein] not in dropped_invalid_fc_pval:
+                  dropped_invalid_fc_pval[row[protein]] = {}
+                  dropped_invalid_fc_pval[row[protein]].update({"PeptideandLabel":[row[peptide_col] + "-" + row[label]]})
+                else:
+                  dropped_invalid_fc_pval[row[protein]]["PeptideandLabel"].append(row[peptide_col] + "-" + row[label])
+              else:
+                if row[protein] not in dropped_invalid_fc_pval:
+                  dropped_invalid_fc_pval[row[protein]] = {}
+                  dropped_invalid_fc_pval[row[protein]].update({"PeptideandLabel":[row[peptide_col]]})
+                else:
+                  dropped_invalid_fc_pval[row[protein]]["PeptideandLabel"].append(row[peptide_col])  
+            else:
+              if is_label_col:
+                if row[protein] not in dropped_invalid_fc_pval:
+                  dropped_invalid_fc_pval[row[protein]] = {}
+                  dropped_invalid_fc_pval[row[protein]].update({"PeptideandLabel":[row[label]]})
+                else:
+                  dropped_invalid_fc_pval_ptm[row[protein]]["PeptideandLabel"].append(row[label])
+              else:
+                dropped_invalid_fc_pval.update({row[protein]:None}) 
+            continue
+            
         if type == "5" or type == "6":
           all_mods_for_prot = []
           if include_list:
             modInSeq_dict = {}
-            if is_pep_col:
-              peptide = row[peptide_col]
-            else:
-              print("Error: Column 'Peptide' not found")
-              sys.exit(1)
+            peptide = row[peptide_col]
             protein_list_id = row[protein]
             modInSeq_all_dict = find_mod(peptide)
             combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
@@ -302,7 +369,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   seqInDatabase = seqInDatabase_list[0]                             
                 break
             else:
-              eprint("Error: ProteinID '" + str(protein_list_id) + "' not found in " + str(db_file) + ". Check fasta database file provided.")  
+              eprint("Error: ProteinID '" + str(protein_list_id) + "' not found in " + str(db_file) + ". Check fasta database file provided.")
+              remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)              
               sys.exit(1)            
             for k in include_list:
               for key,value in modInSeq_all_dict.items():                   
@@ -365,12 +433,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
                   sys.exit(1)
               
-              if type == "6":              
-                if (protein_list_id, sites, peptide, row[label]) in duplicate_inc_ptm_proteins_set:
-                  # this is already a bad label, skip
-                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
-                  continue
+              if type == "6":  
                 if is_prot_col and is_FC and is_label_col:
+                  if (protein_list_id, sites, peptide, row[label]) in duplicate_inc_ptm_proteins_set:
+                    # this is already a bad label, skip
+                    duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
+                    continue               
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
@@ -408,7 +476,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   eprint("Error: Required columns- ProteinID, Peptide, FC, Label")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
                   sys.exit(1)
-                  
+                
         if row[protein] not in each_protein_list:
           each_protein_list.append(row[protein])
           if type == "1" or type == "2" or type == "3":          
@@ -509,9 +577,20 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
 
   if cy_debug:
     logging.debug("Initial query: " + str(len(each_protein_list)))
+    if dropped_invalid_fc_pval:
+      logging.debug("Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)))
+      warning = []
+      i = 0
+      for each_key in dropped_invalid_fc_pval:
+        warning_str = each_key
+        if "PeptideandLabel" in dropped_invalid_fc_pval[each_key]:
+          warning_str += "(" + ",".join(dropped_invalid_fc_pval[each_key]["PeptideandLabel"]) + ")"
+        warning.append(warning_str)
+      logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+      
   initial_length = len(each_protein_list)
   to_return_unique_protids_length = len(set(each_protein_list))
-
+  
   if type == "5" or type == "6":
     # need to recalc each_protein_list since some inconsistent protein ids are deleted
     each_protein_list = list(site_info_dict.keys())
@@ -721,12 +800,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if warning:
         logging.debug("Peptides not found in FASTA: " + str(count_warn))
         logging.warning("WARNING - Dropping queries: " + ','.join(warning))
-         
-      logging.debug("Unique remaining queries: " + str(len(each_protein_list)))
-  '''
-  if cy_out:    
-    csv_file.close() 
-  '''
+           
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -764,10 +838,10 @@ def ptm_scoring(site_dict, enzyme, include_list):
     miscleave = 0
     exception = 0
     # count miscleavages
-    for each_cleave in enzyme_info[enzyme]['cleave']:
+    for each_cleave in enzyme_info[enzyme.lower()]['cleave']:
       miscleave += each_peptide.count(each_cleave)
     # Exclude exceptions
-    for each_except in enzyme_info[enzyme]['exceptions']:
+    for each_except in enzyme_info[enzyme.lower()]['exceptions']:
       exception += each_peptide.count(each_except)
     index = all_peptides.index(each_peptide)
     
@@ -885,6 +959,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         
       merged_out_dict[each_prot].update({'Primary':primary_gene, 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
 
+  should_exit = False
   for each_prot_in_input in each_protein_list:
     if each_prot_in_input not in uniprot_query:
       no_uniprot_val.append(each_prot_in_input)
@@ -894,17 +969,24 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       comment_merged = "Uniprot query not mapped;" 
       merged_out_dict[each_prot_in_input].update({'Primary':'', 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
   date_modified = [re.sub("-","",dict['Date_modified']) for dict in uniprot_query.values() if dict['Date_modified'] != "NA"]
+  
   if cy_cluego_in:
     try:
       parent_dir = (os.path.dirname(cy_cluego_in).split("\\")[-1]).split("_")[0]
       for each_date_modified in date_modified:
         if float(each_date_modified) > float(parent_dir):
-          eprint("Error: Uniprot has updated since the original run. Please restart your run")
-          sys.exit(1)
+          should_exit = True
+          break
+      if should_exit:
+        eprint("Error: Uniprot has updated since the original run. Please restart your run")
     except:
       eprint("Error: Please make sure " + cy_cluego_in + " is in the same location as the original run in order to check for Uniprot updates")
-      sys.exit(1)
-      
+      should_exit = True
+    
+  if should_exit:
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+    sys.exit(1) 
+    
   organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA"]
   unique_organisms = list(set(organisms))
   
@@ -943,8 +1025,6 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_dbsnp_classification(uniprot_query, prot_list, merged_out_dict):
-  print(merged_out_dict)
-  sys.exit()
   variants = {}
   for uniprot_id in uniprot_query:
     natural_variant = uniprot_query[uniprot_id]['Natural_variant']
@@ -1006,13 +1086,7 @@ def get_dbsnp_classification(uniprot_query, prot_list, merged_out_dict):
               all_prot_site_snps[each_prot].append(each_pos)
             else:
               all_prot_site_snps.update({each_prot:[each_pos]})
-  '''
-  for each_prot in prot_list:
-    if each_prot in all_prot_site_snps:
-      for each_pos in all_prot_site_snps[each_prot]:
-        indexOf = variants[each_prot]['Position'].index(all_prot_site_snps[each_prot][each_pos])
-        merged_out_dict[each_prot].update({'SNP Location':    
-  '''
+
   return(all_prot_site_snps, variants)
   
 def get_query_from_list(uniprot_query, list):
@@ -1689,7 +1763,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
             is_uniq_col = True            
       else:
         if not is_sym_col or not is_uniq_col:
-          eprint("Error: Required columns in ClueGO file: SymbolID and UniqueID#EntrezGeneID")
+          eprint("Error: Required columns in ClueGO mapping file: SymbolID and UniqueID#EntrezGeneID")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
           sys.exit(1)
         primgene = row[symbolid]
@@ -1735,28 +1809,6 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     each_preferred_gene.append(acceptable_genes_list[each_acceptable]['GenePreferredName'])
   
   get_dupe_query_primgenes = {}
-  '''
-  if len(each_preferred_gene) != len(set(each_preferred_gene)):
-    dupe_gene_list = remove_list_duplicates(each_preferred_gene)
-    unique_each_preferred_list = [x for x in each_preferred_gene if x.lower() not in [name.lower() for name in dupe_gene_list]]
-    get_dupe_query_primgenes = {}
-    for each_dupe in dupe_gene_list:
-      for k,v in acceptable_genes_list.items():
-        if v['GenePreferredName'] == each_dupe:
-          get_dupe_query_primgenes.update({k:v['GenePreferredName']})
-    get_dupe_query_proids = get_query_from_list(uniprot_query,list(get_dupe_query_primgenes.keys()))
-    
-    sorted_x = sorted(get_dupe_query_proids.items(), key=lambda kv: kv[1])
-    get_dupe_query_proids = collections.OrderedDict(sorted_x)    
-    warning = []
-    for each_in_list in get_dupe_query_proids:
-      merged_out_dict[each_in_list]['Comment'] += "ClueGO- duplicate preferred gene;"
-      warning.append(each_in_list + "(" + get_dupe_query_proids[each_in_list] + "->" + get_dupe_query_primgenes[get_dupe_query_proids[each_in_list]] + ") ")
-    #Not found
-    if cy_debug:
-      logging.debug("ClueGO duplicate preferred gene: " + str(len(get_dupe_query_proids)))
-      logging.warning("WARNING - Dropping queries: " + ','.join(warning))
-  '''
   filtered_unique_list = [i for i in acceptable_genes_list if i.lower() not in [name.lower() for name in get_dupe_query_primgenes]]
   
   drop_non_primary = {}
@@ -1779,8 +1831,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
       if warning:
         logging.warning("WARNING - Dropping queries: " + ','.join(warning))
       if not_found_ei:
-        logging.warning("WARNING - Dropping EI: " + ','.join(not_found_ei))
-      #logging.warning("WARNING - Dropping queries: " + ','.join(get_drop_query_proids) + " with non-primary cluego genes " + ','.join(drop_non_primary))  
+        logging.warning("WARNING - Dropping EI: " + ','.join(not_found_ei))  
   
   filtered_preferred_unique_list = [acceptable_genes_list[i]['GenePreferredName'] for i in filtered_unique_list if i.lower() not in [x.lower() for x in drop_non_primary]]
   
@@ -1888,8 +1939,9 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
 
   ####Select Ontologies
   #selected_ontologies = json.dumps(["0;Ellipse","1;Triangle","2;Rectangle","3;Ellipse","4;Triangle","5;Rectangle","6;Ellipse","7;Triangle","8;Rectangle","9;Ellipse","10;Triangle","11;Rectangle","12;Ellipse"]) # (run "3.1 Get all available Ontologies" to get all options)
-  selected_ontologies = json.dumps(list_ontology)
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
+  if not reference_file:
+    selected_ontologies = json.dumps(list_ontology)
+    response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
   
   ## 3.1 Set kappa Score
   response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-kappa-score-level"+SEP+str(kappa), "PUT")
@@ -2024,6 +2076,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   all_other_pval = []
   all_length = []
   
+  print(all_prot_site_snps)
+  
   for each_name,each_site_gene,each_ambi_site in zip(uniprot_list['name'],uniprot_list['site'],uniprot_list['ambigious_site']):
     if each_site_gene != "NA":
       each_gene = (each_site_gene.split("-"))[1]
@@ -2031,6 +2085,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       if each_gene.lower() in merged_vertex:
         # Get corresponding prot, check if snp
         corresponding_prot = get_query_from_list(uniprot_query, [each_gene])
+        print(corresponding_prot)
         if corresponding_prot:
           if list(corresponding_prot.keys())[0] in all_prot_site_snps:
             if each_site in all_prot_site_snps[corresponding_prot]['Position']:
@@ -3057,7 +3112,12 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new
     os.remove(cy_cluego_out)
   if path_to_new_dir and path.exists(path_to_new_dir):
     os.rmdir(path_to_new_dir)
-  
+  #Close cytoscape
+  try:
+    requests.get("http://localhost:1234/v1/commands/command/quit")
+  except:
+    pass
+    
 def main(argv):
   cy_in = ""
   cy_species = ""
@@ -3138,11 +3198,9 @@ def main(argv):
     help = True
     
   if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe or not cy_map:
+    eprint("Error: Mandatory parameter not provided. Please provide path to cytoscape exe, path to ClueGO mapping file, input csv file, species, run type and output directory")
+    sys.exit(1)
     help = True
-    
-  if not cy_map:
-    eprint("Error: ClueGO mapping file path must be provided")
-    sys.exit(1)  
     
   if help:
     print("PINE")
@@ -3178,15 +3236,15 @@ def main(argv):
     eprint("Error: Path to Input file " + cy_in + " does not exist")
     sys.exit(1)
     
-  if not path.exists(cy_fasta_file):
+  if cy_fasta_file and not path.exists(cy_fasta_file):
     eprint("Error: Path to FASTA file " + cy_fasta_file + " does not exist")
     sys.exit(1)
     
-  if not path.exists(cy_cluego_inp_file):
+  if cy_cluego_inp_file and not path.exists(cy_cluego_inp_file):
     eprint("Error: Path to ClueGO Input file " + cy_cluego_inp_file + " does not exist")
     sys.exit(1)
     
-  if not path.exists(cluego_reference_file):
+  if cluego_reference_file and not path.exists(cluego_reference_file):
     eprint("Error: Path to ClueGO Reference file " + cluego_reference_file + " does not exist")
     sys.exit(1)
     
@@ -3234,6 +3292,7 @@ def main(argv):
     organism_name = "Rattus norvegicus"
   else:
     eprint("Error: Species currently supported are human, mouse, rat")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
 
   if not ('\\' in cy_session or "/" in cy_session):
@@ -3242,15 +3301,18 @@ def main(argv):
     
   if not ('.cys' in cy_session):
     eprint("Error: Cytoscape session file must have a valid name with .cys extension")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
   
   if not (float(cluego_pval) >=0.0 and float(cluego_pval) <=1.0):
     eprint("Error: Cluego pvalue range must be between 0 to 1")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
   
   allowed_runs = ["string","genemania","both"]
   if cy_run.lower() not in allowed_runs:  
-    eprint("Error: String run type must be one of the following: " + ','.join(allowed_runs))
+    eprint("Error: Run type must be one of the following: " + ','.join(allowed_runs))
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
     
   # Highest%20Significance, %23Genes%20%2F%20Term, %25Genes%20%2F%20Term, %25Genes%20%2F%20Term%20vs%20Cluster
@@ -3271,6 +3333,7 @@ def main(argv):
   # 1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = category
   if cy_type.lower() not in allowed_type:
     eprint("Error: Input type must be one of the following: " + (',').join(allowed_type))
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
   elif cy_type.lower() == "singlefc":
     cy_type_num = "1"
@@ -3284,40 +3347,47 @@ def main(argv):
     cy_type_num = "5"
   elif cy_type.lower() == "multifc-ptm":
     cy_type_num = "6"
-  
-  if (cy_ptm_sites and cy_type.lower() == "nofc") or (cy_ptm_sites and cy_type.lower() == "category"):
-    eprint("Error: PTM visualization only supported along with singlefc or multifc analysis")
-    sys.exit(1)
     
   allowed_selections = ["biological process","subcellular location","molecular function","pathways","all"]
   if select_terms.lower() not in allowed_selections:
     eprint("Error: The visualization type must be one of the following: " + (',').join(allowed_selections))
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
   
   try:
     cy_fc_cutoff = float(cy_fc_cutoff)
   except:
     eprint("Error: FC cutoff must be a number") 
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
 
   try:
     cy_pval_cutoff = float(cy_pval_cutoff)
   except:
     eprint("Error: PVal cutoff must be a number") 
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
   
   if not (cy_pval_cutoff >= 0.0 and cy_pval_cutoff <= 1.0):
     eprint("Error: PVal cutoff must range between 0 and 1")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
     
   allowed_groups = ["global","medium","detailed"]
   if cy_cluego_grouping.lower() not in allowed_groups:
     eprint("Error: Cluego grouping must be one of the following:" + (',').join(allowed_groups))
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
-    
-  cy_score = float(cy_score)*1000
+  
+  try:  
+    cy_score = float(cy_score)*1000
+  except:
+    eprint("Error: Invalid string score provided. Value must be between 0 to 1")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+    sys.exit(1)
   if not (cy_score >= 0.0 and cy_score <= 1000.0):
     eprint("Error: Invalid string score provided. Value must be between 0 to 1; Confidence levels for string score- Low = 0.150, Medium = 0.400, High = 0.700, Highest = 0.900")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
   
   # Rounding off score - ex: 500.9 and above = 501, less = 500
@@ -3329,6 +3399,7 @@ def main(argv):
   
   if not (int(cy_lim) >= 0 and int(cy_lim) <=100):
     eprint("Error: Limit on additional interactors is 100. Please choose a number between 0 and 100")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     sys.exit(1)
     
   try:
@@ -3353,7 +3424,69 @@ def main(argv):
         wait_counter += 5
     except:
       pass
+    
+    if not cy_cluego_inp_file:
+      # Check if cluego path exists        
+      if not path.exists(cy_map):
+        eprint("Error: Path to ClueGO mapping file " + cy_map + " does not exist")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+        sys.exit(1)
+      else:
+        if organism_name.lower() not in cy_map.lower():
+          eprint("Error: Species mismatch.  Species parameter provided is " + organism_name + " which does not match species contained in path to ClueGO mapping file is " + cy_map)
+          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+          sys.exit(1)
+    
+      if not (".gz" in cy_map and "gene2accession" in cy_map):
+        eprint("Error: ClueGO mapping file must refer to the species gene2accession .gz file")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+        sys.exit(1)
 
+    database_dict = {} 
+    mods_list = []
+    if cy_type_num == "5" or cy_type_num == "6":
+      if not cy_fasta_file or not cy_mods or not cy_enzyme:
+        print("Error: Fasta file, Enzyme and List of Modifications are mandatory for site analysis")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+        sys.exit(1)        
+      database_dict = db_handling(cy_fasta_file)
+      mods_list = cy_mods.split(",") 
+      allowed_enzyme = ['trypsin', 'trypsin_p', 'lys_n', 'asp_n', 'arg_c', 'chymotrypsin', 'lys_c']
+      if cy_enzyme.lower() not in allowed_enzyme:
+        print("Error: Enzyme must be one of the following: " + ','.join(allowed_enzyme))
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+        sys.exit(1)
+  
+    #Read input and obtain protid 
+    if cy_debug:
+      logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file)
+    
+    # FC and Pval cutoff
+    if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
+      unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict)
+    
+    '''
+    site_info_dict_filtered = {}
+    if (cy_type_num == "5" or cy_type_num == "6") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
+      for each_prot_id in site_info_dict:
+        prot_list = site_info_dict[each_prot_id]
+        unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict)
+        site_info_dict_filtered[each_prot_id] = {}
+        site_info_dict_filtered[each_prot_id] = prot_list
+    '''
+    
+    # Limit query inpt number = 1500
+    if len(unique_each_protein_list) > 1500:
+      eprint("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+      sys.exit(1)
+    
+    if len(unique_each_protein_list) == 0:
+      eprint("Error: No query protein ids found. Please check input or filters")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+      sys.exit(1) 
+    
     # open cytoscape
     subprocess.Popen([cy_exe])
     wait_counter = 0
@@ -3371,6 +3504,7 @@ def main(argv):
     cy_version = request.json()
     if not bool(re.match('^3.7', cy_version['cytoscapeVersion'])):
       eprint("Error: Cytoscape version must be 3.7.0 and above")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       sys.exit(1)
     
     # Start a new session 
@@ -3402,14 +3536,22 @@ def main(argv):
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       if not app_genemania or not ver_genemania == "3.5.1":
         eprint("Error: Cytoscape app GeneMANIA v3.5.1 not installed or not responding properly")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
         sys.exit(1)
       
     if not app_cluego or not (ver_cluego == "2.5.4" or ver_cluego == "2.5.5"):
       eprint("Error: Cytoscape app ClueGO v2.5.4/v2.5.5 not installed or not responding properly")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       sys.exit(1)
     
+    if ver_cluego not in cy_map:
+      eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map)
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+      sys.exit(1)
+      
     if cluego_reference_file and ver_cluego != "2.5.5":
       eprint("Error: Using ClueGO custom reference file needs version 2.5.5 of ClueGO")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       sys.exit(1)
     
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
@@ -3421,49 +3563,9 @@ def main(argv):
           genemania_bool = True
       if not genemania_bool:
         eprint("Error: Please install " + cy_species + " dataset in Genemania")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
         sys.exit(1)
-    
-    if not cy_cluego_inp_file:
-      # Check if cluego path exists        
-      if not path.exists(cy_map):
-        eprint("Error: Path to ClueGO mapping file " + cy_map + " does not exist")
-        sys.exit(1)
-      else:
-        if ver_cluego not in cy_map:
-          eprint("Error: ClueGO version mismatch. Version installed is " + ver_cluego + " and version contained in path to ClueGO mapping file " + cy_map)
-          sys.exit(1)
-        if organism_name.lower() not in cy_map.lower():
-          eprint("Error: Species mismatch.  Species parameter provided is " + organism_name + " and species contained in path to ClueGO mapping file is " + cy_map)
-          sys.exit(1)
-    
-      if not (".gz" in cy_map and "gene2accession" in cy_map):
-        eprint("Error: ClueGO mapping file must refer to the species gene2accession gz file")
-        sys.exit(1)
-    
-    database_dict = {} 
-    mods_list = []
-    if cy_type_num == "5" or cy_type_num == "6":
-      if not cy_fasta_file or not cy_mods:
-        print("Error: Fasta file and List of Modifications are mandatory for site analysis")
-        sys.exit(1)        
-      database_dict = db_handling(cy_fasta_file)
-      mods_list = cy_mods.split(",") 
-       
-    #Read input and obtain protid 
-    if cy_debug:
-      logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file)
-    
-    # FC and Pval cutoff
-    if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
-      unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict)
-    
-    # Limit query inpt number = 1500
-    if len(unique_each_protein_list) > 1500:
-      eprint("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
-      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
-      sys.exit(1)
-     
+        
     #Uniprot API call to get primary gene, synonym
     if cy_debug:
       logging.debug("\nStep 2: Start the uniprot api call at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -3521,7 +3623,7 @@ def main(argv):
       string_filtered_dict, merged_out_dict = get_search_dicts(string_interaction, string_category, logging, cy_debug, uniprot_query, string_mapping, merged_out_dict, "String")
       # Update merged_out_dict
       merged_out_dict = get_interactions_dict(string_filtered_dict, 'String', merged_out_dict)
-    
+
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       if cy_debug:
         logging.debug("\nStep 4: Genemania mapping started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -3535,10 +3637,10 @@ def main(argv):
       genemania_filtered_dict, merged_out_dict = get_search_dicts(genemania_interaction, genemania_category, logging, cy_debug, uniprot_query, genemania_mapping, merged_out_dict, "Genemania")
       # Update merged_out_dict
       merged_out_dict = get_interactions_dict(genemania_filtered_dict, 'Genemania', merged_out_dict)
-           
+    
     #Merge String and Genemania interactions
     if cy_debug:
-      logging.debug("\nStep 5: Merge String and Genemania interactions started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
+      logging.debug("\nStep 5: Merge interactions started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
     
     interaction_skip = False
     if not string_filtered_dict and not genemania_filtered_dict:
@@ -3615,7 +3717,6 @@ def main(argv):
       
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-   
     requests.post("http://localhost:1234/v1/session?file=" + cy_session)
     
   except Exception as e:
