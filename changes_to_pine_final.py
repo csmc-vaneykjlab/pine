@@ -985,7 +985,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       for getprot,getsite in site_info_dict.items():
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
-  sys.exit()
+
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -1353,7 +1353,7 @@ def get_dbsnp_classification(uniprot_query, prot_list, merged_out_dict):
         each_aa_sub = re.sub(combined_pat2, '', each_pos)
         if str(each_pos_sub) in variants[each_prot]['Position']:
           indexOf = variants[each_prot]['Position'].index(str(each_pos_sub))
-          if (each_aa_sub.lower() == variants[each_prot]['AA_change_from'][indexOf].lower()) or (each_aa_sub.lower() == variants[each_prot]['AA_change_to'][indexOf].lower()):
+          if (each_aa_sub.lower() == variants[each_prot]['AA_change_from'][indexOf].lower()):
             if each_prot in all_prot_site_snps:
               all_prot_site_snps[each_prot].append(each_pos)
             else:
@@ -2829,7 +2829,7 @@ def singleFC(my_style, uniprot_list, type):
         "value": max(uniprot_list['FC1']),
         "lesser": "#FF0000",
         "equal": "#FF0000", 
-        "greater": "#333333" 
+        "greater": "#E2E2E2" 
       }
     ]
   elif min(uniprot_list['FC1']) == 0:
@@ -2844,7 +2844,7 @@ def singleFC(my_style, uniprot_list, type):
         "value": max(uniprot_list['FC1']),
         "lesser": "#3399FF",
         "equal": "#3399FF",
-        "greater": "#333333"
+        "greater": "#E2E2E2"
       }
     ]
   else:
@@ -2859,7 +2859,7 @@ def singleFC(my_style, uniprot_list, type):
         "value": 0,
         "lesser": "#FFFFFF",
         "equal": "#FFFFFF",
-        "greater": "#333333"
+        "greater": "#E2E2E2"
       }
     ]
   my_style.create_continuous_mapping(column='FC1',vp='NODE_FILL_COLOR',col_type='Double',points=points1)
@@ -2933,7 +2933,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   else:
     for i,does_fc_exist,each_name in zip(query,FC_exists,name):
       if i == "Function":
-        color_value = "#333333"
+        color_value = "#E2E2E2"
         width_value = "1"
       elif i == "Gene" and does_fc_exist == 1.0:
         color_value = "#FFFFFF"
@@ -2990,18 +2990,22 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     "1.0":"2",
     "0.0":"2"
   }
-  
+  kv_node_border_width = {
+    "1.0":"0",
+    "0.0":"1"
+  }
   my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
   my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
   my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='EDGE_WIDTH',mappings=kv_edge_width)
-
+  my_style.create_discrete_mapping(column='category_true', col_type='String', vp='NODE_BORDER_WIDTH', mappings=kv_node_border_width)
+  
   if cat_val == "2":
     kv_pair_color = {}
     width_kv_pair = {}
     node_width = {}
     for i,each_is_category_present,each_name in zip(query,is_category_present,name):
         if i == "Function":
-          color_value = "#333333"
+          color_value = "#E2E2E2"
           width_value = "1"
           node_width_value = "210"
         elif i == "Gene" and each_is_category_present == 1.0:
@@ -3335,7 +3339,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     }
 
   label_color_kv_pair = {
-      "Function":"#FFFFFF",
+      "Function":"#000000",
       "Gene":"#000000",
       "Site":"#000000"
   }
@@ -3772,7 +3776,7 @@ def main(argv):
       sys.exit(1)
     
     if len(unique_each_protein_list) == 0:
-      eprint("Error: No query protein ids found. Please check input or filters")
+      eprint("Error: No query protein ids found. Please check input, settings or filters")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       sys.exit(1) 
     
