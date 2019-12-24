@@ -481,6 +481,8 @@ let vm = new Vue({
             this.input.enzyme = "trypsin";
             this.input.fasta_file = "";
             this.input.mods = "S,T,Y";
+            this.input.in = "";
+            this.input.output = "";
         },
         read_cluego_pathways: function() {
             var that = this;
