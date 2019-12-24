@@ -346,10 +346,15 @@
         </div>
 
         <div v-if="current_tab === tabs.PROGRESS">
+          <div class="align-right" v-show="running">
+            <div class="button danger-button" v-on:click="cancel_pine()">Cancel</div>
+          </div>
+
           <h4 class="full-section-header" v-show="running">
             Analysis running:
             <i class="fas fa-spinner fa-pulse"></i>
           </h4>
+
           <div v-show="stderr" class="full-section">
             <div class="log-stderr">{{ stderr }}</div>
           </div>

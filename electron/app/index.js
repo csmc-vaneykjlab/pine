@@ -7,6 +7,7 @@ const process = require("process");
 const os = require("os");
 const readline = require("readline");
 const shell = require("electron").shell;
+const http = require("http");
 
 document.addEventListener("keydown", function(e) {
     if(e.keyCode === 123) {
@@ -117,6 +118,7 @@ let vm = new Vue({
         show_about: false,
         reanalysis_name: "",
         last_reanalysis_name: "",
+        pine: null,
     },
     methods: {
         run: async function(args) {
@@ -160,16 +162,16 @@ let vm = new Vue({
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
-                var pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
+                this.pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
             } else if(process.env.NODE_ENV === "devj") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
-                var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
+                this.pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
-                var pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
+                this.pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
             }
 
             let new_session_dir = null;
-            pine.stdout.on("data", function(d) {
+            this.pine.stdout.on("data", function(d) {
                 if(typeof d !== "string") {
                     d = d.toString("utf8");
                 }
@@ -186,12 +188,12 @@ let vm = new Vue({
                 }
             });
 
-            pine.stderr.on("data", function(d) {
+            this.pine.stderr.on("data", function(d) {
                 stderr += d + "\n";
             });
 
             let pr = new Promise(function(resolve, _reject) {
-                pine.on("close", function(code) { 
+                that.pine.on("close", function(code) { 
                     let window = remote.getCurrentWindow();
                     if(!window.isFocused()) {
                         remote.getCurrentWindow().flashFrame(true);
@@ -207,6 +209,7 @@ let vm = new Vue({
                     } else {
                         that.stdout += "Run failed\n";
                         that.stderr = stderr;
+                        http.get("http://localhost:1234/v1/commands/command/quit");
                         resolve(false);
                     }
                 });
@@ -297,6 +300,12 @@ let vm = new Vue({
             if(!res) {
                 fs.unlinkSync(filtered_file_name);
             }
+        },
+        cancel_pine: function() {
+            if(this.pine === null || !this.running) {
+                return;
+            }
+            this.pine.kill("SIGINT");
         },
         generate_reanalysis_name: function() {
             function pad(n) {
