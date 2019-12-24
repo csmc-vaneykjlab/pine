@@ -554,7 +554,6 @@ let vm = new Vue({
             } else {
                 this.input[name] = path;
             }
-            this.refreshTab();
         },
         save_settings: function(settings_file) {
             fs.writeFileSync(settings_file, JSON.stringify(this.input, null, 4));
@@ -630,12 +629,6 @@ let vm = new Vue({
                 }
             }
 
-            this.refreshTab();
-        },
-        refreshTab: function() {
-            if(this.current_tab === TABS.SETUP && this.input.cytoscape_path && this.input.cluego_base_path) {
-                this.switchTab(TABS.INPUT);
-            }
         },
         setCluegoBasePath: function(cluego_path, show_warnings) {
             if(!fs.existsSync(cluego_path)) {
