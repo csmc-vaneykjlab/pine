@@ -276,7 +276,7 @@ ul.tab-selector li + li {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: "Courier New", Courier, monospace;
-  height: calc(485px - 75px);
+  height: calc(485px - 95px);
   overflow-x: auto;
 }
 

@@ -209,6 +209,17 @@ let vm = new Vue({
                     } else {
                         that.stdout += "Run failed\n";
                         that.stderr = stderr;
+                        /* delete the orphaned directory if it exists */
+                        if(new_session_dir && is_dir(new_session_dir)) {
+                            const dir_contents = fs.readdirSync(new_session_dir);
+                            if(dir_contents.length == 1 && dir_contents[0] === "PINE.log") {
+                                const pine_log_file = path.join(new_session_dir, "PINE.log");
+                                if(is_file(pine_log_file)) {
+                                    fs.unlinkSync(pine_log_file);
+                                    fs.rmdirSync(new_session_dir);
+                                }
+                            }
+                        }
                         http.get("http://localhost:1234/v1/commands/command/quit");
                         resolve(false);
                     }
