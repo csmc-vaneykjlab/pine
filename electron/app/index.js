@@ -176,13 +176,14 @@ let vm = new Vue({
                     d = d.toString("utf8");
                 }
                 const d_split = d.split("\n");
-                for(let ds of d_split) {
-                    ds = ds.replace(/^\s+|\s+$/g, ""); // strip whitespace
+                for(let i = 0; i < d_split.length; i++) {
+                    const ds = d_split[i].replace(/^\s+|\s+$/g, ""); // strip whitespace
                     if(ds.startsWith("COMMAND")) {
                         if(ds.startsWith("COMMAND FILE-SESSION ")) {
                             new_session_dir = ds.replace(/^COMMAND FILE-SESSION /, "");
                         }
-                    } else {
+                    } else if(ds.length > 0 || i < d_split.length - 1) {
+                        /* print every element except the last one */
                         that.stdout += ds + "\n";
                     }
                 }
