@@ -36,6 +36,8 @@ const ONTOLOGY_SOURCE_TYPES = [
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
+const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
+
 function is_dir(dirname) {
     return fs.existsSync(dirname) && fs.statSync(dirname).isDirectory();
 }
@@ -231,48 +233,24 @@ let vm = new Vue({
             return await pr;
         },
         run_full: function() {
-            if(this.input.run === "both" || this.input.run === "genemania") {
-                /* check for genemania configuration directory - only should need to be checked on first run */
-                let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
-                let gm_check = true;
-                if(!is_dir(gm_config_dir)) {
-                    gm_check = false;
-                } else {
-                    let files = fs.readdirSync(gm_config_dir);
-                    let dir_exists = false;
-                    for(const f of files) {
-                        if(!is_dir(path.join(gm_config_dir, f))) {
-                            continue;
-                        }
-                        if(f.startsWith("gmdata")) {
-                            dir_exists = true;
-                            break;
-                        }
-                    }
-                    if(!dir_exists) {
-                        gm_check = false;
-                    }
-                }
-
-                /* if genemania can't be found, show popup confirming they want to continue */
-                if(!gm_check) {
-                    let gm_message = 
-                        "No GeneMANIA dataset can be found on your system. " + 
-                        "It is recommended you open Cytoscape to install the plugin and the required species datasets before continuing. " +
-                        "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
-                    const res = remote.dialog.showMessageBoxSync({
-                        "type": "warning",
-                        "buttons": [
-                            "Continue anyways",
-                            "Cancel (recommended)",
-                        ],
-                        "defaultId": 1,
-                        "title": "GeneMANIA doesn't exist",
-                        "message": gm_message,
-                    });
-                    if(res !== 0) {
-                        return;
-                    }
+            /* if genemania can't be found, show popup confirming they want to continue */
+            if(!this.genemania_check()) {
+                let gm_message = 
+                    "The required GeneMANIA dataset cannot be found on your system. " + 
+                    "It is recommended that you open Cytoscape to install the plugin and the required species datasets before continuing. " +
+                    "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
+                const res = remote.dialog.showMessageBoxSync({
+                    "type": "warning",
+                    "buttons": [
+                        "Continue anyways",
+                        "Cancel (recommended)",
+                    ],
+                    "defaultId": 1,
+                    "title": "GeneMANIA missing",
+                    "message": gm_message,
+                });
+                if(res !== 0) {
+                    return;
                 }
             }
 
@@ -313,6 +291,51 @@ let vm = new Vue({
             if(!res) {
                 fs.unlinkSync(filtered_file_name);
             }
+        },
+        genemania_check: function() {
+            if(!this.input.run === "both" && !this.input.run === "genemania") {
+                return true; // check passed because genemania is not needed
+            }
+
+            /* check for genemania configuration directory - only should need to be checked on first run */
+            let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
+            if(!is_dir(gm_config_dir)) {
+                return false;
+            }
+
+            const files = fs.readdirSync(gm_config_dir);
+            let subdirs = [];
+            for(const f of files) {
+                const subdir_full_path = path.join(gm_config_dir, f);
+                if(!is_dir(subdir_full_path)) {
+                    continue;
+                }
+                if(f.startsWith("gmdata-")) {
+                    subdirs.push(subdir_full_path);
+                }
+            }
+            if(subdirs.length === 0) {
+                return false;
+            }
+
+            if(!(this.input.species in GENEMANIA_SPECIES_TO_NUMBER)) {
+                return false;
+            }
+            const species_number = GENEMANIA_SPECIES_TO_NUMBER[this.input.species];
+
+            for(const sd of subdirs) {
+                const sd_files = fs.readdirSync(sd);
+                for(const sdf of sd_files) {
+                    if(!is_dir(path.join(sd, sdf))) {
+                        continue;
+                    }
+                    if(sdf === species_number) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         },
         cancel_pine: function() {
             if(this.pine === null || !this.running) {
