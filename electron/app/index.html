@@ -374,8 +374,12 @@
                 Filter: <input type="text" v-model="cluego_pathways.query" size="15" />
               </div>
               <div>
-                <select v-model="cluego_pathways.ontology_sources_filter">
-                  <option v-for="source in cluego_pathways_filtered.ontology_sources" v-bind:value="source.name">{{ source.name }} ({{ source.count }})</option>
+                <select class="select-pathway-category" v-model="cluego_pathways.ontology_sources_filter">
+                  <option v-for="source in cluego_pathways_filtered.ontology_sources" v-bind:value="source.name">
+                      ({{ source.count }})
+                      {{ source.name }}
+                    </div>
+                  </option>
                 </select>
               </div>
               <div>
@@ -391,6 +395,7 @@
               </div>
             </div>
             <div class="vertical-sep"></div>
+
             <div class="scroll-table-wrapper">
               <table class="pathway-picker">
                 <thead>

@@ -949,7 +949,7 @@ let vm = new Vue({
                 } else {
                     filtered.sort(function(a, b) {
                         if(!(col in a.data)) return 1;
-                        if(!(col in b.data)) return -1;
+                        if(!(col in b.data)) return 0;
                         let a1 = a.data[col];
                         let b1 = b.data[col];
                         if(numeric) {
