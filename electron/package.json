@@ -33,8 +33,11 @@
       }
     ],
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "app/assets/pine-tree.png"
+    },
+    "nsis": {
+      "oneClick": false
     }
   }
 }
