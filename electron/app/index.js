@@ -96,6 +96,7 @@ let vm = new Vue({
             enzyme: null,
             fasta_file: null,
             mods: null,
+            remove_ambiguous: null,
         },
         session_dir: null,
         stdout: "",
@@ -504,6 +505,7 @@ let vm = new Vue({
             this.input.mods = "S,T,Y";
             this.input.in = "";
             this.input.output = "";
+            this.input.remove_ambiguous = false;
         },
         read_cluego_pathways: function() {
             var that = this;
