@@ -904,6 +904,9 @@ let vm = new Vue({
         open_url: function(url) {
             shell.openExternal(url);
         },
+        toggle_pathway_selected: function(pathway) {
+            pathway.selected = !pathway.selected;
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();

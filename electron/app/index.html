@@ -76,7 +76,7 @@
             </div>
           </section>
           <h4 class="full-section-header">Requirements</h4>
-          <section class="full-section">
+          <section class="full-section full-section-sm-padding">
             <div class="grid-about-requirements">
               <div class="box-children-center-center">
                 <h4>Cytoscape</h4>
@@ -96,6 +96,9 @@
                 </p>
                 <p>
                   In the <strong>Install Apps</strong> tab &rightarrow; enter the required app in the <strong>Search</strong> field &rightarrow; then click on the the specified app name &rightarrow; lastly click the <strong>Install</strong> button.
+                </p>
+                <p>
+                  Additionally, we recommend installing and using the <strong>yFiles Layout Algorithms</strong> app to improve your layouts after PINE has finished building your network.
                 </p>
               </div>
             </div>
@@ -474,7 +477,12 @@
                 </thead>
                 <tbody>
                   <tr v-for="pathway in cluego_pathways_filtered.data">
-                    <td><input type="checkbox" v-model="pathway.selected" /></td>
+                    <td>
+                      <span class="pathway-select-checkbox" v-on:click="toggle_pathway_selected(pathway)">
+                        <i class="far fa-check-square" v-show="pathway.selected"></i>
+                        <i class="far fa-square" v-show="!pathway.selected"></i>
+                      </span>
+                    </td>
                     <td>
                       {{ pathway.data['GOTerm'] }}
                       <span class="tooltip-parent">

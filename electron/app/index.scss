@@ -17,6 +17,10 @@ $screen-height: 485px;
     padding: 1rem;
     border: 1px solid $color-dark;
     position: relative;
+
+    &.full-section-sm-padding {
+        padding: 0.5rem;
+    }
 }
 
 .full-section.wrapper {
@@ -175,6 +179,10 @@ input.big {
     grid-template-columns: 1fr 1fr 1fr 3fr;
     column-gap: 0.5rem;
     min-height: 8rem;
+
+    p {
+        font-size: 0.8rem;
+    }
 
     img {
         height: 7rem;
@@ -377,4 +385,8 @@ img.icon {
 
 .select-pathway-category {
     width: 150px;
+}
+
+.pathway-select-checkbox {
+    cursor: pointer;
 }
