@@ -298,6 +298,11 @@ ul.tab-selector {
     left: 0;
     top: 1rem;
     word-wrap: break-word;
+
+    &.tooltip-right {
+        left: auto;
+        right: 0;
+    }
 }
 
 .tooltip {
@@ -344,6 +349,10 @@ ul.tab-selector {
 
 .color-1 {
     color: $color1;
+}
+
+.color-2 {
+    color: $color2;
 }
 
 .color-3 {

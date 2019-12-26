@@ -443,7 +443,7 @@ let vm = new Vue({
             return args;
         },
         runnable: function() {
-            if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running) {
+            if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running && this.validate_inputs()) {
                 if(this.is_extra_options_required()) {
                     if(this.input.mods && this.input.fasta_file && this.input.enzyme) {
                         return true;
@@ -483,6 +483,61 @@ let vm = new Vue({
             this.cluego_pathways.per_page = 5;
             this.cluego_pathways.sort = null;
             this.cluego_pathways.ontology_sources_filter = "All";
+        },
+        validate_inputs: function() {
+            if(this.is_extra_options_required() && !this.validate_inputs_mods()) {
+                return false;
+            } else if(
+                !this.validate_inputs_fccutoff() ||
+                !this.validate_inputs_pvalcutoff() ||
+                !this.validate_inputs_score() ||
+                !this.validate_inputs_limit() ||
+                !this.validate_inputs_cluego_pval()
+            ) {
+                return false;
+            }
+            return true;
+        },
+        validate_inputs_mods: function() {
+            /* allow for a comma separated list of amino acids with modifications */
+            const single_element = "[A-Z](?:\\(UniMod:\\d+\\)|\\[[-+]\\d+\\])?";
+            const regex = RegExp(`^${single_element}(?:, ?${single_element})*$`)
+            return regex.test(this.input.mods);
+        },
+        validate_inputs_fccutoff: function() {
+            const parsed = parseFloat(this.input.fccutoff);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0;
+        },
+        validate_inputs_pvalcutoff: function() {
+            const parsed = parseFloat(this.input.pvalcutoff);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0 && parsed <= 1.0;
+        },
+        validate_inputs_score: function() {
+            const parsed = parseFloat(this.input.score);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0 && parsed <= 1.0;
+        },
+        validate_inputs_limit: function() {
+            const parsed = parseInt(this.input.limit);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0 && parsed <= 100;
+        },
+        validate_inputs_cluego_pval: function() {
+            const parsed = parseFloat(this.input.cluego_pval);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0 && parsed <= 1.0;
         },
         set_input_defaults: function() {
             if(!this.settings_editable()) {

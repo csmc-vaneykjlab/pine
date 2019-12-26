@@ -209,6 +209,13 @@
               </div>
               <div v-if="is_extra_options_required()">
                 <input type="text" v-model="input.mods" />
+                <span v-show="!validate_inputs_mods()" class="tooltip-parent">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-right">
+                    Modifications must be a comma separated list of amino acids with or without modifications.
+                    Example: S,T,Y or K(Unimod:1) or S[+80]
+                  </div>
+                </span>
               </div>
 
             </div>
@@ -226,7 +233,13 @@
                   <div class="tooltip">Fold change cutoff for input.</div>
                 </span>
               </div>
-              <div><input type="number" step="0.01" min="0" v-model="input.fccutoff" /></div>
+              <div>
+                <input type="number" step="0.01" min="0" v-model="input.fccutoff" />
+                <span class="tooltip-parent" v-show="!validate_inputs_fccutoff()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip">Must be a number greater than or equal to 0.0</div>
+                </span>
+              </div>
 
               <div></div>
 
@@ -236,7 +249,13 @@
                   <div class="tooltip">P-value cutoff for input.</div>
                 </span>
               </div>
-              <div><input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" /></div>
+              <div>
+                <input type="number" step="0.01" min="0" max="1" v-model="input.pvalcutoff" />
+                <span class="tooltip-parent" v-show="!validate_inputs_pvalcutoff()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-right">Must be a number between 0.0 and 1.0</div>
+                </span>
+              </div>
 
               <div class="align-right tooltip-parent">
                 Outline significant <i class="far fa-question-circle"></i>
@@ -276,7 +295,13 @@
                   <div class="tooltip">Interaction confidence score for STRING.</div>
                 </span>
               </div>
-              <div><input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" /></div>
+              <div>
+                <input v-model="input.score" type="number" step="0.01" min="0.0" max="1.0" />
+                <span class="tooltip-parent" v-show="!validate_inputs_score()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip">Must be a number between 0.0 and 1.0</div>
+                </span>
+              </div>
 
               <div></div>
 
@@ -286,7 +311,13 @@
                   <div class="tooltip">Maximum number of external interactors.</div>
                 </span>
               </div>
-              <div><input type="number" step="1" min="0" max="100" v-model="input.limit" /></div>
+              <div>
+                <input type="number" step="1" min="0" max="100" v-model="input.limit" />
+                <span class="tooltip-parent" v-show="!validate_inputs_limit()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-right">Must be a number between 0 and 100</div>
+                </span>
+              </div>
 
               <div class="align-right">
                 <span class="tooltip-parent">
@@ -320,7 +351,13 @@
                   <div class="tooltip">P-value cutoff for enrichment analysis.</div>
                 </span>
               </div>
-              <div><input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" /></div>
+              <div>
+                <input type="number" step="0.01" min="0.0" max="1.0" v-model="input.cluego_pval" />
+                <span class="tooltip-parent" v-show="!validate_inputs_cluego_pval()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip">Must be a number between 0.0 and 1.0</div>
+                </span>
+              </div>
 
               <div></div>
 

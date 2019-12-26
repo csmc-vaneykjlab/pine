@@ -269,6 +269,10 @@ ul.tab-selector li + li {
   top: 1rem;
   word-wrap: break-word;
 }
+.tooltip-parent:hover .tooltip.tooltip-right {
+  left: auto;
+  right: 0;
+}
 
 .tooltip {
   display: none;
@@ -314,6 +318,10 @@ ul.tab-selector li + li {
 
 .color-1 {
   color: #2c945d;
+}
+
+.color-2 {
+  color: #FF5A5F;
 }
 
 .color-3 {
