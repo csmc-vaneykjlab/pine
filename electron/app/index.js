@@ -7,6 +7,7 @@ const process = require("process");
 const os = require("os");
 const readline = require("readline");
 const shell = require("electron").shell;
+const http = require("http");
 
 document.addEventListener("keydown", function(e) {
     if(e.keyCode === 123) {
@@ -34,6 +35,8 @@ const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "pathways", "name": "Pathway (Other)"},
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
+
+const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
 
 function is_dir(dirname) {
     return fs.existsSync(dirname) && fs.statSync(dirname).isDirectory();
@@ -95,6 +98,7 @@ let vm = new Vue({
             enzyme: null,
             fasta_file: null,
             mods: null,
+            remove_ambiguous: null,
         },
         session_dir: null,
         stdout: "",
@@ -117,6 +121,7 @@ let vm = new Vue({
         show_about: false,
         reanalysis_name: "",
         last_reanalysis_name: "",
+        pine: null,
     },
     methods: {
         run: async function(args) {
@@ -160,38 +165,39 @@ let vm = new Vue({
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
-                var pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
+                this.pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
             } else if(process.env.NODE_ENV === "devj") {
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
-                var pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
+                this.pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
-                var pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
+                this.pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
             }
 
             let new_session_dir = null;
-            pine.stdout.on("data", function(d) {
+            this.pine.stdout.on("data", function(d) {
                 if(typeof d !== "string") {
                     d = d.toString("utf8");
                 }
                 const d_split = d.split("\n");
-                for(let ds of d_split) {
-                    ds = ds.replace(/^\s+|\s+$/g, ""); // strip whitespace
+                for(let i = 0; i < d_split.length; i++) {
+                    const ds = d_split[i].replace(/^\s+|\s+$/g, ""); // strip whitespace
                     if(ds.startsWith("COMMAND")) {
                         if(ds.startsWith("COMMAND FILE-SESSION ")) {
                             new_session_dir = ds.replace(/^COMMAND FILE-SESSION /, "");
                         }
-                    } else {
+                    } else if(ds.length > 0 || i < d_split.length - 1) {
+                        /* print every element except the last one */
                         that.stdout += ds + "\n";
                     }
                 }
             });
 
-            pine.stderr.on("data", function(d) {
+            this.pine.stderr.on("data", function(d) {
                 stderr += d + "\n";
             });
 
             let pr = new Promise(function(resolve, _reject) {
-                pine.on("close", function(code) { 
+                that.pine.on("close", function(code) { 
                     let window = remote.getCurrentWindow();
                     if(!window.isFocused()) {
                         remote.getCurrentWindow().flashFrame(true);
@@ -207,6 +213,18 @@ let vm = new Vue({
                     } else {
                         that.stdout += "Run failed\n";
                         that.stderr = stderr;
+                        /* delete the orphaned directory if it exists */
+                        if(new_session_dir && is_dir(new_session_dir)) {
+                            const dir_contents = fs.readdirSync(new_session_dir);
+                            if(dir_contents.length == 1 && dir_contents[0] === "PINE.log") {
+                                const pine_log_file = path.join(new_session_dir, "PINE.log");
+                                if(is_file(pine_log_file)) {
+                                    fs.unlinkSync(pine_log_file);
+                                    fs.rmdirSync(new_session_dir);
+                                }
+                            }
+                        }
+                        http.get("http://localhost:1234/v1/commands/command/quit");
                         resolve(false);
                     }
                 });
@@ -215,48 +233,24 @@ let vm = new Vue({
             return await pr;
         },
         run_full: function() {
-            if(this.input.run === "both" || this.input.run === "genemania") {
-                /* check for genemania configuration directory - only should need to be checked on first run */
-                let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
-                let gm_check = true;
-                if(!is_dir(gm_config_dir)) {
-                    gm_check = false;
-                } else {
-                    let files = fs.readdirSync(gm_config_dir);
-                    let dir_exists = false;
-                    for(const f of files) {
-                        if(!is_dir(path.join(gm_config_dir, f))) {
-                            continue;
-                        }
-                        if(f.startsWith("gmdata")) {
-                            dir_exists = true;
-                            break;
-                        }
-                    }
-                    if(!dir_exists) {
-                        gm_check = false;
-                    }
-                }
-
-                /* if genemania can't be found, show popup confirming they want to continue */
-                if(!gm_check) {
-                    let gm_message = 
-                        "No GeneMANIA dataset can be found on your system. " + 
-                        "It is recommended you open Cytoscape to install the plugin and the required species datasets before continuing. " +
-                        "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
-                    const res = remote.dialog.showMessageBoxSync({
-                        "type": "warning",
-                        "buttons": [
-                            "Continue anyways",
-                            "Cancel (recommended)",
-                        ],
-                        "defaultId": 1,
-                        "title": "GeneMANIA doesn't exist",
-                        "message": gm_message,
-                    });
-                    if(res !== 0) {
-                        return;
-                    }
+            /* if genemania can't be found, show popup confirming they want to continue */
+            if(!this.genemania_check()) {
+                let gm_message = 
+                    "The required GeneMANIA dataset cannot be found on your system. " + 
+                    "It is recommended that you open Cytoscape to install the plugin and the required species datasets before continuing. " +
+                    "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
+                const res = remote.dialog.showMessageBoxSync({
+                    "type": "warning",
+                    "buttons": [
+                        "Continue anyways",
+                        "Cancel (recommended)",
+                    ],
+                    "defaultId": 1,
+                    "title": "GeneMANIA missing",
+                    "message": gm_message,
+                });
+                if(res !== 0) {
+                    return;
                 }
             }
 
@@ -297,6 +291,57 @@ let vm = new Vue({
             if(!res) {
                 fs.unlinkSync(filtered_file_name);
             }
+        },
+        genemania_check: function() {
+            if(!this.input.run === "both" && !this.input.run === "genemania") {
+                return true; // check passed because genemania is not needed
+            }
+
+            /* check for genemania configuration directory - only should need to be checked on first run */
+            let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
+            if(!is_dir(gm_config_dir)) {
+                return false;
+            }
+
+            const files = fs.readdirSync(gm_config_dir);
+            let subdirs = [];
+            for(const f of files) {
+                const subdir_full_path = path.join(gm_config_dir, f);
+                if(!is_dir(subdir_full_path)) {
+                    continue;
+                }
+                if(f.startsWith("gmdata-")) {
+                    subdirs.push(subdir_full_path);
+                }
+            }
+            if(subdirs.length === 0) {
+                return false;
+            }
+
+            if(!(this.input.species in GENEMANIA_SPECIES_TO_NUMBER)) {
+                return false;
+            }
+            const species_number = GENEMANIA_SPECIES_TO_NUMBER[this.input.species];
+
+            for(const sd of subdirs) {
+                const sd_files = fs.readdirSync(sd);
+                for(const sdf of sd_files) {
+                    if(!is_dir(path.join(sd, sdf))) {
+                        continue;
+                    }
+                    if(sdf === species_number) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        },
+        cancel_pine: function() {
+            if(this.pine === null || !this.running) {
+                return;
+            }
+            this.pine.kill("SIGINT");
         },
         generate_reanalysis_name: function() {
             function pad(n) {
@@ -421,7 +466,7 @@ let vm = new Vue({
             return args;
         },
         runnable: function() {
-            if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running) {
+            if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running && this.validate_inputs()) {
                 if(this.is_extra_options_required()) {
                     if(this.input.mods && this.input.fasta_file && this.input.enzyme) {
                         return true;
@@ -462,6 +507,61 @@ let vm = new Vue({
             this.cluego_pathways.sort = null;
             this.cluego_pathways.ontology_sources_filter = "All";
         },
+        validate_inputs: function() {
+            if(this.is_extra_options_required() && !this.validate_inputs_mods()) {
+                return false;
+            } else if(
+                !this.validate_inputs_fccutoff() ||
+                !this.validate_inputs_pvalcutoff() ||
+                !this.validate_inputs_score() ||
+                !this.validate_inputs_limit() ||
+                !this.validate_inputs_cluego_pval()
+            ) {
+                return false;
+            }
+            return true;
+        },
+        validate_inputs_mods: function() {
+            /* allow for a comma separated list of amino acids with modifications */
+            const single_element = "[A-Z](?:\\(UniMod:\\d+\\)|\\[[-+]\\d+\\])?";
+            const regex = RegExp(`^${single_element}(?:, ?${single_element})*$`)
+            return regex.test(this.input.mods);
+        },
+        validate_inputs_fccutoff: function() {
+            const parsed = parseFloat(this.input.fccutoff);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0;
+        },
+        validate_inputs_pvalcutoff: function() {
+            const parsed = parseFloat(this.input.pvalcutoff);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0 && parsed <= 1.0;
+        },
+        validate_inputs_score: function() {
+            const parsed = parseFloat(this.input.score);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0 && parsed <= 1.0;
+        },
+        validate_inputs_limit: function() {
+            const parsed = parseInt(this.input.limit);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0 && parsed <= 100;
+        },
+        validate_inputs_cluego_pval: function() {
+            const parsed = parseFloat(this.input.cluego_pval);
+            if(isNaN(parsed)) {
+                return false;
+            }
+            return parsed >= 0.0 && parsed <= 1.0;
+        },
         set_input_defaults: function() {
             if(!this.settings_editable()) {
                 return;
@@ -481,6 +581,9 @@ let vm = new Vue({
             this.input.enzyme = "trypsin";
             this.input.fasta_file = "";
             this.input.mods = "S,T,Y";
+            this.input.in = "";
+            this.input.output = "";
+            this.input.remove_ambiguous = false;
         },
         read_cluego_pathways: function() {
             var that = this;
@@ -552,7 +655,6 @@ let vm = new Vue({
             } else {
                 this.input[name] = path;
             }
-            this.refreshTab();
         },
         save_settings: function(settings_file) {
             fs.writeFileSync(settings_file, JSON.stringify(this.input, null, 4));
@@ -628,12 +730,6 @@ let vm = new Vue({
                 }
             }
 
-            this.refreshTab();
-        },
-        refreshTab: function() {
-            if(this.current_tab === TABS.SETUP && this.input.cytoscape_path && this.input.cluego_base_path) {
-                this.switchTab(TABS.INPUT);
-            }
         },
         setCluegoBasePath: function(cluego_path, show_warnings) {
             if(!fs.existsSync(cluego_path)) {
@@ -831,6 +927,9 @@ let vm = new Vue({
         open_url: function(url) {
             shell.openExternal(url);
         },
+        toggle_pathway_selected: function(pathway) {
+            pathway.selected = !pathway.selected;
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();
@@ -933,7 +1032,7 @@ let vm = new Vue({
                 } else {
                     filtered.sort(function(a, b) {
                         if(!(col in a.data)) return 1;
-                        if(!(col in b.data)) return -1;
+                        if(!(col in b.data)) return 0;
                         let a1 = a.data[col];
                         let b1 = b.data[col];
                         if(numeric) {

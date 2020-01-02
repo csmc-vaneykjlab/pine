@@ -10,9 +10,12 @@
   border: 1px solid #483D3F;
   position: relative;
 }
+.full-section.full-section-sm-padding {
+  padding: 0.5rem;
+}
 
 .full-section.wrapper {
-  height: 475px;
+  height: 485px;
   overflow-y: auto;
 }
 
@@ -96,6 +99,12 @@ input.big {
   border-width: 1px;
   padding: 0;
 }
+.grid-options .checkboxes {
+  grid-column: 2/4;
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  column-gap: 0.5rem;
+}
 
 .grid-config-options {
   display: grid;
@@ -149,6 +158,9 @@ input.big {
   grid-template-columns: 1fr 1fr 1fr 3fr;
   column-gap: 0.5rem;
   min-height: 8rem;
+}
+.grid-about-requirements p {
+  font-size: 0.8rem;
 }
 .grid-about-requirements img {
   height: 7rem;
@@ -263,6 +275,10 @@ ul.tab-selector li + li {
   top: 1rem;
   word-wrap: break-word;
 }
+.tooltip-parent:hover .tooltip.tooltip-right {
+  left: auto;
+  right: 0;
+}
 
 .tooltip {
   display: none;
@@ -276,7 +292,7 @@ ul.tab-selector li + li {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: "Courier New", Courier, monospace;
-  height: calc(475px - 75px);
+  height: calc(485px - 95px);
   overflow-x: auto;
 }
 
@@ -310,6 +326,10 @@ ul.tab-selector li + li {
   color: #2c945d;
 }
 
+.color-2 {
+  color: #FF5A5F;
+}
+
 .color-3 {
   color: #FFC000;
 }
@@ -328,6 +348,14 @@ ul.tab-selector li + li {
 
 img.icon {
   height: 1.25rem;
+}
+
+.select-pathway-category {
+  width: 150px;
+}
+
+.pathway-select-checkbox {
+  cursor: pointer;
 }
 
 /*# sourceMappingURL=index.css.map */

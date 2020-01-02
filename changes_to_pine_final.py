@@ -4198,7 +4198,7 @@ def main(argv):
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
     requests.post("http://localhost:1234/v1/session?file=" + cy_session)
-    
+
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     cytoscape_not_open_msg = "No connection could be made because the target machine actively refused it"
