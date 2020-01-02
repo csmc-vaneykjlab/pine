@@ -154,7 +154,7 @@ def find(seq,database):#put \ before [ and ] this is for find the peptide (which
     start_index_list.append(m.start())
   return start_index_list
   
-def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, include_list, db_file, enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff):
+def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, include_list, db_file, enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, exclude_ambi):
   is_prot_col = False
   is_FC = False
   is_pval = False
@@ -181,6 +181,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   mapping_multiple_regions = {}
   pep_not_in_fasta = {}
   dropped_invalid_fc_pval = {}
+  dropped_invalid_site = {}
   dict_of_picked_pep = {}
   ambi_pep_count = 0
   initial_query_prot_count = 0
@@ -291,8 +292,20 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           eprint("Error: Invalid proteinID: " + row[protein] + " in line " + str(line_count+1))
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
           sys.exit(1) 
-          
-        if type == "1" or type == "2" or type == "5" or type == "6":
+        
+        if type == "5" or type == "6":
+          if not bool(re.match('^[A-Za-z]{1,}([\[\(\{]\+?[0-9][\]\}\)])?[A-Z]{0,}', row[peptide_col])):
+            eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+            sys.exit(1)            
+          initial_query_pep_count += 1
+          if not is_pval:
+            get_pval = 1.0
+          else:
+            get_pval = row[pval]
+          get_fc_val = row[FC]
+                      
+        if type == "1" or type == "2":
           initial_query_pep_count += 1
           skip = False
           if not is_pval:
@@ -313,91 +326,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if math.isinf(float(row[FC])):
                 skip_val = True
               else:
-                get_fc_val = row[FC]
+                get_fc_val = float(row[FC])
             except ValueError:
               skip_val = True
               
-          if skip_val:
-            if is_pep_col:  
-              modInSeq_dict = {}
-              modInSeq_all_dict = find_mod(row[peptide_col])
-              combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-              peptide_sub = re.sub(combined_pat, '', row[peptide_col])  #remove modification from peptide sequence
-              peptide_sub = peptide_sub.strip('"')
-              sites = ""
-              
-              if row[protein] in database_dict:
-                for each_seq_in_db_dict in database_dict[row[protein]]:
-                  seqInDatabase_list = find(peptide_sub,each_seq_in_db_dict)
-                  if (len(seqInDatabase_list)) == 0:
-                    seqInDatabase = ""
-                  elif (len(seqInDatabase_list)) > 1:                
-                    seqInDatabase = seqInDatabase_list[0]
-                  else:
-                    seqInDatabase = seqInDatabase_list[0]
-                
-                if seqInDatabase:                
-                  for k in include_list:
-                    for key,value in modInSeq_all_dict.items():                   
-                      combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-                      key = re.sub('\+','',key)                               
-                      k = re.sub('\+','',k)
-                      key_match = re.search(combined_pat,key)
-                      k_match = re.search(combined_pat,k)
-                      if not (key_match and k_match):
-                        key1 = re.sub(combined_pat, '', key)
-                        k1 = re.sub(combined_pat,'',k)               
-                      if k1.lower() in key1.lower(): 
-                        for each_val in value:
-                          val = int(each_val)+int(seqInDatabase)+1
-                          if k1 in modInSeq_dict:            
-                            modInSeq_dict[k1].append(val)                          
-                          else:
-                            modInSeq_dict[k1] = [val]
-                                  
-                  sites_list = []
-                  for key,value in modInSeq_dict.items():
-                    for each_val in value:
-                      sites += key + str(each_val) + "/"
-                  sites = sites.strip("/")
-                
-                else:
-                  sites = "NA"
-                  
-              if row[protein] not in merged_out_dict:
-                merged_out_dict[row[protein]] = {}
-                merged_out_dict[row[protein]].update({'Peptide':[row[peptide_col]+"*"],'Comment':"Invalid FC/Pval;",'Site':[sites]})
-              else:
-                if 'Peptide' not in merged_out_dict[row[protein]]:
-                  merged_out_dict[row[protein]].update({'Peptide':[row[peptide_col]+"*"],'Site':[sites]})
-                else:
-                  merged_out_dict[row[protein]]['Peptide'].append(row[peptide_col]+"*")
-                  merged_out_dict[row[protein]]['Site'].append(sites)
-                  
-                if 'Comment' not in merged_out_dict[row[protein]]:
-                  merged_out_dict[row[protein]].update({'Comment':"Invalid FC/Pval;"})
-                elif "Invalid FC/Pval;" not in merged_out_dict[row[protein]]['Comment']:
-                  merged_out_dict[row[protein]]['Comment'] += "Invalid FC/Pval;"
-              
-              if 'Primary' not in merged_out_dict[row[protein]]:
-                merged_out_dict[row[protein]].update({'Primary':'' , 'String':'', 'Genemania':'', 'ClueGO':''})    
-              
-              if is_label_col:
-                if row[protein] not in dropped_invalid_fc_pval:
-                  dropped_invalid_fc_pval[row[protein]] = {}
-                  dropped_invalid_fc_pval[row[protein]].update({"PeptideandLabel":[row[peptide_col] + "-" + row[label]], "Site":[sites]})
-                else:
-                  dropped_invalid_fc_pval[row[protein]]["PeptideandLabel"].append(row[peptide_col] + "-" + row[label])
-                  dropped_invalid_fc_pval[row[protein]]["Site"].append(sites)
-              else:
-                if row[protein] not in dropped_invalid_fc_pval:
-                  dropped_invalid_fc_pval[row[protein]] = {}
-                  dropped_invalid_fc_pval[row[protein]].update({"PeptideandLabel":[row[peptide_col]], "Site":[sites]})
-                else:
-                  dropped_invalid_fc_pval[row[protein]]["PeptideandLabel"].append(row[peptide_col])
-                  dropped_invalid_fc_pval[row[protein]]["Site"].append(sites)                  
-                  
-            else:
+          if skip_val:      
+            if not is_pep_col:
               if is_label_col:
                 if row[protein] not in dropped_invalid_fc_pval:
                   dropped_invalid_fc_pval[row[protein]] = {}
@@ -408,7 +342,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 dropped_invalid_fc_pval.update({row[protein]:None}) 
             continue
             
-        if type == "5" or type == "6":
+        if type == "5" or type == "6":        
           all_mods_for_prot = []
           if include_list:
             modInSeq_dict = {}
@@ -443,36 +377,46 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       else:
                         ambigious_sites[protein_list_id].append(each_pos_store_as_mult[0])
                 if len(seqInDatabase_list) == 0:
+                  seqInDatabase = ""
                   if protein_list_id not in pep_not_in_fasta:   
                     pep_not_in_fasta.update({protein_list_id:[peptide_sub]})
                   else:
                     if peptide_sub not in pep_not_in_fasta[protein_list_id]:
                       pep_not_in_fasta[protein_list_id].append(peptide_sub)
-                else:                        
-                  seqInDatabase = seqInDatabase_list[0]                             
+                elif len(seqInDatabase_list) == 1:                        
+                  seqInDatabase = seqInDatabase_list[0]
+                else:
+                  if exclude_ambi:
+                    seqInDatabase = ""
+                  else:
+                    seqInDatabase = seqInDatabase_list[0]                 
                 break
+                
             else:
               eprint("Error: ProteinID '" + str(protein_list_id) + "' not found in " + str(db_file) + ". Check fasta database file provided.")
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)              
-              sys.exit(1)            
-            for k in include_list:
-              for key,value in modInSeq_all_dict.items():                   
-                combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-                key = re.sub('\+','',key)                               
-                k = re.sub('\+','',k)
-                key_match = re.search(combined_pat,key)
-                k_match = re.search(combined_pat,k)
-                if not (key_match and k_match):
-                  key1 = re.sub(combined_pat, '', key)
-                  k1 = re.sub(combined_pat,'',k)               
-                if k1.lower() in key1.lower(): 
-                  for each_val in value:
-                    val = int(each_val)+int(seqInDatabase)+1
-                    if k1 in modInSeq_dict:            
-                      modInSeq_dict[k1].append(val)                          
-                    else:
-                      modInSeq_dict[k1] = [val]
-                    all_mods_for_prot.append(key)
+              sys.exit(1)         
+              
+            if seqInDatabase:              
+              for k in include_list:
+                for key,value in modInSeq_all_dict.items():                   
+                  combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+                  key = re.sub('\+','',key)                               
+                  k = re.sub('\+','',k)
+                  key_match = re.search(combined_pat,key)
+                  k_match = re.search(combined_pat,k)
+                  if not (key_match and k_match):
+                    key1 = re.sub(combined_pat, '', key)
+                    k1 = re.sub(combined_pat,'',k)               
+                  if k1.lower() in key1.lower(): 
+                    for each_val in value:
+                      val = int(each_val)+int(seqInDatabase)+1
+                      if k1 in modInSeq_dict:            
+                        modInSeq_dict[k1].append(val)                          
+                      else:
+                        modInSeq_dict[k1] = [val]
+                      all_mods_for_prot.append(key)
+                        
             sites = ""
             sites_list = []
             for key,value in modInSeq_dict.items():
@@ -483,25 +427,25 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if type == "5":
                 if (protein_list_id, sites, peptide) in duplicate_inc_ptm_proteins_set:
                   # this is already a bad label, skip
-                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, float(get_fc_val), get_pval))
+                  duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, get_fc_val, get_pval))
                   continue
                 max_FC_len = 1
                 if is_prot_col and is_FC:
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
-                    site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                    site_info_dict[protein_list_id][sites].update({peptide:[[get_fc_val],[get_pval],all_mods_for_prot]})
                   elif sites not in site_info_dict[protein_list_id]:
                     site_info_dict[protein_list_id][sites] = {}
-                    site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                    site_info_dict[protein_list_id][sites].update({peptide:[[get_fc_val],[get_pval],all_mods_for_prot]})
                   elif not peptide in site_info_dict[protein_list_id][sites]:
-                    site_info_dict[protein_list_id][sites].update({peptide:[[float(get_fc_val)],[get_pval],all_mods_for_prot]})
+                    site_info_dict[protein_list_id][sites].update({peptide:[[get_fc_val],[get_pval],all_mods_for_prot]})
                   else:
                     # duplicate
                     peptide_list = site_info_dict[protein_list_id][sites][peptide]
-                    if peptide_list[0][0] != float(get_fc_val) or peptide_list[1][0] != get_pval:
+                    if peptide_list[0][0] != get_fc_val or peptide_list[1][0] != get_pval:
                       duplicate_inc_ptm_proteins_set.add((protein_list_id, sites, peptide))
-                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, float(get_fc_val), get_pval))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, get_fc_val, get_pval))
                       duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, peptide_list[0][0], peptide_list[1][0]))
                       del site_info_dict[protein_list_id][sites][peptide]
                       if len(site_info_dict[protein_list_id][sites]) == 0:
@@ -509,7 +453,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         if len(site_info_dict[protein_list_id]) == 0:
                           del site_info_dict[protein_list_id]
                     else:
-                      duplicate_ptm_proteins.append((protein_list_id, sites, peptide, float(get_fc_val), get_pval))
+                      duplicate_ptm_proteins.append((protein_list_id, sites, peptide, get_fc_val, get_pval))
                     continue
                 else:
                   eprint("Error: Required columns- ProteinID, Peptide, FC")
@@ -520,28 +464,28 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 if is_prot_col and is_FC and is_label_col:
                   if (protein_list_id, sites, peptide, row[label]) in duplicate_inc_ptm_proteins_set:
                     # this is already a bad label, skip
-                    duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
+                    duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], get_fc_val, get_pval))
                     continue               
                   if protein_list_id not in site_info_dict:
                     site_info_dict[protein_list_id] = {}
                     site_info_dict[protein_list_id][sites] = {}
-                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                    site_info_dict[protein_list_id][sites].update({peptide: [[get_fc_val],[get_pval],all_mods_for_prot,[row[label]]] })
                   elif sites not in site_info_dict[protein_list_id]:
                     site_info_dict[protein_list_id][sites] = {}
-                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                    site_info_dict[protein_list_id][sites].update({peptide: [[get_fc_val],[get_pval],all_mods_for_prot,[row[label]]] })
                   elif peptide not in site_info_dict[protein_list_id][sites]:
-                    site_info_dict[protein_list_id][sites].update({peptide: [[float(get_fc_val)],[get_pval],all_mods_for_prot,[row[label]]] })
+                    site_info_dict[protein_list_id][sites].update({peptide: [[get_fc_val],[get_pval],all_mods_for_prot,[row[label]]] })
                   elif row[label] not in site_info_dict[protein_list_id][sites][peptide][3]:
-                    site_info_dict[protein_list_id][sites][peptide][0].append(float(get_fc_val))
+                    site_info_dict[protein_list_id][sites][peptide][0].append(get_fc_val)
                     site_info_dict[protein_list_id][sites][peptide][1].append(get_pval)
                     site_info_dict[protein_list_id][sites][peptide][3].append(row[label])
                   else:
                     # duplicate
                     peptide_list = site_info_dict[protein_list_id][sites][peptide]
                     ix = peptide_list[3].index(row[label])
-                    if peptide_list[0][ix] != float(get_fc_val) or peptide_list[1][ix] != get_pval:
+                    if peptide_list[0][ix] != get_fc_val or peptide_list[1][ix] != get_pval:
                       duplicate_inc_ptm_proteins_set.add((protein_list_id, sites, peptide, row[label]))
-                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
+                      duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], get_fc_val, get_pval))
                       duplicate_inc_ptm_proteins.append((protein_list_id, sites, peptide, row[label], peptide_list[0][ix], peptide_list[1][ix]))
                       del peptide_list[0][ix]
                       del peptide_list[1][ix]
@@ -553,13 +497,29 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                           if len(site_info_dict[protein_list_id]) == 0:
                             del site_info_dict[protein_list_id]
                     else:
-                      duplicate_ptm_proteins.append((protein_list_id, sites, peptide, row[label], float(get_fc_val), get_pval))
+                      duplicate_ptm_proteins.append((protein_list_id, sites, peptide, row[label], get_fc_val, get_pval))
                     continue
                 else:
                   eprint("Error: Required columns- ProteinID, Peptide, FC, Label")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
                   sys.exit(1)
-                
+            else:
+              sites = "NA"
+              if type == "6":
+                if protein_list_id not in dropped_invalid_site:
+                  dropped_invalid_site[protein_list_id] = {}
+                  dropped_invalid_site[protein_list_id].update({"PeptideandLabel":[peptide + "-" + row[label]], "Site":[sites]})
+                else:
+                  dropped_invalid_site[row[protein]]["PeptideandLabel"].append(peptide + "-" + row[label])
+                  dropped_invalid_site[row[protein]]["Site"].append(sites)
+              elif type == "5":
+                if protein_list_id not in dropped_invalid_site:
+                  dropped_invalid_site[protein_list_id] = {}
+                  dropped_invalid_site[protein_list_id].update({"PeptideandLabel":[peptide], "Site":[sites]})
+                else:
+                  dropped_invalid_site[protein_list_id]["PeptideandLabel"].append(peptide)
+                  dropped_invalid_site[protein_list_id]["Site"].append(sites)        
+            
         if row[protein] not in each_protein_list:
           each_protein_list.append(row[protein])
           if type == "1" or type == "2" or type == "3":          
@@ -664,31 +624,28 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       for getprot in site_info_dict:
         for getsite,getpep in site_info_dict[getprot].items():
           countpep += len(list(getpep.keys()))
-      initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict])
-      logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides") 
+      initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict])
+      logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides")
+      if dropped_invalid_site:
+        site_len = 0
+        pep_len = 0
+        warning = []
+        i = 0
+        for each_key in dropped_invalid_site:
+          warning_str = each_key
+          if dropped_invalid_site[each_key] == None:
+            continue
+          if "PeptideandLabel" in dropped_invalid_site[each_key]:
+            if "Site" in dropped_invalid_site[each_key]:
+              pep_len += len(dropped_invalid_site[each_key]["Site"])            
+          warning.append(warning_str)
+
+        logging.debug("No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
+        logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        
     else:
       initial_query_prot_count = len(list(each_protein_list)) + len([x for x in dropped_invalid_fc_pval if x not in each_protein_list])
       logging.debug("Initial query: " + str(initial_query_prot_count))
-    if dropped_invalid_fc_pval:
-      site_len = 0
-      pep_len = 0
-      warning = []
-      i = 0
-      for each_key in dropped_invalid_fc_pval:
-        warning_str = each_key
-        if dropped_invalid_fc_pval[each_key] == None:
-          continue
-        if "PeptideandLabel" in dropped_invalid_fc_pval[each_key]:
-          if "Site" in dropped_invalid_fc_pval[each_key]:
-            warning_str += "(" + ",".join(set(dropped_invalid_fc_pval[each_key]["Site"])) + ")"
-            site_len += len(set(dropped_invalid_fc_pval[each_key]["Site"]))
-            pep_len += len(dropped_invalid_fc_pval[each_key]["Site"])            
-        warning.append(warning_str)
-      if site_len > 0:
-        logging.debug("Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
-      else:
-        logging.debug("Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)))
-      logging.warning("WARNING - Dropping queries: " + ','.join(warning))
       
   initial_length = len(each_protein_list)
   to_return_unique_protids_length = len(set(each_protein_list))
@@ -793,6 +750,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     for each_protid in site_info_dict:
       for each_site in site_info_dict[each_protid]:
         non_unique = False
+        pep_for_prot_site = ""
         keys = list(site_info_dict[each_protid][each_site].keys())
         if len(keys) > 1:
           all_mods = [v[2] for k,v in site_info_dict[each_protid][each_site].items()]
@@ -801,6 +759,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             non_unique = True
             for each_key_pep in site_info_dict[each_protid][each_site]:
               new_each_site = ""
+              skip_val = False
               for each_modsite in site_info_dict[each_protid][each_site][each_key_pep][2]:
                 new_each_site_num = re.sub("[^0-9]", "", each_modsite)
                 match = re.match(r"([A-Za-z]+)([0-9]+)", each_site)
@@ -810,6 +769,43 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   new_each_site += match.group(1) + "{" + new_each_site_num + "}" + match.group(2)
               new_each_site_info = site_info_dict[each_protid][each_site][each_key_pep]
               
+              i = 0              
+              for each_fc,each_pval in zip(list(new_each_site_info[0]),list(new_each_site_info[1])): 
+                try:
+                  float(each_fc)
+                  if math.isinf(float(each_fc)):
+                    skip_val = True 
+                except ValueError:
+                  skip_val = True
+                        
+                try:
+                  float(each_pval)
+                  if math.isinf(float(each_pval)):
+                    skip_val = True
+                except ValueError:
+                  skip_val = True
+              
+                if skip_val:
+                  if type == "6":
+                    if each_protid not in dropped_invalid_fc_pval:
+                      dropped_invalid_fc_pval[each_protid] = {}
+                      dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep + "-" + new_each_site_info[3][i]], "Site":[each_site]})
+                      del new_each_site_info[3][i]
+                    else:
+                      dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep + "-" + new_each_site_info[3][i])
+                      dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
+                  else:
+                    if row[protein] not in dropped_invalid_fc_pval:
+                      dropped_invalid_fc_pval[each_protid] = {}
+                      dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep], "Site":[each_site]})
+                    else:
+                      dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep)
+                      dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
+                      
+                  del new_each_site_info[0][i]
+                  del new_each_site_info[1][i]
+                i += 1   
+                
               if each_protid not in site_info_dict_rearrange:
                 site_info_dict_rearrange[each_protid] = {}
                 site_info_dict_rearrange[each_protid].update({new_each_site:new_each_site_info})
@@ -824,42 +820,72 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if each_protid not in merged_out_dict:
                 merged_out_dict[each_protid] = {}
               
-              if 'Peptide' not in merged_out_dict[each_protid]:
-                merged_out_dict[each_protid].update({'Peptide':[each_key_pep], 'Site':[new_each_site]})
+              if 'PickedPeptide' not in merged_out_dict[each_protid]:
+                merged_out_dict[each_protid].update({'PickedPeptide':[each_key_pep], 'PickedSite':[new_each_site]})
               else:
-                merged_out_dict[each_protid]['Peptide'].append(each_key_pep)
-                merged_out_dict[each_protid]['Site'].append(new_each_site)
+                merged_out_dict[each_protid]['PickedPeptide'].append(each_key_pep)
+                merged_out_dict[each_protid]['PickedSite'].append(new_each_site)
                 
-          else:              
-            each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
-            ambi_pep_count += len(dropped_pep) + 1
-            if each_protid in dict_of_picked_pep:
-              dict_of_picked_pep[each_protid].append(picked_pep)
-            else:
-              dict_of_picked_pep.update({each_protid:[picked_pep]})
+          else:
+            if exclude_ambi:
+              each_site_info = []
+              if each_protid not in merged_out_dict:
+                merged_out_dict[each_protid] = {}
+              for each_pep in site_info_dict[each_protid][each_site]:
+                ambi_pep_count += 1
+                count_dropped+=1
+                if each_protid in all_dropped_pep:
+                  all_dropped_pep[each_protid].append(each_pep)
+                  if each_site not in ambigious_sites_ptms[each_protid]:
+                    ambigious_sites_ptms[each_protid].append(each_site)
+                    ambigious_sites[each_protid].append(each_site)                
+                else:
+                  all_dropped_pep.update({each_protid:[each_pep]})
+                  ambigious_sites_ptms.update({each_protid:[each_site]})
+                  ambigious_sites.update({each_protid:[each_site]})
+                  
+                if 'DroppedPeptide' not in merged_out_dict[each_protid]:
+                  merged_out_dict[each_protid].update({'DroppedPeptide':[each_pep]})
+                  merged_out_dict[each_protid].update({'DroppedSite':[each_site]})
+                else:              
+                  merged_out_dict[each_protid]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict[each_protid]['DroppedSite'].append(each_site)              
+            else:            
+              each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
+              pep_for_prot_site = picked_pep
+              ambi_pep_count += len(dropped_pep) + 1
+              if each_protid in dict_of_picked_pep:
+                dict_of_picked_pep[each_protid].append(picked_pep)
+              else:
+                dict_of_picked_pep.update({each_protid:[picked_pep]})
             
-            if each_protid not in merged_out_dict:
-              merged_out_dict[each_protid] = {}
-            if 'Peptide' not in merged_out_dict[each_protid]:
-              merged_out_dict[each_protid].update({'Peptide':[picked_pep+"**"], 'Site':[each_site]})
-            else:
-              merged_out_dict[each_protid]['Peptide'].append(picked_pep+"**")
-              merged_out_dict[each_protid]['Site'].append(each_site)
-              
-            for each_dropped_pep in dropped_pep:
-              count_dropped+=1
-              if each_protid in all_dropped_pep:
-                all_dropped_pep[each_protid].append(each_dropped_pep)
-                if each_site not in ambigious_sites_ptms[each_protid]:
-                  ambigious_sites_ptms[each_protid].append(each_site)
-                  ambigious_sites[each_protid].append(each_site)                
+              if each_protid not in merged_out_dict:
+                merged_out_dict[each_protid] = {}
+
+              if 'PickedPeptide' not in merged_out_dict[each_protid]:
+                merged_out_dict[each_protid].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site]})
               else:
-                all_dropped_pep.update({each_protid:[each_dropped_pep]})
-                ambigious_sites_ptms.update({each_protid:[each_site]})
-                ambigious_sites.update({each_protid:[each_site]})
+                merged_out_dict[each_protid]['PickedPeptide'].append(picked_pep+"**")
+                merged_out_dict[each_protid]['PickedSite'].append(each_site)
+              
+              for each_dropped_pep in dropped_pep:
+                count_dropped+=1
+                if each_protid in all_dropped_pep:
+                  all_dropped_pep[each_protid].append(each_dropped_pep)
+                  if each_site not in ambigious_sites_ptms[each_protid]:
+                    ambigious_sites_ptms[each_protid].append(each_site)
+                    ambigious_sites[each_protid].append(each_site)                
+                else:
+                  all_dropped_pep.update({each_protid:[each_dropped_pep]})
+                  ambigious_sites_ptms.update({each_protid:[each_site]})
+                  ambigious_sites.update({each_protid:[each_site]})
                 
-              merged_out_dict[each_protid]['Peptide'].append(each_dropped_pep+"*")
-              merged_out_dict[each_protid]['Site'].append(each_site)
+                if 'DroppedPeptide' not in merged_out_dict[each_protid]:
+                  merged_out_dict[each_protid].update({'DroppedPeptide':[each_dropped_pep]})
+                  merged_out_dict[each_protid].update({'DroppedSite':[each_site]})
+                else:              
+                  merged_out_dict[each_protid]['DroppedPeptide'].append(each_dropped_pep)
+                  merged_out_dict[each_protid]['DroppedSite'].append(each_site)
                      
             if 'Comment' not in merged_out_dict[each_protid]:
               merged_out_dict[each_protid].update({'Comment': "Ambigious site;"})
@@ -868,6 +894,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                        
         else:
           each_site_info = site_info_dict[each_protid][each_site][keys[0]]
+          pep_for_prot_site = keys[0]
           if each_protid in dict_of_picked_pep:
             dict_of_picked_pep[each_protid].append(keys[0])
           else:
@@ -876,30 +903,73 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           if each_protid not in merged_out_dict:
             merged_out_dict[each_protid] = {}
               
-          if 'Peptide' not in merged_out_dict[each_protid]:
-            merged_out_dict[each_protid].update({'Peptide':[keys[0]], 'Site':[each_site]})
+          if 'PickedPeptide' not in merged_out_dict[each_protid]:
+            merged_out_dict[each_protid].update({'PickedPeptide':[keys[0]], 'PickedSite':[each_site]})
           else:
-            merged_out_dict[each_protid]['Peptide'].append(keys[0])
-            merged_out_dict[each_protid]['Site'].append(each_site)
+            merged_out_dict[each_protid]['PickedPeptide'].append(keys[0])
+            merged_out_dict[each_protid]['PickedSite'].append(each_site)
             
-        if not non_unique:
-          if each_protid not in site_info_dict_rearrange:
-            site_info_dict_rearrange[each_protid] = {}
-            site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-          else:
-            site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
+        if not non_unique and each_site_info:
+          skip_val = False
+          i = 0
+          for each_fc,each_pval in zip(list(each_site_info[0]),list(each_site_info[1])):
+            try:
+              float(each_fc)
+              if math.isinf(float(each_fc)):
+                skip_val = True 
+            except ValueError:
+              skip_val = True
+                        
+            try:
+              float(each_pval)
+              if math.isinf(float(each_pval)):
+                skip_val = True
+            except ValueError:
+              skip_val = True
+              
+            if skip_val:
+              if type == "6":
+                if each_protid not in dropped_invalid_fc_pval:
+                  dropped_invalid_fc_pval[each_protid] = {}
+                  dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site + "-" + each_site_info[3][i]], "Site":[each_site]})
+                else:
+                  dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site + "-" + each_site_info[3][i])
+                  dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
+                del each_site_info[3][i]
+              else:
+                if row[protein] not in dropped_invalid_fc_pval:
+                  dropped_invalid_fc_pval[each_protid] = {}
+                  dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site], "Site":[each_site]})
+                else:
+                  dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site)
+                  dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
+                  
+              del each_site_info[0][i]
+              del each_site_info[1][i]
+            i+=1              
+
+          if each_site_info[0]:
+            if each_protid not in site_info_dict_rearrange:
+              site_info_dict_rearrange[each_protid] = {}
+              site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
+            else:
+              site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
+    
     site_info_dict = site_info_dict_rearrange     
+    each_protein_list = list(site_info_dict.keys())
     
     if cy_debug and all_dropped_pep:
       warn = []
       ambi_site_len = 0
-
       for each_prot in ambigious_sites_ptms:
         warn.append(each_prot + "(" + ",".join(ambigious_sites_ptms[each_prot]) + ")")
         ambi_site_len += len(ambigious_sites_ptms[each_prot])
         
       logging.warning("Ambigious sites: " + str(len(ambigious_sites_ptms)) + " proteins , " + str(ambi_site_len) + " sites and " + str(ambi_pep_count) + " peptides")
-      logging.warning("WARNING - Dropping all but one representation for peptide-site: " + ",".join(warn))
+      if exclude_ambi:
+        logging.warning("WARNING - Dropping all ambigious peptide-site: " + ",".join(warn))
+      else:      
+        logging.warning("WARNING - Dropping all but one representation for peptide-site: " + ",".join(warn))
       
       if len(duplicate_ptm_proteins) > 0:
         if type == "5":
@@ -944,6 +1014,25 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     site_info_dict = site_info_dict_rearrange 
     
   if cy_debug:
+    if dropped_invalid_fc_pval:
+      site_len = 0
+      pep_len = 0
+      warning = []
+      i = 0
+      for each_key in dropped_invalid_fc_pval:
+        warning_str = each_key
+        if dropped_invalid_fc_pval[each_key] == None:
+          continue
+        if "PeptideandLabel" in dropped_invalid_fc_pval[each_key]:
+          if "Site" in dropped_invalid_fc_pval[each_key]:
+            warning_str += "(" + ",".join(set(dropped_invalid_fc_pval[each_key]["Site"])) + ")"
+            site_len += len(set(dropped_invalid_fc_pval[each_key]["Site"]))
+            pep_len += len(dropped_invalid_fc_pval[each_key]["Site"])            
+        warning.append(warning_str)
+      if site_len > 0:
+        logging.debug("Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+      logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+      
     if mapping_multiple_regions:
       warning = []
       for each_mult in mapping_multiple_regions:
@@ -955,18 +1044,22 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           pep_only = ""
         if prot_only in each_protein_list:
           warning.append(each_mult + "(" + ','.join(str(x) for x in mapping_multiple_regions[each_mult]) + ")")
-        
+    
         if prot_only in merged_out_dict:
-          if pep_only and pep_only in merged_out_dict[prot_only]['Peptide']:
-            indexOf = merged_out_dict[prot_only]['Peptide'].index(pep_only)
-            merged_out_dict[prot_only]['Peptide'][indexOf] = merged_out_dict[prot_only]['Peptide'][indexOf] + "**"
+          if pep_only and pep_only in merged_out_dict[prot_only]['PickedPeptide']:         
+            indexOf = merged_out_dict[prot_only]['PickedPeptide'].index(pep_only)
+            merged_out_dict[prot_only]['PickedPeptide'][indexOf] = merged_out_dict[prot_only]['PickedPeptide'][indexOf] + "**"
             if 'Comment' not in merged_out_dict[prot_only]:
               merged_out_dict[prot_only].update({'Comment':"Map to multiple FASTA regions;"})
             else:
               merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
               
-      if warning:          
-        logging.warning("WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
+      if warning:
+        if exclude_ambi:
+          logging.warning("Protein ID mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)))
+          logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        else:        
+          logging.warning("WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
                 
     if pep_not_in_fasta:
       warning = []
@@ -978,13 +1071,14 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if warning:
         logging.debug("Peptides not found in FASTA: " + str(count_warn))
         logging.warning("WARNING - Dropping queries: " + ','.join(warning))
-
+  
   if cy_debug:
     if type == "5" or type == "6":
       countpep = 0
       for getprot,getsite in site_info_dict.items():
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
+      each_protein_list = list(site_info_dict.keys())
 
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
@@ -1010,6 +1104,9 @@ def ptm_scoring(site_dict, enzyme, include_list):
         combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
         key = re.sub('\+','',key)                               
         k = re.sub('\+','',k)
+        if key.lower() in "C[57]" or key.lower() in "C{57}" or key.lower() in "C(57)":
+          total_mods += 1
+          continue
         key_match = re.search(combined_pat,key)
         k_match = re.search(combined_pat,k)
         if not (key_match and k_match):
@@ -1042,12 +1139,17 @@ def ptm_scoring(site_dict, enzyme, include_list):
     n = 0
     avg_FC = 0     
     for each_site_pos in site_dict[each_pick_pep][0]:
-      avg_FC += abs(each_site_pos)
-      n+= 1
-    avg_FC = avg_FC/n
-    if abs(avg_FC) >= largest_avg_FC:     
-      largest_avg_FC = abs(each_site_pos)
-      index = each_index
+      try:
+        float(each_site_pos)
+        avg_FC += abs(each_site_pos)
+        n+= 1
+      except:
+        continue
+    if n!= 0:    
+      avg_FC = avg_FC/n
+      if abs(avg_FC) >= largest_avg_FC:     
+        largest_avg_FC = abs(each_site_pos)
+        index = each_index
   pick_pep = all_peptides[index]
   dropped_pep = [x for x in all_peptides if not x == pick_pep]
   
@@ -1096,12 +1198,14 @@ def inp_cutoff_ptms(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, site
       delete_each_pep = False
       for each_pep in list(each_pep_dict.keys()):
         for each_fc_val,each_pval in zip(site_info_dict[each_prot][each_site][each_pep][0],site_info_dict[each_prot][each_site][each_pep][1]):
-          if not (abs(float(each_fc_val)) >= abs(float(cy_fc_cutoff)) and float(each_pval) <= float(cy_pval_cutoff)):
-            delete_each_pep = True
-          else:
-            delete_each_pep = False
+          try:         
+            if not (abs(float(each_fc_val)) >= abs(float(cy_fc_cutoff)) and float(each_pval) <= float(cy_pval_cutoff)):
+              delete_each_pep = True
+            else:
+              delete_each_pep = False
+              break
+          except:
             break
-        
         if delete_each_pep:
           del site_info_dict[each_prot][each_site][each_pep]
           count_pep += 1
@@ -1145,7 +1249,7 @@ def inp_cutoff_ptms(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, site
     
   return(unique_each_protein_list, site_info_dict, merged_out_dict)
   
-def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merged_out_dict, species, cy_session, cy_out, cy_cluego_out, cy_cluego_in, path_to_new_dir, logging_file, site_info_dict):
+def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merged_out_dict, species, cy_session, cy_out, cy_cluego_out, cy_cluego_in, path_to_new_dir, logging_file, site_info_dict, exclude_ambi):
   uniprot_query = {}
   each_primgene_list = []
   each_protid_list = []
@@ -1170,6 +1274,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   decode = page.decode("utf-8")
   list1=decode.split('\n')
   list1 = list1[1:]
+  isoform_warning = ""
   for each_list1 in list1:
     remaining_isoforms = []
     is_mult_prim_gene_bool = False
@@ -1178,37 +1283,49 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       uniprot_list = each_list1.split('\t')
       uniprot_protid = uniprot_list[0]
       prot = uniprot_list[6]
-      split_prot_list = prot.split(',')    
+      split_prot_list = prot.split(',')
+      comment_merged = ""     
       if len(split_prot_list) > 1:
         is_isoform_gene_bool = True
-        comment_merged += "Isoform;"
-        remaining_isoforms = split_prot_list[1:]
+        if exclude_ambi:
+          remaining_isoforms = split_prot_list        
+          each_prot = ""
+        else:
+          remaining_isoforms = split_prot_list[1:]
+          each_prot = split_prot_list[0]
+          isoform_warning += "(" + ','.join(split_prot_list) + "),"
         all_isoforms.extend(remaining_isoforms)
-      each_prot = split_prot_list[0]
+      else:
+        each_prot = split_prot_list[0]      
+      
       primary_gene = uniprot_list[1]
-      if each_prot not in merged_out_dict:
+      if each_prot and each_prot not in merged_out_dict:
         merged_out_dict[each_prot] = {}
-      comment_merged = ""
-      # Pick first gene in case of multiple primary genes for single uniprot ids 
+      
+      # Pick first gene in case of multiple primary genes for single uniprot ids
+     
       if ";" in primary_gene:
         prot_with_mult_primgene.append(each_prot + "(" + primary_gene + ") ")
         comment_merged = "Multiple primary genes;"
         is_mult_prim_gene_bool = True
-        primary_gene = primary_gene.split(";")[0]
+        if not exclude_ambi:
+          primary_gene = primary_gene.split(";")[0]
         if primary_gene not in ambigious_gene:
           ambigious_gene.append(primary_gene)
+          
       if remaining_isoforms:
         if primary_gene not in ambigious_gene:
           ambigious_gene.append(primary_gene) 
+          
       synonym_gene = uniprot_list[2]
       synonym_gene = synonym_gene.split(" ")
       organism_name = uniprot_list[3]
       uniprot_query[each_prot] = {}
       uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name,'Natural_variant':uniprot_list[4],'Date_modified':uniprot_list[5]})
       # Do not add empty primary gene to list
-      if primary_gene: # Duplicates in primary gene  
+      if primary_gene and ";" not in primary_gene: # Duplicates in primary gene  
         each_primgene_list.append(primary_gene)
-      else:
+      elif not primary_gene:
         no_primgene_val.append(each_prot)
         comment_merged = "Primary gene unavailable;"
           
@@ -1272,8 +1389,19 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     sys.exit(1)
    
   if cy_debug:
+    if remaining_isoforms:
+      if exclude_ambi:
+        logging.warning("Isoforms in query: " + str(len(remaining_isoforms)))
+        logging.warning("WARNING - Dropping queries: " + ','.join(remaining_isoforms))
+      else:
+        logging.warning("WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
+        
     if prot_with_mult_primgene:
-      logging.warning("WARNING - Uniprot Multiple primary genes, first picked: " + ','.join(prot_with_mult_primgene))
+      if exclude_ambi:
+        logging.warning("Isoforms in query: " + str(len(prot_with_mult_primgene)))
+        logging.warning("WARNING - Dropping queries: " + ','.join(prot_with_mult_primgene))
+      else:
+        logging.warning("WARNING - Uniprot Multiple primary genes, first picked: " + ','.join(prot_with_mult_primgene))
   
     if no_uniprot_val:
       logging.debug("Uniprot query not mapped: " + str(len(no_uniprot_val)))
@@ -2275,10 +2403,11 @@ def get_interactions_dict(filtered_dict, search, merged_out_dict):
   lower_filtered = [name.lower() for name in filtered_dict]
   for each_uniprot_query in merged_out_dict:    
     for name in filtered_dict:
-      if name.lower() == ((merged_out_dict[each_uniprot_query]['Primary'].lower()).replace("**","")):
-        interaction_list = filtered_dict[name]
-        merged_out_dict[each_uniprot_query][search] += ';'.join(interaction_list)
-        break      
+      if 'Primary' in merged_out_dict[each_uniprot_query]:
+        if name.lower() == ((merged_out_dict[each_uniprot_query]['Primary'].lower()).replace("**","")):      
+          interaction_list = filtered_dict[name]
+          merged_out_dict[each_uniprot_query][search] += ';'.join(interaction_list)
+          break      
   return(merged_out_dict)
 
 def write_into_out(merged_out_dict, out):
@@ -2288,14 +2417,14 @@ def write_into_out(merged_out_dict, out):
     csv_file = open(out,'w')
     i = 0
     for each_prot in merged_out_dict:
-      if 'Site' in merged_out_dict[each_prot]:
+      if 'PickedPeptide' in merged_out_dict[each_prot] or 'DroppedPeptide' in merged_out_dict[each_prot]:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,Peptide,Site,String,Genemania,Comment,AA Change, Classification, Disease\n")
-        line = each_prot + "," + merged_out_dict[each_prot]['Primary'] + "," + ";".join(merged_out_dict[each_prot]['Peptide']) + ", " + ";".join(merged_out_dict[each_prot]['Site']) + "," + merged_out_dict[each_prot]['String'] + "," + merged_out_dict[each_prot]['Genemania'] + "," + merged_out_dict[each_prot]['Comment'] + "," + ";".join(merged_out_dict[each_prot].get("AA Change",[""])) + "," + ";".join(merged_out_dict[each_prot].get("Classification",[""])) + "," + ";".join(merged_out_dict[each_prot].get("Disease",[""])) + "\n"
+          csv_file.write("ProteinID,Primary Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,String,Genemania,Comment,AA Change, Classification, Disease\n")
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("Comment","") + "," + ";".join(merged_out_dict[each_prot].get("AA Change",[""])) + "," + ";".join(merged_out_dict[each_prot].get("Classification",[""])) + "," + ";".join(merged_out_dict[each_prot].get("Disease",[""])) + "\n"
       else:
         if i == 0:
           csv_file.write("ProteinID,Primary Gene,Site,String,Genemania,Comment,\n")
-        line = each_prot + "," + merged_out_dict[each_prot]['Primary'] + "," + merged_out_dict[each_prot]['String'] + "," + merged_out_dict[each_prot]['Genemania'] + "," + merged_out_dict[each_prot]['Comment'] + "\n"
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("Comment","") + "\n"
         
       i+=1
       csv_file.write(line)
@@ -2879,7 +3008,25 @@ def singleFC(my_style, uniprot_list, type):
       "propertyList": "Fill Color",
       "valueList": "#E2E2E2"
     }
+
   response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
+  
+  data = {
+    "bypass": "true",
+    "nodeList": "Regulated:Up",
+    "propertyList": "Fill Color, Label Color",
+    "valueList": "#FF6633, #FFFFFF"
+  }
+  response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
+    
+  data = {
+    "bypass": "true",
+    "nodeList": "Regulated:Down",
+    "propertyList": "Fill Color, Label Color",
+    "valueList": "#0000CC, #FFFFFF"
+  }
+  response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
+    
   return(my_style)
   
 def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, unique_labels):
@@ -3084,7 +3231,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   all_interactions = []
   function_fc_val = {}
   is_snp = []
-  
+  up_or_down = []
+  up_or_down_to_append = []
+  calc_up_down = 0
+  total_genes = 0
   category_present = 0
   for each in each_category:
     category_present = 1
@@ -3096,6 +3246,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       merged_vertex.append(each)
       merged_vertex_sites_only.append(each)
       if each in function_only:
+        calc_up_down = 0
+        total_genes = 0
+        up_or_down_to_append = []
         is_snp.append(0.0)
         query.append('Function')
         if max_FC_len == 0 and not category_present:
@@ -3108,7 +3261,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         else:
           val_breadth_of_val = 50
         breadth_of.append(val_breadth_of_val)
-    
+        
     for each_gene in cluster_list[each]:
       if each_gene not in merged_vertex:
         G.add_vertex(each_gene)
@@ -3143,7 +3296,18 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           length_of.append(val_length_of_val)
           val_breadth_of_val = 30
           breadth_of.append(val_breadth_of_val)
+          
+          if type == "1":
+            total_genes += 1
+            up_or_down_to_append.append("NA")
+            FC_val_each_gene = (uniprot_list['FC1'])[indexOf]
+            if FC_val_each_gene > 0:
+              calc_up_down += 1
+            elif FC_val_each_gene < 0:
+              calc_up_down -= 1 
+              
           if type == "5" or type == "6":
+            up_or_down_to_append.append("NA")
             indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
             for each_index in indices:
               if uniprot_list['site'][each_index] != "NA":
@@ -3162,6 +3326,15 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
                     is_snp.append(0.0)
                 else:
                   is_snp.append(0.0)
+                if type == "5":
+                  total_genes += 1
+                  up_or_down_to_append.append("NA")
+                  FC_val_each_gene = (uniprot_list['FC1'])[each_index]
+                  if FC_val_each_gene > 0:
+                    calc_up_down += 1
+                  elif FC_val_each_gene < 0:
+                    calc_up_down -= 1
+                    
                 query.append('Site')
                 val_length_of_val = len(each_gene) #* 15
                 length_of.append(val_length_of_val)
@@ -3170,16 +3343,24 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
                 name_edge = uniprot_list['site'][each_index] + " with " + each_gene
                 G.add_edge(uniprot_list['site'][each_index],each_gene,name=name_edge)
                 all_interactions.append(name_edge)
-              
+                   
       if max_FC_len == 1 and not (type == "5" or type == "6"):
         if each_gene.lower() in uniprot_list["name"]:
           index = uniprot_list["name"].index(each_gene.lower())
           FC_val_each_gene = (uniprot_list['FC1'])[index]
-          
+        
       name_edge = each + " with " + each_gene
       G.add_edge(each,each_gene,name=name_edge)
       all_interactions.append(name_edge)
-      
+    
+    if (calc_up_down/total_genes*100) > 0:
+      up_or_down.append("Up")
+    elif (calc_up_down/total_genes*100) < 0:
+      up_or_down.append("Down")
+    else:
+      up_or_down.append("None")
+    up_or_down.extend(up_or_down_to_append)
+ 
   G.vs
   G.vs["query"] = query
   G.vs["name"] = merged_vertex
@@ -3188,7 +3369,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   G.vs["breadth"] = breadth_of
   degree = G.degree()
   G.vs["degree"] = degree
-  
+  if up_or_down:
+    G.vs["Regulated"] = up_or_down
   if type == "5" or type == "6":
     G.vs["SNP"] = is_snp
   is_category_present = []
@@ -3449,9 +3631,10 @@ def main(argv):
   gui_mode = False
   cy_out_dir = None
   cy_exe = None
+  cy_ambi = False
   
   try:
-    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:ng:f:p:z:h:a:y:u:d:b:x:e:c:",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file="])
+    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:ng:f:p:z:h:a:y:u:d:b:x:e:c:k",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file=","exclude-ambiguity"])
     for opt, arg in opts:
       if opt in ("-i","--in"):
         cy_in = arg
@@ -3495,6 +3678,8 @@ def main(argv):
         gui_mode = True
       elif opt in ("-e","--cytoscape-executable"):
         cy_exe = arg
+      elif opt in ("-k","--exclude-ambiguity"):
+        cy_ambi = True
       else:
         help = True      
   except getopt.GetoptError as e:
@@ -3520,7 +3705,8 @@ def main(argv):
     print("Argument:      -e [--cytoscape-executable]: the path to the Cytoscape executable")
     print("Argument(opt): -f [--fccutoff]: fold change cutoff for input [Default: abs(FC) >= 0.0]")
     print("Argument(opt): -p [--pvalcutoff]: pvalue cutoff for input [Default: pval > 1.0]")
-    print("Argument(opt): -n [--significant]: outline statistically significant nodes, i.e pval>0.0")    
+    print("Argument(opt): -n [--significant]: outline statistically significant nodes, i.e pval>0.0")
+    print("Argument(opt): -k [--exclude-ambiguity]: exclude ambigious genes and sites")  
     print("Argument(opt): -u [--run]: interaction databases [Allowed: string, genemania, both; Default: both]")
     print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
     print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
@@ -3763,7 +3949,7 @@ def main(argv):
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff)
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi)
     
     # FC and Pval cutoff
     if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
@@ -3864,7 +4050,7 @@ def main(argv):
       logging.debug("\nStep 2: Start the uniprot api call at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
       logging.debug("Uniprot query: " + str(len(unique_each_protein_list)))
         
-    uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out, cy_cluego_inp_file, path_to_new_dir, logging_file, site_info_dict)
+    uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out, cy_cluego_inp_file, path_to_new_dir, logging_file, site_info_dict, cy_ambi)
     
     all_prot_site_snps = {}
     if (cy_type_num == "5" or cy_type_num == "6"): 
