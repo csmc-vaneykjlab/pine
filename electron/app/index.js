@@ -462,6 +462,9 @@ let vm = new Vue({
             if(this.significant) {
                 args.push("--significant");
             }
+            if(this.input.remove_ambiguous) {
+                args.push("--exclude-ambiguity");
+            }
 
             return args;
         },
