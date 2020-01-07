@@ -8,7 +8,7 @@ The following tools and dependencies are required to run the tool-
 To install apps within Cytoscape navigate to Apps->App Manager on the tab at the top of the Cytoscape screen. Install the following apps:
 - Genemania
 ![alt text](Image/genemania.jpg)
-- ClueGO (Requires lisence for usage. Once installation is complete, opening the app prompts lisence registration)
+- ClueGO (Requires license for usage. Once installation is complete, opening the app prompts license registration)
 ![alt text](Image/cluego.jpg)
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
 3. Species installation within apps\
