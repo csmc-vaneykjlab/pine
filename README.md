@@ -10,9 +10,7 @@ To install apps within Cytoscape navigate to Apps->App Manager on the tab at the
 ![alt text](Image/genemania.jpg)
 - ClueGO (requires lisence before usage)
 ![alt text](Image/cluego.jpg)
-
-Once installed apps can be opened by navigating to Apps-> App Name on the tab at the top of the Cytoscape screen.\
-
+Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
 3. Species installation within apps\
 PINE currently supports human, mouse and rat analysis. These species datasets must be installed within the following apps:
 - Genemania
