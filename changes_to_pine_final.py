@@ -827,21 +827,21 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       
                   del new_each_site_info[0][i]
                   del new_each_site_info[1][i]
-                
-                else:
-                  if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
-                    cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,new_each_site_info)              
-                    if cutoff_drop:
-                      if each_protid not in dropped_cutoff_fc_pval:
-                        dropped_cutoff_fc_pval[each_protid] = {}
-                        dropped_cutoff_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep], "Site":[each_site]})
-                      else:
-                        dropped_cutoff_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep)
-                        dropped_cutoff_fc_pval[each_protid]["Site"].append(each_site)
-                    
-                      del new_each_site_info[0][i]
-                      del new_each_site_info[1][i]
                 i += 1
+
+              if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
+                cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,new_each_site_info)              
+                if cutoff_drop:
+                  if each_protid not in dropped_cutoff_fc_pval:
+                    dropped_cutoff_fc_pval[each_protid] = {}
+                    dropped_cutoff_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep], "Site":[each_site]})
+                  else:
+                    dropped_cutoff_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep)
+                    dropped_cutoff_fc_pval[each_protid]["Site"].append(each_site)
+                    
+                  del new_each_site_info[0][0]
+                  del new_each_site_info[1][0]
+                
                 
               if new_each_site_info[0]:              
                 if each_protid not in site_info_dict_rearrange:
@@ -984,22 +984,21 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   
               del each_site_info[0][i]
               del each_site_info[1][i]
-            
-            else:
-              if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
-                cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info)              
-                if cutoff_drop:
-                  if each_protid not in dropped_cutoff_fc_pval:
-                    dropped_cutoff_fc_pval[each_protid] = {}
-                    dropped_cutoff_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site], "Site":[each_site]})
-                  else:
-                    dropped_cutoff_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site)
-                    dropped_cutoff_fc_pval[each_protid]["Site"].append(each_site)
-                    
-                  del each_site_info[0][i]
-                  del each_site_info[1][i]   
             i+=1
-            
+
+          if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
+            cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info)              
+            if cutoff_drop:
+              if each_protid not in dropped_cutoff_fc_pval:
+                dropped_cutoff_fc_pval[each_protid] = {}
+                dropped_cutoff_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site], "Site":[each_site]})
+              else:
+                dropped_cutoff_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site)
+                dropped_cutoff_fc_pval[each_protid]["Site"].append(each_site)
+                    
+              del each_site_info[0][0]
+              del each_site_info[1][0]   
+                     
           if each_site_info[0]:
             if each_protid not in site_info_dict_rearrange:
               site_info_dict_rearrange[each_protid] = {}
@@ -1186,7 +1185,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
-
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -2501,8 +2499,8 @@ def write_into_out(merged_out_dict, out):
     for each_prot in merged_out_dict:
       if 'PickedPeptide' in merged_out_dict[each_prot] or 'DroppedPeptide' in merged_out_dict[each_prot]:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,String,Genemania,Comment,AA Change, Classification, Disease\n")
-        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("Comment","") + "," + ";".join(merged_out_dict[each_prot].get("AA Change",[""])) + "," + ";".join(merged_out_dict[each_prot].get("Classification",[""])) + "," + ";".join(merged_out_dict[each_prot].get("Disease",[""])) + "\n"
+          csv_file.write("ProteinID,Primary Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,String,Genemania,Comment\n")
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("Comment","") + "\n"
       else:
         if i == 0:
           csv_file.write("ProteinID,Primary Gene,Site,String,Genemania,Comment,\n")
@@ -4047,7 +4045,7 @@ def main(argv):
       eprint("Error: No query protein ids found. Please check input, settings or filters")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       sys.exit(1) 
-    '''
+    
     # open cytoscape
     subprocess.Popen([cy_exe])
     wait_counter = 0
@@ -4126,7 +4124,7 @@ def main(argv):
         eprint("Error: Please install " + cy_species + " dataset in Genemania")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
         sys.exit(1)
-    '''    
+      
     #Uniprot API call to get primary gene, synonym
     if cy_debug:
       logging.debug("\nStep 2: Start the uniprot api call at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -4135,9 +4133,10 @@ def main(argv):
     uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out, cy_cluego_inp_file, path_to_new_dir, logging_file, site_info_dict, cy_ambi)
     
     all_prot_site_snps = {}
+    '''
     if (cy_type_num == "5" or cy_type_num == "6"): 
       all_prot_site_snps, variants = get_dbsnp_classification(uniprot_query,each_primgene_list, site_info_dict, merged_out_dict)
-      
+    '''  
     if cy_cluego_inp_file:
       if cy_debug:
         logging.debug("\nStep 2.5: Start processing the input ClueGO list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
