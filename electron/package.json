@@ -28,8 +28,8 @@
     "productName": "Pine",
     "extraResources": [
       {
-        "from": "../dist/changes_to_pine_final.exe",
-        "to": "extra-resources/pine_2.exe"
+        "from": "../dist/changes_to_pine_final",
+        "to": "extra-resources/pine_2"
       }
     ],
     "win": {
