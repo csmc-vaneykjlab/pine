@@ -1822,7 +1822,7 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
       eprint("Error: Genemania timed out- please try again later")
       sys.exit(1)
     except:
-      eprint("Error: Cytoscape must be open")
+      eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
    
   try:    
@@ -3313,22 +3313,26 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   is_snp = []
   up_or_down = []
   up_or_down_to_append = []
-  calc_up_down = 0
+  calc_up = 0
+  calc_down = 0
   total_genes = 0
   category_present = 0
+  gene_list_per_interaction = []
   for each in each_category:
     category_present = 1
     break
-      
+    
   for each in cluster_list:
     if each not in merged_vertex:
       G.add_vertex(each)
       merged_vertex.append(each)
       merged_vertex_sites_only.append(each)
       if each in function_only:
-        calc_up_down = 0
+        calc_up = 0
+        calc_down = 0
         total_genes = 0
         up_or_down_to_append = []
+        gene_list_per_interaction = []
         is_snp.append(0.0)
         query.append('Function')
         if max_FC_len == 0 and not category_present:
@@ -3346,22 +3350,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       if each_gene not in merged_vertex:
         G.add_vertex(each_gene)
         merged_vertex.append(each_gene)
-        if each_gene in function_only:
-          merged_vertex_sites_only.append(each_gene)
-          is_snp.append(0.0)
-          query.append('Function')
-          if max_FC_len == 0 and not category_present:
-            query_val_noFC.append('Function')
-          val_length_of = len(each_gene)
-         
-          length_of.append(val_length_of)
-          if val_length_of > 18:
-            val_breadth_of_val = val_length_of/18.0*50.0
-          else:
-            val_breadth_of_val = 50
-          breadth_of.append(val_breadth_of_val)
-         
-        else:
+        if type == "1" or type == "5":
+          up_or_down_to_append.append("NA")
+        if each_gene not in function_only:
           is_snp.append(0.0)
           indexOf = uniprot_list['name'].index(each_gene.lower())
           if uniprot_list['query'][indexOf] != "NA":
@@ -3376,18 +3367,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           length_of.append(val_length_of_val)
           val_breadth_of_val = 30
           breadth_of.append(val_breadth_of_val)
-          
-          if type == "1":
-            total_genes += 1
-            up_or_down_to_append.append("NA")
-            FC_val_each_gene = (uniprot_list['FC1'])[indexOf]
-            if FC_val_each_gene > 0:
-              calc_up_down += 1
-            elif FC_val_each_gene < 0:
-              calc_up_down -= 1 
-              
+                        
           if type == "5" or type == "6":
-            up_or_down_to_append.append("NA")
             indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
             for each_index in indices:
               if uniprot_list['site'][each_index] != "NA":
@@ -3405,16 +3386,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
                   else:
                     is_snp.append(0.0)
                 else:
-                  is_snp.append(0.0)
-                if type == "5":
-                  total_genes += 1
-                  up_or_down_to_append.append("NA")
-                  FC_val_each_gene = (uniprot_list['FC1'])[each_index]
-                  if FC_val_each_gene > 0:
-                    calc_up_down += 1
-                  elif FC_val_each_gene < 0:
-                    calc_up_down -= 1
-                    
+                  is_snp.append(0.0)                  
                 query.append('Site')
                 val_length_of_val = len(each_gene) #* 15
                 length_of.append(val_length_of_val)
@@ -3423,24 +3395,51 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
                 name_edge = uniprot_list['site'][each_index] + " with " + each_gene
                 G.add_edge(uniprot_list['site'][each_index],each_gene,name=name_edge)
                 all_interactions.append(name_edge)
-                   
-      if max_FC_len == 1 and not (type == "5" or type == "6"):
-        if each_gene.lower() in uniprot_list["name"]:
-          index = uniprot_list["name"].index(each_gene.lower())
-          FC_val_each_gene = (uniprot_list['FC1'])[index]
-        
+                if type == "5":
+                  up_or_down_to_append.append("NA")
+                  if uniprot_list['site'][each_index] not in gene_list_per_interaction:
+                    gene_list_per_interaction.append(uniprot_list['site'][each_index])
+                    total_genes += 1                  
+                    FC_val_each_gene = (uniprot_list['FC1'])[each_index]
+                    if FC_val_each_gene > 0:
+                      calc_up += 1
+                    elif FC_val_each_gene < 0:
+                      calc_down -= 1  
+      else:
+        if type == "5":
+          indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
+          gene_list_per_interaction = []
+          for each_index in indices:
+            if uniprot_list['site'][each_index] not in gene_list_per_interaction:
+              gene_list_per_interaction.append(uniprot_list['site'][each_index])
+              total_genes += 1                  
+              FC_val_each_gene = (uniprot_list['FC1'])[each_index]
+              if FC_val_each_gene > 0:
+                calc_up += 1
+              elif FC_val_each_gene < 0:
+                calc_down -= 1
+            
       name_edge = each + " with " + each_gene
       G.add_edge(each,each_gene,name=name_edge)
       all_interactions.append(name_edge)
-    
-    if (calc_up_down/total_genes*100) > 0:
+      if type == "1":
+        if each_gene not in gene_list_per_interaction:
+          gene_list_per_interaction.append(each_gene)
+          total_genes += 1
+          indexOf = uniprot_list["name"].index(each_gene.lower())
+          FC_val_each_gene = (uniprot_list['FC1'])[indexOf]
+          if FC_val_each_gene > 0:
+            calc_up += 1
+          elif FC_val_each_gene < 0:
+            calc_down -= 1        
+    if (calc_up/total_genes*100) > 80: 
       up_or_down.append("Up")
-    elif (calc_up_down/total_genes*100) < 0:
+    elif (abs(calc_down)/total_genes*100) > 80:
       up_or_down.append("Down")
-    else:
+    else: 
       up_or_down.append("None")
     up_or_down.extend(up_or_down_to_append)
- 
+  
   G.vs
   G.vs["query"] = query
   G.vs["name"] = merged_vertex
@@ -4274,7 +4273,7 @@ def main(argv):
     if cy_debug:
       if not cy_cluego_inp_file:
         logging.debug("\nQuery coverage = " + str(round(coverage, 2)) + "%")
-      logging.debug("\nRun completed sunccessfully")
+      logging.debug("\nRun completed successfully")
      
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
@@ -4286,11 +4285,11 @@ def main(argv):
     cytoscape_not_open_msg2 = "Remote end closed connection without response"
     cytoscape_not_responding_msg = "Expecting value: line 1 column 1 (char 0)"
     if cytoscape_not_open_msg in str(e) or cytoscape_not_open_msg2 in str(e):
-      eprint("Error: Cytoscape must be open")
+      eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
       traceback.print_exc()
-      eprint("Error: Cytoscape not responding. Please restart and wait for it to fully load")
+      eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
       traceback.print_exc()
