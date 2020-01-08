@@ -459,7 +459,7 @@ let vm = new Vue({
                 "--mods", this.input.mods,
                 "--gui",
             ];
-            if(this.significant) {
+            if(this.input.significant) {
                 args.push("--significant");
             }
             if(this.input.remove_ambiguous) {
