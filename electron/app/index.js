@@ -170,7 +170,7 @@ let vm = new Vue({
                 let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
                 this.pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
-                this.pine = spawn(path.join(__dirname, "../../extra-resources/pine_2.exe"), args);
+                this.pine = spawn(path.join(__dirname, "../../extra-resources/pine_2/changes_to_pine_final.exe"), args);
             }
 
             let new_session_dir = null;
@@ -341,7 +341,7 @@ let vm = new Vue({
             if(this.pine === null || !this.running) {
                 return;
             }
-            this.pine.kill("SIGINT");
+            this.pine.kill();
         },
         generate_reanalysis_name: function() {
             function pad(n) {
@@ -353,7 +353,7 @@ let vm = new Vue({
             let now = new Date();
             let timestamp =
                 now.getFullYear().toString() +
-                pad(now.getMonth()) +
+                pad(now.getMonth() + 1) +
                 pad(now.getDate()) +
                 "_" +
                 pad(now.getHours()) +
@@ -459,7 +459,7 @@ let vm = new Vue({
                 "--mods", this.input.mods,
                 "--gui",
             ];
-            if(this.significant) {
+            if(this.input.significant) {
                 args.push("--significant");
             }
             if(this.input.remove_ambiguous) {
