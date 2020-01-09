@@ -4021,7 +4021,7 @@ def main(argv):
       r = requests.get("http://localhost:1234/v1/commands/command/quit")
       logging.warning("Cytoscape was already open with an existing session.  Saved existing session to: " + session_filename)
       wait_counter = 0
-      while wait_counter < 300: # give 5 minutes to exit cytoscape
+      while wait_counter < 600: # give 10 minutes to exit cytoscape
         try:
           requests.get("http://localhost:1234/v1/version")
         except:
@@ -4086,7 +4086,7 @@ def main(argv):
     # open cytoscape
     subprocess.Popen([cy_exe])
     wait_counter = 0
-    while wait_counter < 300: # give 5 minutes max for cytoscape to open
+    while wait_counter < 600: # give 10 minutes max for cytoscape to open
       try:
         r = requests.get("http://localhost:1234/v1/version")
         test = r.json()
