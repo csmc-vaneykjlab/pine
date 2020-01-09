@@ -1,5 +1,9 @@
 #usage: python changes_to_pine_final.py -i C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run\Paper\SingleFC_PTM_GNMTKOvsWT.csv -m "C:\Users\SundararamN\ClueGOConfiguration\v2.5.5\ClueGOSourceFiles\Organism_Mus Musculus\Mus Musculus.gene2accession_2019.02.27.txt.gz" -s mouse -t singlefc-ptm -e "C:\Program Files\Cytoscape_v3.7.1\Cytoscape.exe" -d S,T,Y -x Trypsin -o C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run -b "C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run\19_2_Mouse_Uniprot_DECOY.fasta" -u string -r 0.90 -p 0.05 -f 0.32
 #Goal: Given list of protein IDs (with/without their corresponding FC and pval), construct 1) an interaction network among all proteins in list 2) construct a pathway network of proteins in the list 
+import sys
+def eprint(*args, **kwargs):
+  print(*args, file=sys.stderr, **kwargs)
+
 try:
   from py2cytoscape import cyrest
 except ImportError:
@@ -22,7 +26,6 @@ import csv
 import getopt 
 import os
 from os import path
-import sys
 import time
 import re
 import logging
@@ -35,9 +38,6 @@ import collections
 import subprocess
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
-
-def eprint(*args, **kwargs):
-  print(*args, file=sys.stderr, **kwargs)
 
 def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   handler = logging.FileHandler(log_file,mode='w')
@@ -76,7 +76,6 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
       time.sleep(timeout_interval)
       time_count += timeout_interval
       last_exception = e
-  eprint("ERROR ERROR")
   raise last_exception
 
 def db_handling(db_file):
@@ -3982,7 +3981,7 @@ def main(argv):
       logging.debug("Starting PINE Analysis...\n") 
       
     try:
-      r = request.get("http://localhost:1234/v1/version")
+      r = requests.get("http://localhost:1234/v1/version")
       path_to_docs = os.path.expanduser("~\Documents")
       session_filename = os.path.join(path_to_docs, timestamp + "-exited-session.cys") # save current session
       r = requests.get("http://localhost:1234/v1/commands/session/save%20as?file=" + urllib.parse.quote(session_filename, safe=""))
