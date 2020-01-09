@@ -223,6 +223,7 @@ let vm = new Vue({
                         }
                         http.get("http://localhost:1234/v1/commands/command/quit");
                         resolve(false);
+                        document.getElementById("log-wrapper").scrollTop = 0;
                     }
                 });
             });
