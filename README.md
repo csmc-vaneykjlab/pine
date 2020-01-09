@@ -1,5 +1,8 @@
 # PINE Installation and Usage
 
+## Table of Contents
+- [Requirements and Setup](#requirements-and-setup)
+
 ### Requirements and Setup
 The following tools and dependencies are required to run the tool-
 1. Install [Cytoscape](https://cytoscape.org/download.html)
