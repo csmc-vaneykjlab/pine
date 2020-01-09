@@ -1,5 +1,9 @@
 #usage: python changes_to_pine_final.py -i C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run\Paper\SingleFC_PTM_GNMTKOvsWT.csv -m "C:\Users\SundararamN\ClueGOConfiguration\v2.5.5\ClueGOSourceFiles\Organism_Mus Musculus\Mus Musculus.gene2accession_2019.02.27.txt.gz" -s mouse -t singlefc-ptm -e "C:\Program Files\Cytoscape_v3.7.1\Cytoscape.exe" -d S,T,Y -x Trypsin -o C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run -b "C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run\19_2_Mouse_Uniprot_DECOY.fasta" -u string -r 0.90 -p 0.05 -f 0.32
 #Goal: Given list of protein IDs (with/without their corresponding FC and pval), construct 1) an interaction network among all proteins in list 2) construct a pathway network of proteins in the list 
+import sys
+def eprint(*args, **kwargs):
+  print(*args, file=sys.stderr, **kwargs)
+
 try:
   from py2cytoscape import cyrest
 except ImportError:
@@ -22,7 +26,6 @@ import csv
 import getopt 
 import os
 from os import path
-import sys
 import time
 import re
 import logging
@@ -36,9 +39,6 @@ import subprocess
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-def eprint(*args, **kwargs):
-  print(*args, file=sys.stderr, **kwargs)
-
 def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   handler = logging.FileHandler(log_file,mode='w')
   logger = logging.getLogger(name)
@@ -48,19 +48,23 @@ def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
     logger.addHandler(logging.StreamHandler(sys.stdout))
   return logger
 
-def request_retry(url, protocol, headers=None, data=None, timeout=300):
+def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300, timeout_interval=5):
   if protocol == "GET":
     func = requests.get
   elif protocol == "PUT":
     func = requests.put
   elif protocol == "POST":
     func = requests.post
+  elif protocol == "DELETE":
+    func = requests.delete
 
   kwargs = {}
   if headers:
     kwargs["headers"] = headers
   if data:
     kwargs["data"] = data
+  if json:
+    kwargs["json"] = json
 
   time_count = 0
   while time_count < timeout:
@@ -69,8 +73,8 @@ def request_retry(url, protocol, headers=None, data=None, timeout=300):
       res.raise_for_status()
       return res
     except Exception as e:
-      time.sleep(10)
-      time_count += 10
+      time.sleep(timeout_interval)
+      time_count += timeout_interval
       last_exception = e
   raise last_exception
 
@@ -1875,11 +1879,11 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   #body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species)
   body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species, offline=True)
   try:
-    get_genemania = requests.post('http://localhost:1234/v1/commands/genemania/search', json=body)
+    get_genemania = request_retry('http://localhost:1234/v1/commands/genemania/search', 'POST', json=body)
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)  
     try:
-      requests.get("http://localhost:1234/v1/commands/command/quit")
+      request_retry("http://localhost:1234/v1/commands/command/quit", 'GET')
       eprint("Error: Genemania timed out- please try again later")
       sys.exit(1)
     except:
@@ -1890,12 +1894,12 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
     uploaded_list = get_genemania.json()
     current_network_suid = str(uploaded_list['data']['network'])
     request = 'http://localhost:1234/v1/networks/' + str(uploaded_list['data']['network']) + '/tables/defaultedge'
-    resp = requests.get(request, json=body)
+    resp = request_retry(request, 'GET', json=body)
     edge_info =resp.json()
     request = 'http://localhost:1234/v1/networks/' + str(uploaded_list['data']['network']) +'/tables/defaultnode'
-    resp = requests.get(request, json=body)
+    resp = request_retry(request, 'GET', json=body)
     node_info = resp.json()
-    requests.delete("http://localhost:1234/v1/networks/" + str(current_network_suid))
+    request_retry("http://localhost:1234/v1/networks/" + str(current_network_suid), 'DELETE')
   except:
     return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
     
@@ -3070,7 +3074,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
     "enabled": False
     }
   ]
-  response = requests.put("http://localhost:1234/v1/styles/Category-Network-Style/dependencies", json=data)
+  response = request_retry("http://localhost:1234/v1/styles/Category-Network-Style/dependencies", 'PUT', json=data)
   
 def singleFC(my_style, uniprot_list, type):
   '''
@@ -3150,7 +3154,7 @@ def singleFC(my_style, uniprot_list, type):
       "valueList": "#E2E2E2"
     }
 
-  response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
+  response = request_retry("http://localhost:1234/v1/commands/node/set properties", 'POST', json=data)
   
   data = {
     "bypass": "true",
@@ -3158,7 +3162,7 @@ def singleFC(my_style, uniprot_list, type):
     "propertyList": "Fill Color, Label Color",
     "valueList": "#FF6633, #FFFFFF"
   }
-  response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
+  response = request_retry("http://localhost:1234/v1/commands/node/set properties", 'POST', json=data)
     
   data = {
     "bypass": "true",
@@ -3166,7 +3170,7 @@ def singleFC(my_style, uniprot_list, type):
     "propertyList": "Fill Color, Label Color",
     "valueList": "#0000CC, #FFFFFF"
   }
-  response = requests.post("http://localhost:1234/v1/commands/node/set properties", json=data)
+  response = request_retry("http://localhost:1234/v1/commands/node/set properties", 'POST', json=data)
     
   return(my_style)
   
@@ -3722,7 +3726,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     "enabled": False
     }
   ]
-  response = requests.put("http://localhost:1234/v1/styles/GAL_Style3/dependencies", json=data)
+  response = request_retry("http://localhost:1234/v1/styles/GAL_Style3/dependencies", 'PUT', json=data)
   
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file):
   if cy_debug:
@@ -4044,7 +4048,7 @@ def main(argv):
       r = requests.get("http://localhost:1234/v1/commands/command/quit")
       logging.warning("Cytoscape was already open with an existing session.  Saved existing session to: " + session_filename)
       wait_counter = 0
-      while wait_counter < 300: # give 5 minutes to exit cytoscape
+      while wait_counter < 600: # give 10 minutes to exit cytoscape
         try:
           requests.get("http://localhost:1234/v1/version")
         except:
@@ -4109,7 +4113,7 @@ def main(argv):
     # open cytoscape
     subprocess.Popen([cy_exe])
     wait_counter = 0
-    while wait_counter < 300: # give 5 minutes max for cytoscape to open
+    while wait_counter < 600: # give 10 minutes max for cytoscape to open
       try:
         r = requests.get("http://localhost:1234/v1/version")
         test = r.json()
@@ -4119,7 +4123,7 @@ def main(argv):
         wait_counter += 5
 
     # Check Cytoscape version
-    request = requests.get('http://localhost:1234/v1/version')
+    request = request_retry('http://localhost:1234/v1/version', 'GET')
     cy_version = request.json()
     if not bool(re.match('^3.7', cy_version['cytoscapeVersion'])):
       eprint("Error: Cytoscape version must be 3.7.0 and above")
@@ -4127,10 +4131,10 @@ def main(argv):
       sys.exit(1)
     
     # Start a new session 
-    requests.post('http://localhost:1234/v1/commands/session/new')
+    request_retry('http://localhost:1234/v1/commands/session/new', 'GET')
     
     # Apps installed
-    request = requests.post('http://localhost:1234/v1/commands/apps/list installed')
+    request = request_retry('http://localhost:1234/v1/commands/apps/list installed', 'POST')
     apps_installed = request.json()
     app_reactome = False
     app_genemania = False
@@ -4175,7 +4179,7 @@ def main(argv):
     
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       body = dict(offline=True)
-      response = requests.post("http://localhost:1234/v1/commands/genemania/organisms", json=body)
+      response = request_retry("http://localhost:1234/v1/commands/genemania/organisms", 'POST', json=body)
       genemania_bool = False
       for each in response.json()['data']['organisms']:
         if tax_id == str(each['taxonomyId']):
@@ -4312,7 +4316,7 @@ def main(argv):
         logging.debug("\nStep 6: ClueGO started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
   
       #Start ClueGO
-      response = requests.post('http://localhost:1234/v1/apps/cluego/start-up-cluego')
+      response = request_retry('http://localhost:1234/v1/apps/cluego/start-up-cluego', 'POST')
       
       if cy_debug:
         # Number of ClueGO query + EI = x + y
@@ -4338,7 +4342,7 @@ def main(argv):
      
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    requests.post("http://localhost:1234/v1/session?file=" + cy_session)
+    request_retry("http://localhost:1234/v1/session?file=" + cy_session, 'POST')
 
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)

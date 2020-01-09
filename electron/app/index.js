@@ -140,20 +140,17 @@ let vm = new Vue({
 
             /* warn user about cytoscape running and give them a chance to stop */
             if(await this.is_cytoscape_running()) {
-                const res = remote.dialog.showMessageBoxSync({
+                remote.dialog.showMessageBoxSync({
                     "type": "warning",
                     "buttons": [
-                        "Continue anyways",
-                        "Cancel (recommended)",
+                        "Ok",
                     ],
-                    "defaultId": 1,
-                    "title": "Cytoscape open",
-                    "message": "It is recommended that you close Cytoscape before continuing to avoid data loss",
+                    "defaultId": 0,
+                    "title": "Close Cytoscape",
+                    "message": "Cytoscape must be closed before PINE can run to avoid data loss",
                 });
-                if(res !== 0) {
-                    this.running = false;
-                    return false;
-                }
+                this.running = false;
+                return false;
             }
 
             this.switchTab(TABS.PROGRESS);
@@ -423,16 +420,26 @@ let vm = new Vue({
             /* check if listening on port 1234 */
             let running = await new Promise(function(resolve) {
                 const request = remote.net.request("http://localhost:1234/v1/version");
-                request.on("response", function() {
-                    resolve(true);
+                request.on("response", function(response) {
+                    response.on("data", (chunk) => {
+                        try {
+                            const parsed = JSON.parse(chunk);
+                            if("cytoscapeVersion" in parsed) {
+                                resolve(true);
+                            } else {
+                                resolve(false);
+                            }
+                        } catch(e) {
+                            resolve(false);
+                        }
+                    });
                 });
                 request.on("error", function() {
                     resolve(false);
                 });
-                request.on("close", function() {
-                    /* catch all, just return false */
+                setTimeout(function() {
                     resolve(false);
-                });
+                }, 1000); // give 1 second for request to be run
                 request.end();
             });
             return running;

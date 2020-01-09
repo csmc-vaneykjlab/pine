@@ -37,7 +37,8 @@
       "icon": "app/assets/pine-tree.png"
     },
     "nsis": {
-      "oneClick": false
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
