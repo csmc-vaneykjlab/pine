@@ -104,7 +104,7 @@
             </div>
           </section>
           <section class="run-section">
-            <span class="button success-button big" v-on:click="open_url('mailto:Niveda.Sundararaman@cshs.org')">Email</span>
+            <span class="button success-button big" v-on:click="open_url('mailto:GroupHeartBioinformaticsSupport@cshs.org')">Email</span>
             <span class="horizontal-sep"></span>
             <span class="button success-button big" v-on:click="open_url('https://google.com')">Cite Us</span>
             <span class="horizontal-sep"></span>
@@ -396,14 +396,16 @@
         </div>
 
         <div v-if="current_tab === tabs.PROGRESS">
-          <div class="align-right" v-show="running">
-            <div class="button danger-button" v-on:click="cancel_pine()">Cancel</div>
-          </div>
+          <div style="margin-bottom: 0.25rem" class="log-header">
+            <h4 class="full-section-header" v-show="running">
+              Analysis running:
+              <i class="fas fa-spinner fa-pulse"></i>
+            </h4>
 
-          <h4 class="full-section-header" v-show="running">
-            Analysis running:
-            <i class="fas fa-spinner fa-pulse"></i>
-          </h4>
+            <div class="float-right" v-show="running" style="margin-right:1rem">
+              <div class="button danger-button" v-on:click="cancel_pine()"><i class="far fa-stop-circle"></i> Cancel</div>
+            </div>
+          </div>
 
           <div v-show="stderr" class="full-section">
             <div class="log-stderr">{{ stderr }}</div>
@@ -428,7 +430,6 @@
                   <option v-for="source in cluego_pathways_filtered.ontology_sources" v-bind:value="source.name">
                       ({{ source.count }})
                       {{ source.name }}
-                    </div>
                   </option>
                 </select>
               </div>

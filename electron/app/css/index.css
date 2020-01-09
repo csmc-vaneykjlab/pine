@@ -182,6 +182,10 @@ input.big {
   text-align: right;
 }
 
+.float-right {
+  float: right;
+}
+
 .box-children-right {
   display: flex;
   justify-content: flex-end;
@@ -356,6 +360,13 @@ img.icon {
 
 .pathway-select-checkbox {
   cursor: pointer;
+}
+
+.log-header {
+  margin-bottom: 0.25rem;
+}
+.log-header > h4, .log-header div {
+  display: inline-block;
 }
 
 /*# sourceMappingURL=index.css.map */
