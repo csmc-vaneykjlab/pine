@@ -32,8 +32,8 @@
 
         <div v-if="current_tab === tabs.SETUP">
           <div class="grid-about-pine">
-            <div>
-              <img src="assets/pine.png" class="full-img" />
+            <div class="text-align-center">
+              <img src="assets/pine.png" class="pine-img" />
             </div>
             <div>
               <h2>
@@ -407,10 +407,8 @@
             </div>
           </div>
 
-          <div v-show="stderr" class="full-section">
+          <div class="full-section log-wrapper">
             <div class="log-stderr">{{ stderr }}</div>
-          </div>
-          <div class="full-section">
             <div class="log-stdout">{{ stdout }}</div>
           </div>
         </div>
