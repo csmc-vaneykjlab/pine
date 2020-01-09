@@ -1120,6 +1120,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       pep_len = 0
       warning = []
       i = 0
+
       for each_key in dropped_invalid_fc_pval:
         warning_str = each_key
         if dropped_invalid_fc_pval[each_key] == None:
@@ -1131,23 +1132,39 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             pep_len += len(dropped_invalid_fc_pval[each_key]["Site"])            
         warning.append(warning_str)
         
-        if "-" in dropped_invalid_fc_pval[each_key]["PeptideandLabel"]:
-          each_pep = (dropped_invalid_fc_pval[each_key]["PeptideandLabel"].split("-"))[0]
-        else:
-          each_pep = dropped_invalid_fc_pval[each_key]["PeptideandLabel"]
+        es = 0
+        for each_pepandlabel in dropped_invalid_fc_pval[each_key]["PeptideandLabel"]:
+          e_s = dropped_invalid_fc_pval[each_key]["Site"][es]
+          if "-" in dropped_invalid_fc_pval[each_key]["PeptideandLabel"]:
+            each_pep = (each_pepandlabel.split("-"))[0]
+          else:
+            each_pep = each_pepandlabel
           
-        if 'DroppedPeptide' not in merged_out_dict[each_key]:
-          merged_out_dict[each_key].update({'DroppedPeptide':each_pep})
-          merged_out_dict[each_key].update({'DroppedSite':dropped_invalid_fc_pval[each_key]["Site"]})
-        else:              
-          merged_out_dict[each_key]['DroppedPeptide'].extend(each_pep)
-          merged_out_dict[each_key]['DroppedSite'].extend(dropped_invalid_fc_pval[each_key]["Site"])
+          if 'PickedPeptide' in merged_out_dict[each_key]:
+            if each_pep in merged_out_dict[each_key]['PickedPeptide']:
+              indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep)
+            elif each_pep+"**" in merged_out_dict[each_key]['PickedPeptide']:
+              indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep+"**")
+              each_pep = each_pep+"**"
+            else:
+              indexOf = -1
+            if indexOf >=0:
+              del merged_out_dict[each_key]['PickedPeptide'][indexOf]
+              del merged_out_dict[each_key]['PickedSite'][indexOf] 
+              
+          if 'DroppedPeptide' not in merged_out_dict[each_key]:
+            merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+            merged_out_dict[each_key].update({'DroppedSite':[e_s]})
+          else:              
+            merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
+            merged_out_dict[each_key]['DroppedSite'].append(e_s)
         
-        if 'Comment' not in merged_out_dict[each_key]:
-          merged_out_dict[each_key].update({'Comment':"Invalid FC/PVal;"})
-        else:
-         merged_out_dict[each_key]['Comment'] += "Invalid FC/PVal;"
-      
+          if 'Comment' not in merged_out_dict[each_key]:
+            merged_out_dict[each_key].update({'Comment':"Invalid FC/PVal;"})
+          else:
+           merged_out_dict[each_key]['Comment'] += "Invalid FC/PVal;"
+          es+=1
+          
       if site_len > 0:
         logging.debug("Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
       logging.warning("WARNING - Dropping queries: " + ','.join(warning))
@@ -1360,13 +1377,18 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   'query':query_term,
   'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,feature(NATURAL VARIANT),last-modified'
   }
-  data = urllib.parse.urlencode(params).encode("utf-8")
-  request = urllib2.Request(url, data)
-  response = urllib2.urlopen(request)
-  page = response.read()
-  decode = page.decode("utf-8")
-  list1=decode.split('\n')
-  list1 = list1[1:]
+  try:
+    data = urllib.parse.urlencode(params).encode("utf-8")
+    request = urllib2.Request(url, data)
+    response = urllib2.urlopen(request)
+    page = response.read()
+    decode = page.decode("utf-8")
+    list1=decode.split('\n')
+    list1 = list1[1:]
+  except:
+    eprint("Error: Uniprot not responding. Please try again later")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+    sys.exit(1)
   isoform_warning = ""
   for each_list1 in list1:
     remaining_isoforms = []
@@ -1746,7 +1768,7 @@ def drop_ei_if_query(interaction,unique_vertex,genes_before_initial_drop,each_in
  
   return(remaining_interactions,remaining_nodes)
   
-def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, cy_debug, logging, merged_out_dict, genes_before_initial_drop):
+def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, cy_debug, logging, merged_out_dict, genes_before_initial_drop, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file):
   string_db_out = {}
   string_mapping = {}
   string_interaction = {}
@@ -1759,25 +1781,26 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
   'echo_query': 1,
   "limit" : 1
   }
-  
-  response = requests.post('https://string-db.org/api/tsv-no-header/get_string_ids', data=data)
-  out = pd.read_table(StringIO(response.text), header=None)
-  query = list(out[0].values.flatten())
-  preferred = list(out[5].values.flatten())
-  overwrite_preferred = {}
-  for i in range(len(query)):
-    if (query[i].replace("-","").lower() == preferred[i].replace("-","").lower()) and (query[i].lower() != preferred[i].lower()):
-      overwrite_preferred.update({preferred[i].lower():query[i]})
-    string_mapping.update({query[i]:preferred[i]})
-    
-  data = {
-  'identifiers': string_list_input,
-  'species': species,
-  'additional_network_nodes': str(limit),
-  'required_score': str(score)
-  }
   try:
+    response = requests.post('https://string-db.org/api/tsv-no-header/get_string_ids', data=data)
+    response.raise_for_status()
+    out = pd.read_table(StringIO(response.text), header=None)
+    query = list(out[0].values.flatten())
+    preferred = list(out[5].values.flatten())
+    overwrite_preferred = {}
+    for i in range(len(query)):
+      if (query[i].replace("-","").lower() == preferred[i].replace("-","").lower()) and (query[i].lower() != preferred[i].lower()):
+        overwrite_preferred.update({preferred[i].lower():query[i]})
+      string_mapping.update({query[i]:preferred[i]})
+    
+    data = {
+    'identifiers': string_list_input,
+    'species': species,
+    'additional_network_nodes': str(limit),
+    'required_score': str(score)
+    }
     response = requests.post('http://string-db.org/api/tsv-no-header/interactions', data=data)
+    response.raise_for_status()
     string_db_out.update(pd.read_table(StringIO(response.text), header=None))
     string1 = list(string_db_out[2].values.flatten())
     string2 = list(string_db_out[3].values.flatten())
@@ -1817,6 +1840,10 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
           merged_out_dict[each]['Comment'] += "String- no interaction;"
           warning.append(each + "(" + no_interactions_prots[each] + ") ")
         logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+  except requests.exceptions.HTTPError:
+    eprint("Error: String is not responding. Please try again later")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+    sys.exit(1)
   except:
     return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
   return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
@@ -4213,7 +4240,7 @@ def main(argv):
         logging.debug("String query: " + str(len(unique_each_primgene_list)))
  
       #Send gene list to string, get mapping & interactions
-      string_interaction, string_unique_vertex, string_mapping, merged_out_dict = create_string_cytoscape(uniprot_query,unique_each_primgene_list, tax_id, cy_lim, cy_score, cy_debug, logging, merged_out_dict, genes_before_initial_drop)
+      string_interaction, string_unique_vertex, string_mapping, merged_out_dict = create_string_cytoscape(uniprot_query,unique_each_primgene_list, tax_id, cy_lim, cy_score, cy_debug, logging, merged_out_dict, genes_before_initial_drop, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       string_category = categorize_gene(string_unique_vertex, string_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
