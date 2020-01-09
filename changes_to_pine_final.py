@@ -3716,7 +3716,7 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new
     os.rmdir(path_to_new_dir)
   #Close cytoscape
   try:
-    request_retry("http://localhost:1234/v1/commands/command/quit", 'GET')
+    requests.get("http://localhost:1234/v1/commands/command/quit")
   except:
     pass
     
