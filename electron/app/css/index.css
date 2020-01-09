@@ -15,7 +15,7 @@
 }
 
 .full-section.wrapper {
-  height: 485px;
+  height: 500px;
   overflow-y: auto;
 }
 
@@ -296,7 +296,7 @@ ul.tab-selector li + li {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: "Courier New", Courier, monospace;
-  height: calc(485px - 95px);
+  height: calc(500px - 95px);
   overflow-x: auto;
 }
 
