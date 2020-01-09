@@ -505,21 +505,22 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
                   sys.exit(1)
             else:
-              sites = "NA"
-              if type == "6":
-                if protein_list_id not in dropped_invalid_site:
-                  dropped_invalid_site[protein_list_id] = {}
-                  dropped_invalid_site[protein_list_id].update({"PeptideandLabel":[peptide + "-" + row[label]], "Site":[sites]})
-                else:
-                  dropped_invalid_site[row[protein]]["PeptideandLabel"].append(peptide + "-" + row[label])
-                  dropped_invalid_site[row[protein]]["Site"].append(sites)
-              elif type == "5":
-                if protein_list_id not in dropped_invalid_site:
-                  dropped_invalid_site[protein_list_id] = {}
-                  dropped_invalid_site[protein_list_id].update({"PeptideandLabel":[peptide], "Site":[sites]})
-                else:
-                  dropped_invalid_site[protein_list_id]["PeptideandLabel"].append(peptide)
-                  dropped_invalid_site[protein_list_id]["Site"].append(sites)        
+              if not exclude_ambi:               
+                sites = "NA"
+                if type == "6":
+                  if protein_list_id not in dropped_invalid_site:
+                    dropped_invalid_site[protein_list_id] = {}
+                    dropped_invalid_site[protein_list_id].update({"PeptideandLabel":[peptide + "-" + row[label]], "Site":[sites]})
+                  else:
+                    dropped_invalid_site[row[protein]]["PeptideandLabel"].append(peptide + "-" + row[label])
+                    dropped_invalid_site[row[protein]]["Site"].append(sites)
+                elif type == "5":
+                  if protein_list_id not in dropped_invalid_site:
+                    dropped_invalid_site[protein_list_id] = {}
+                    dropped_invalid_site[protein_list_id].update({"PeptideandLabel":[peptide], "Site":[sites]})
+                  else:
+                    dropped_invalid_site[protein_list_id]["PeptideandLabel"].append(peptide)
+                    dropped_invalid_site[protein_list_id]["Site"].append(sites)        
             
         if row[protein] not in each_protein_list:
           each_protein_list.append(row[protein])
@@ -626,6 +627,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         for getsite,getpep in site_info_dict[getprot].items():
           countpep += len(list(getpep.keys()))
       initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict])
+      if exclude_ambi:
+        initial_query_prot_count += len(mapping_multiple_regions)
       logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides")
       if dropped_invalid_site:
         site_len = 0
@@ -808,7 +811,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   skip_val = True
               
                 if skip_val:
-                  sys.exit()
                   if type == "6":
                     if each_protid not in dropped_invalid_fc_pval:
                       dropped_invalid_fc_pval[each_protid] = {}
@@ -818,7 +820,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep + "-" + new_each_site_info[3][i])
                       dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
                   else:
-                    if row[protein] not in dropped_invalid_fc_pval:
+                    if each_protid not in dropped_invalid_fc_pval:
                       dropped_invalid_fc_pval[each_protid] = {}
                       dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep], "Site":[each_site]})
                     else:
@@ -975,13 +977,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
                 del each_site_info[3][i]
               else:
-                if row[protein] not in dropped_invalid_fc_pval:
+                if each_protid not in dropped_invalid_fc_pval:
                   dropped_invalid_fc_pval[each_protid] = {}
                   dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site], "Site":[each_site]})
                 else:
                   dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site)
                   dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
-                  
               del each_site_info[0][i]
               del each_site_info[1][i]
             i+=1
@@ -1005,7 +1006,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
             else:
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-    
+
     site_info_dict = site_info_dict_rearrange     
     each_protein_list = list(site_info_dict.keys())
     
@@ -1065,6 +1066,51 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     site_info_dict = site_info_dict_rearrange 
     
   if cy_debug:
+    if mapping_multiple_regions:
+      warning = []
+      for each_mult in mapping_multiple_regions:
+        if "-" in each_mult:
+          prot_only = each_mult.split("-")[0]
+          pep_only = each_mult.split("-")[1]
+          site_only = '|'.join(mapping_multiple_regions[each_mult])
+        else:
+          prot_only = each_mult
+          pep_only = ""
+          site_only = '|'.join(mapping_multiple_regions[each_mult])
+
+        warning.append(each_mult + "(" + ','.join(str(x) for x in mapping_multiple_regions[each_mult]) + ")")
+        
+        if prot_only in merged_out_dict:
+          if 'PickedPeptide' in merged_out_dict[prot_only]:          
+            if pep_only and pep_only in merged_out_dict[prot_only]['PickedPeptide']:         
+              indexOf = merged_out_dict[prot_only]['PickedPeptide'].index(pep_only)
+              merged_out_dict[prot_only]['PickedPeptide'][indexOf] = merged_out_dict[prot_only]['PickedPeptide'][indexOf] + "**"
+              if 'Comment' not in merged_out_dict[prot_only]:
+                merged_out_dict[prot_only].update({'Comment':"Map to multiple FASTA regions;"})
+              else:
+                merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
+                
+          if 'DroppedPeptide' in  merged_out_dict[prot_only]:
+            if pep_only and pep_only in merged_out_dict[prot_only]['DroppedPeptide']:         
+              indexOf = merged_out_dict[prot_only]['DroppedPeptide'].index(pep_only)
+              merged_out_dict[prot_only]['DroppedPeptide'][indexOf] = merged_out_dict[prot_only]['DroppedPeptide'][indexOf] + "**"
+              if 'Comment' not in merged_out_dict[prot_only]:
+                merged_out_dict[prot_only].update({'Comment':"Map to multiple FASTA regions;"})
+              else:
+                merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
+        else:
+          if exclude_ambi:
+            if pep_only:
+              merged_out_dict[prot_only] = {}
+              merged_out_dict[prot_only].update({'DroppedPeptide':[pep_only+"**"],'DroppedSite':[site_only],'Comment':"Map to multiple FASTA regions;"})
+                      
+      if warning:
+        if exclude_ambi:
+          logging.warning("Protein ID mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)))
+          logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        else:        
+          logging.warning("WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
+          
     if dropped_invalid_fc_pval:
       site_len = 0
       pep_len = 0
@@ -1118,55 +1164,42 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             pep_len += len(dropped_cutoff_fc_pval[each_key]["Site"])            
         warning.append(warning_str)
         
-        if "-" in dropped_cutoff_fc_pval[each_key]["PeptideandLabel"]:
-          each_pep = (dropped_cutoff_fc_pval[each_key]["PeptideandLabel"].split("-"))[0]
-        else:
-          each_pep = dropped_cutoff_fc_pval[each_key]["PeptideandLabel"]
-          
-        if 'DroppedPeptide' not in merged_out_dict[each_key]:
-          merged_out_dict[each_key].update({'DroppedPeptide':each_pep})
-          merged_out_dict[each_key].update({'DroppedSite':dropped_cutoff_fc_pval[each_key]["Site"]})
-        else:              
-          merged_out_dict[each_key]['DroppedPeptide'].extend(each_pep)
-          merged_out_dict[each_key]['DroppedSite'].extend(dropped_cutoff_fc_pval[each_key]["Site"])
+        es = 0
+        for each_pepandlabel in dropped_cutoff_fc_pval[each_key]["PeptideandLabel"]:
+          e_s = dropped_cutoff_fc_pval[each_key]["Site"][es]
+          if "-" in each_pepandlabel:
+            each_pep = (each_pepandlabel.split("-"))[0]
+          else:
+            each_pep = each_pepandlabel
         
-        if 'Comment' not in merged_out_dict[each_key]:
-          merged_out_dict[each_key].update({'Comment':"FC/PVal cutoff not met;"})
-        else:
-         merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
-         
+          if 'PickedPeptide' in merged_out_dict[each_key]:
+            if each_pep in merged_out_dict[each_key]['PickedPeptide']:
+              indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep)
+            elif each_pep+"**" in merged_out_dict[each_key]['PickedPeptide']:
+              indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep+"**")
+              each_pep = each_pep+"**"
+            else:
+              indexOf = -1
+            if indexOf >=0:
+              del merged_out_dict[each_key]['PickedPeptide'][indexOf]
+              del merged_out_dict[each_key]['PickedSite'][indexOf]          
+                        
+          if 'DroppedPeptide' not in merged_out_dict[each_key]:
+            merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+            merged_out_dict[each_key].update({'DroppedSite':[e_s]})
+          else:              
+            merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
+            merged_out_dict[each_key]['DroppedSite'].append(e_s)
+        
+          if 'Comment' not in merged_out_dict[each_key]:
+            merged_out_dict[each_key].update({'Comment':"FC/PVal cutoff not met;"})
+          else:
+           merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
+          es+=1 
       if site_len > 0:
         logging.debug("Fold Change and P-Value cutoff not met: " + str(len(dropped_cutoff_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
       logging.warning("WARNING - Dropping queries: " + ','.join(warning))  
-      
-    if mapping_multiple_regions:
-      warning = []
-      for each_mult in mapping_multiple_regions:
-        if "-" in each_mult:
-          prot_only = each_mult.split("-")[0]
-          pep_only = each_mult.split("-")[1]
-        else:
-          prot_only = each_mult
-          pep_only = ""
-        if prot_only in each_protein_list:
-          warning.append(each_mult + "(" + ','.join(str(x) for x in mapping_multiple_regions[each_mult]) + ")")
-    
-        if prot_only in merged_out_dict:
-          if pep_only and pep_only in merged_out_dict[prot_only]['PickedPeptide']:         
-            indexOf = merged_out_dict[prot_only]['PickedPeptide'].index(pep_only)
-            merged_out_dict[prot_only]['PickedPeptide'][indexOf] = merged_out_dict[prot_only]['PickedPeptide'][indexOf] + "**"
-            if 'Comment' not in merged_out_dict[prot_only]:
-              merged_out_dict[prot_only].update({'Comment':"Map to multiple FASTA regions;"})
-            else:
-              merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
-              
-      if warning:
-        if exclude_ambi:
-          logging.warning("Protein ID mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)))
-          logging.warning("WARNING - Dropping queries: " + ','.join(warning))
-        else:        
-          logging.warning("WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
-                
+                      
     if pep_not_in_fasta:
       warning = []
       count_warn = 0
@@ -1185,6 +1218,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
+
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
