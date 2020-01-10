@@ -893,7 +893,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   merged_out_dict[each_protid].update({'DroppedSite':[each_site]})
                 else:              
                   merged_out_dict[each_protid]['DroppedPeptide'].append(each_pep)
-                  merged_out_dict[each_protid]['DroppedSite'].append(each_site)              
+                  merged_out_dict[each_protid]['DroppedSite'].append(each_site)
+                  
+                if 'Comment' not in merged_out_dict[each_protid]:
+                  merged_out_dict[each_protid].update({'Comment': "Ambiguous site;"})
+                else:
+                  merged_out_dict[each_protid]['Comment'] += "Ambiguous site;"
+                  
             else:            
               each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
               pep_for_prot_site = picked_pep
@@ -931,10 +937,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   merged_out_dict[each_protid]['DroppedPeptide'].append(each_dropped_pep)
                   merged_out_dict[each_protid]['DroppedSite'].append(each_site)
                      
-            if 'Comment' not in merged_out_dict[each_protid]:
-              merged_out_dict[each_protid].update({'Comment': "Ambigious site;"})
-            elif "Ambigious site;" not in merged_out_dict[each_protid]['Comment']:
-              merged_out_dict[each_protid]['Comment'] += "Ambigious site;"
+                if 'Comment' not in merged_out_dict[each_protid]:
+                  merged_out_dict[each_protid].update({'Comment': "Ambiguous site;"})
+                else:
+                  merged_out_dict[each_protid]['Comment'] += "Ambiguous site;"
                        
         else:
           each_site_info = site_info_dict[each_protid][each_site][keys[0]]
@@ -1455,10 +1461,10 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         store_prim_gene = primary_gene
                     
       merged_out_dict[each_prot].update({'Primary':store_prim_gene, 'String':'', 'Genemania':'', 'ClueGO':''})
-      if 'Comment' in merged_out_dict[each_prot]:
-        merged_out_dict[each_prot]['Comment'] += comment_merged
+      if 'CommentGene' in merged_out_dict[each_prot]:
+        merged_out_dict[each_prot]['CommentGene'] += comment_merged
       else:
-        merged_out_dict[each_prot].update({'Comment':comment_merged})
+        merged_out_dict[each_prot].update({'CommentGene':comment_merged})
       
   should_exit = False
   for each_prot_in_input in each_protein_list:
@@ -1468,7 +1474,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA",'Natural_variant':"NA",'Date_modified':"NA"})
       merged_out_dict[each_prot_in_input] = {}
       comment_merged = "Uniprot query not mapped;" 
-      merged_out_dict[each_prot_in_input].update({'Primary':'', 'Comment':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
+      merged_out_dict[each_prot_in_input].update({'Primary':'', 'CommentGene':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
         
         #merged_out_dict[each_prot_in_input]
   date_modified = [re.sub("-","",dict['Date_modified']) for dict in uniprot_query.values() if dict['Date_modified'] != "NA"]
@@ -1715,13 +1721,19 @@ def check_dup_preferred_gene(mapping, interaction, unique_vertex, search, unipro
       for each_get_dupe_primgene in dropped_primgene_nodes:
         each_get_dupe_ids = [key for key, val in get_dupe_query_proids.items() if val.lower() == each_get_dupe_primgene.lower()][0]
         comment_merged = str(search) + "- not mapped;"
-        merged_out_dict[each_get_dupe_ids]['Comment'] += comment_merged
+        if 'CommentGene' in merged_out_dict:
+          merged_out_dict[each_get_dupe_ids]['CommentGene'] += comment_merged
+        else:
+          merged_out_dict[each_get_dupe_ids].update({'CommentGene':comment_merged})
         warning.append(each_get_dupe_ids + "(" + get_dupe_query_proids[each_get_dupe_ids] + ") ") 
     
     if len(get_dupe_query_proids_2) != 0:    
       for each_get_dupe_ids in get_dupe_query_proids_2:
         comment_merged = str(search) + "- not mapped;"
-        merged_out_dict[each_get_dupe_ids]['Comment'] += comment_merged
+        if 'CommentGene' in merged_out_dict:
+          merged_out_dict[each_get_dupe_ids]['CommentGene'] += comment_merged
+        else:
+          merged_out_dict[each_get_dupe_ids].update({'CommentGene':comment_merged})
         warning.append(each_get_dupe_ids + "(" + get_dupe_query_proids_2[each_get_dupe_ids] + ") ")  
       
   else:
@@ -1826,7 +1838,10 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
         logging.debug("String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
         warning = []
         for each in no_mapping_prots:
-          merged_out_dict[each]['Comment'] += "String- not mapped;"
+          if 'CommentGene' in merged_out_dict[each]:
+            merged_out_dict[each]['CommentGene'] += "String- not mapped;"
+          else:
+            merged_out_dict[each].update({'Comment':"String- not mapped;"})
           warning.append(each + "(" + no_mapping_prots[each] + ") ")
         if dup_pref_warning:
           logging.debug("WARNING - Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
@@ -1837,7 +1852,10 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
         logging.debug("String queries with no interactions: " + str(len(no_interactions)))
         warning = []
         for each in no_interactions_prots:
-          merged_out_dict[each]['Comment'] += "String- no interaction;"
+          if 'CommentGene' in merged_out_dict[each]:
+            merged_out_dict[each]['CommentGene'] += "String- no interaction;"
+          else:
+            merged_out_dict[each].update({'Comment':"String- no interaction;"})
           warning.append(each + "(" + no_interactions_prots[each] + ") ")
         logging.debug("WARNING - Dropping queries: " + ','.join(warning))
   except requests.exceptions.HTTPError:
@@ -1944,7 +1962,10 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
       warning = []
       for each in no_mapping_prots:
         warning.append(each + "(" + no_mapping_prots[each] + ") ")
-        merged_out_dict[each]['Comment'] += "Genemania- not mapped;"
+        if 'CommentGene' in merged_out_dict[each]:
+          merged_out_dict[each]['CommentGene'] += "Genemania- not mapped;"
+        else:
+          merged_out_dict[each].update({'CommentGene':"Genemania- not mapped;"})
       logging.debug("WARNING - Dropping queries: " + ','.join(warning))
     
     if len(no_interactions) != 0:
@@ -1952,7 +1973,10 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
       warning = []
       for each in no_interactions_prots:
         warning.append(each + "(" + no_interactions_prots[each] + ") ")
-        merged_out_dict[each]['Comment'] += "Genemania- no interaction;"
+        if 'CommentGene' in merged_out_dict[each]:
+          merged_out_dict[each]['CommentGene'] += "Genemania- no interaction;"
+        else:
+          merged_out_dict[each].update({'CommentGene':"Genemania- no interaction;"})
       logging.debug("WARNING - Dropping queries: " + ','.join(warning))
   
   return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
@@ -2061,7 +2085,10 @@ def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, 
       warning = []
       for each in filtered_dropped_nodes_prot:
         warning.append(each + "(" + filtered_dropped_nodes_prot[each] + "->" + get_dropped_query_primgenes[filtered_dropped_nodes_prot[each]] + ") ")
-        merged_out_dict[each]['Comment'] += str(search) + "- dropped interaction category;"
+        if 'CommentGene' in merged_out_dict[each]:
+          merged_out_dict[each]['CommentGene'] += str(search) + "- dropped interaction category;"
+        else:
+          merged_out_dict[each].update({'CommentGene':str(search) + "- dropped interaction category;"})
       logging.debug("WARNING - Dropping queries: " + ','.join(warning))
     logging.debug(str(search) + " Total query nodes: " + str(len(primary_nodes)))
     logging.debug(str(search) + " Total interactions: " + str(count_retained_interactions))
@@ -2352,7 +2379,10 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     warning2 = not_found_ei
     for each in not_found_query_prot:
       warning1.append(each + "(" + not_found_query_prot[each] + ") ")
-      merged_out_dict[each]['Comment'] += "Cluego- not found;"
+      if 'CommentGene' in merged_out_dict[each]:
+        merged_out_dict[each]['Comment'] += "Cluego- not found;"
+      else:
+        merged_out_dict[each].update({'Comment':"Cluego- not found;"})
     if cy_debug and (warning1 or warning2):
       logging.debug("ClueGO query + External Interactor unavailable: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning1:
@@ -2378,7 +2408,10 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
   
   warning = []
   for each_in_list in get_drop_query_proids:
-    merged_out_dict[each_in_list]['Comment'] += "ClueGO non-primary query"
+    if 'CommentGene' in merged_out_dict[each_in_list]:
+      merged_out_dict[each_in_list]['CommentGene'] += "ClueGO non-primary query"
+    else:
+      merged_out_dict[each_in_list].update({'CommentGene':"ClueGO non-primary query"})
     warning.append(each_in_list + "(" + get_drop_query_proids[each_in_list] + "->" + drop_non_primary[get_drop_query_proids[each_in_list]] + ") ")
     
   if cy_debug:
@@ -2564,12 +2597,12 @@ def write_into_out(merged_out_dict, out):
     for each_prot in merged_out_dict:
       if 'PickedPeptide' in merged_out_dict[each_prot] or 'DroppedPeptide' in merged_out_dict[each_prot]:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,String,Genemania,Comment\n")
-        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("Comment","") + "\n"
+          csv_file.write("ProteinID,Primary Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,Reason for Dropped Site, String,Genemania,Reason for Dropped Gene\n")
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "\n"
       else:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,Site,String,Genemania,Comment,\n")
-        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("Comment","") + "\n"
+          csv_file.write("ProteinID,Primary Gene,Site,String,Genemania,Reason for Dropped Gene,\n")
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "\n"
         
       i+=1
       csv_file.write(line)
@@ -3171,7 +3204,15 @@ def singleFC(my_style, uniprot_list, type):
     "valueList": "#0000CC, #FFFFFF"
   }
   response = request_retry("http://localhost:1234/v1/commands/node/set properties", 'POST', json=data)
-    
+  
+  data = {
+    "bypass": "true",
+    "nodeList": "Regulated:None",
+    "propertyList": "Fill Color",
+    "valueList": "#E2E2E2"
+  }
+  response = request_retry("http://localhost:1234/v1/commands/node/set properties", 'POST', json=data)
+  
   return(my_style)
   
 def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, unique_labels):
