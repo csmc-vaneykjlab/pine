@@ -233,7 +233,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Fold change cutoff <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Fold change cutoff for input.</div>
+                  <div class="tooltip">Fold change cutoff for input. All fold change or log fold change values >= cutoff or <= -(cutoff) will be retained.</div>
                 </span>
               </div>
               <div>
@@ -249,7 +249,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   P-value cutoff <i class="far fa-question-circle"></i>
-                  <div class="tooltip">P-value cutoff for input.</div>
+                  <div class="tooltip">P-value cutoff for input. All p-vlaues or adjusted p-value <= cutoff will be retained. If both are provided, adjusted p-value takes precedence.</div>
                 </span>
               </div>
               <div>
@@ -262,7 +262,7 @@
 
               <div class="align-right tooltip-parent">
                 Outline significant <i class="far fa-question-circle"></i>
-                <div class="tooltip">Outline statistically significant nodes.</div>
+                <div class="tooltip">Outline statistically significant nodes (p-value or adjusted p-value <= 0.05)</div>
               </div>
 
               <div class="checkboxes">
@@ -272,7 +272,7 @@
 
                 <div class="align-right tooltip-parent">
                   Exclude ambiguity <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Remove ambiguous data</div>
+                  <div class="tooltip">Remove all protein, gene and PTM site level ambiguity. (See ambiguity warning in the log).</div>
                 </div>
 
                 <div>
@@ -283,7 +283,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Database <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Interaction databases.</div>
+                  <div class="tooltip">Protein-protein interaction databases.</div>
                 </span>
               </div>
               <div>
@@ -295,7 +295,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Confidence score <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Interaction confidence score for STRING.</div>
+                  <div class="tooltip">Interaction confidence score for STRING. Highest = 0.9, high = 0.7, medium = 0.4, low = 0.15</div>
                 </span>
               </div>
               <div>
@@ -325,7 +325,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Visualize <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Ontology type. Pathways include REACTOME, KEGG, CLINVAR and Wiki.</div>
+                  <div class="tooltip">Ontology type. Pathways include REACTOME, KEGG, CLINVAR and Wiki. GO terms for molecular function, biological process and cellular component.</div>
                 </span>
               </div>
               <div>
@@ -350,7 +350,7 @@
 
               <div class="align-right">
                 <span class="tooltip-parent">
-                  ClueGo p-value <i class="far fa-question-circle"></i>
+                  ClueGO p-value <i class="far fa-question-circle"></i>
                   <div class="tooltip">P-value cutoff for enrichment analysis.</div>
                 </span>
               </div>
@@ -367,7 +367,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Reference file <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Path to background reference file for enrichment.</div>
+                  <div class="tooltip">Background reference file containing a list of protein or gene IDs for enrichment analysis in text format.</div>
                 </span>
               </div>
               <div>
