@@ -163,6 +163,7 @@ input.big {
     display: grid;
     grid-template-columns: 1fr 7fr;
     column-gap: 0.5rem;
+    margin-bottom: 0.5rem;
 
     h2 {
         text-decoration: underline;
@@ -329,8 +330,6 @@ ul.tab-selector {
     white-space: pre-wrap;
     word-wrap: break-word;
     font-family: 'Courier New', Courier, monospace;
-    height: calc(#{$screen-height} - 95px);
-    overflow-x: auto;
 }
 
 .log-stderr {
@@ -338,6 +337,11 @@ ul.tab-selector {
     word-wrap: break-word;
     font-size: 1.5rem;
     color: $color2;
+}
+
+.log-wrapper {
+    height: calc(#{$screen-height} - 95px);
+    overflow-x: auto;
 }
 
 .overlay {
@@ -401,4 +405,12 @@ img.icon {
     & > h4, div {
         display: inline-block;
     }
+}
+
+img.pine-img {
+    height: 5rem;
+}
+
+.text-align-center {
+    text-align: center;
 }

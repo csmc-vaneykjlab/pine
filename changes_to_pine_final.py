@@ -4383,7 +4383,7 @@ def main(argv):
      
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
-    request_retry("http://localhost:1234/v1/session?file=" + cy_session, 'POST')
+    request_retry("http://localhost:1234/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
 
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
