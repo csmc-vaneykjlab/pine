@@ -3729,18 +3729,22 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   response = request_retry("http://localhost:1234/v1/styles/GAL_Style3/dependencies", 'PUT', json=data)
   
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file):
-  if cy_debug:
-    logging.handlers = []
-    if path.exists(logging_file):
-      os.remove(logging_file)
-  if cy_session and path.exists(cy_session):
-    os.remove(cy_session)
-  if cy_out and path.exists(cy_out):
-    os.remove(cy_out)
-  if cy_cluego_out and path.exists(cy_cluego_out):
-    os.remove(cy_cluego_out)
-  if path_to_new_dir and path.exists(path_to_new_dir):
-    os.rmdir(path_to_new_dir)
+  try:
+    if cy_debug:
+      logging.handlers = []
+      if path.exists(logging_file):
+        os.remove(logging_file)
+    if cy_session and path.exists(cy_session):
+      os.remove(cy_session)
+    if cy_out and path.exists(cy_out):
+      os.remove(cy_out)
+    if cy_cluego_out and path.exists(cy_cluego_out):
+      os.remove(cy_cluego_out)
+    if path_to_new_dir and path.exists(path_to_new_dir):
+      os.rmdir(path_to_new_dir)
+  except:
+    eprint(f"Error: Failed to delete results directory at: {path_to_new_dir}")
+
   #Close cytoscape
   try:
     requests.get("http://localhost:1234/v1/commands/command/quit")
