@@ -67,7 +67,7 @@ let vm = new Vue({
         },
         species_map: {"homo sapiens": "human", "mus musculus": "mouse", "rattus norvegicus": "rat"},
         allowed_runs: ["string", "genemania", "both"],
-        allowed_visualize: ["biological process","subcellular location","molecular function","pathways","all"],
+        allowed_visualize: ["biological process","cellular component","molecular function","pathways","all"],
         allowed_grouping: ["global", "medium", "detailed"],
         allowed_enzymes: {
             "trypsin": "Trypsin",
