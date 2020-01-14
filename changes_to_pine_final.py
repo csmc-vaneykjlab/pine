@@ -37,6 +37,7 @@ import traceback
 import collections
 import subprocess
 import warnings
+from collections import Counter
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
@@ -1376,6 +1377,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   url = 'https://www.uniprot.org/uploadlists/'
   ambigious_gene = []
   all_isoforms = []
+  duplicate_canonical = []
   params = {
   'from':'ACC+ID',
   'to':'ACC',
@@ -1391,6 +1393,13 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     decode = page.decode("utf-8")
     list1=decode.split('\n')
     list1 = list1[1:]
+    req_ids = []
+    for l in list1:
+      if l:
+        req_ids.extend(l.split("\t")[6].split(","))
+    id_counts = Counter(req_ids)
+    duplicate_mapping_ids = set([x for x in id_counts if id_counts[x] > 1])
+    seen_duplicate_mapping_ids = {}
   except:
     eprint("Error: Uniprot not responding. Please try again later")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
@@ -1412,12 +1421,28 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
           remaining_isoforms = split_prot_list        
           each_prot = ""
         else:
-          remaining_isoforms = split_prot_list[1:]
-          each_prot = split_prot_list[0]
-          isoform_warning += "(" + ','.join(split_prot_list) + "),"
+          if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
+            duplicate_canonical.append(split_prot_list)
+            each_prot = ""
+          else:
+            remaining_isoforms = split_prot_list[1:]
+            each_prot = split_prot_list[0]
+            isoform_warning += "(" + ','.join(split_prot_list) + "),"
         all_isoforms.extend(remaining_isoforms)
       else:
         each_prot = split_prot_list[0]      
+
+      if each_prot in duplicate_mapping_ids:
+        if each_prot in seen_duplicate_mapping_ids:
+          seen_duplicate_mapping_ids[each_prot].append({"protein": uniprot_protid, "gene": uniprot_list[1]})
+          each_prot = ""
+        else:
+          seen_duplicate_mapping_ids[each_prot] = [{"protein": uniprot_protid, "gene": uniprot_list[1]}]
+          if exclude_ambi:
+            each_prot = ""
+
+      if each_prot == "":
+        continue
       
       primary_gene = uniprot_list[1]
       if each_prot and each_prot not in merged_out_dict:
@@ -1516,6 +1541,21 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         logging.warning("WARNING - Dropping queries: " + ','.join(remaining_isoforms))
       else:
         logging.warning("WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
+
+    if duplicate_canonical:
+      duplicate_canonical_str = ", ".join(["(" + ", ".join(x) + ")" for x in duplicate_canonical])
+      logging.warning("WARNING - Dropping queries that had multiple canonical IDs map to single ID: " + duplicate_canonical_str)
+
+    if len(seen_duplicate_mapping_ids) > 0:
+      sdmi_list = []
+      for sdmi in seen_duplicate_mapping_ids:
+        sdmi_val = seen_duplicate_mapping_ids[sdmi]
+        sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] + "[" + x["gene"] + "]" for x in sdmi_val]) + ")")
+      duplicate_mapping_str = ", ".join(sdmi_list)
+      if exclude_ambi:
+        logging.warning("WARNING - Dropping queries that map to multiple IDs: " + duplicate_mapping_str)
+      else:
+        logging.warning("WARNING - Queries that mapped to multiple IDs.  First picked: " + duplicate_mapping_str)
         
     if prot_with_mult_primgene:
       if exclude_ambi:
@@ -4265,7 +4305,10 @@ def main(argv):
       sorted_x = sorted(drop_dupeprimgene_prot.items(), key=lambda kv: kv[1])
       drop_dupeprimgene_prot = collections.OrderedDict(sorted_x)
       for each_dropped_prot in drop_dupeprimgene_prot:
-        merged_out_dict[each_dropped_prot]['Comment'] += "Duplicate primary gene;"
+        if 'CommentGene' in merged_out_dict:
+          merged_out_dict[each_dropped_prot]['CommentGene'] += "Duplicate primary gene;"
+        else:
+          merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene'})
         warning.append(each_dropped_prot + "(" + drop_dupeprimgene_prot[each_dropped_prot] + ")")
       if cy_debug:
         logging.debug("Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
