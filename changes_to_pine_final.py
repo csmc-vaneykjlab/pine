@@ -392,7 +392,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       else:
                         ambigious_sites[protein_list_id].append(each_pos_store_as_mult[0])
                 if len(seqInDatabase_list) == 0:
-                  seqInDatabase = ""
+                  seqInDatabase = -1
                   if protein_list_id not in pep_not_in_fasta:   
                     pep_not_in_fasta.update({protein_list_id:[peptide_sub]})
                   else:
@@ -402,7 +402,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   seqInDatabase = seqInDatabase_list[0]
                 else:
                   if exclude_ambi:
-                    seqInDatabase = ""
+                    seqInDatabase = "Ambiguous"
                   else:
                     seqInDatabase = seqInDatabase_list[0]                 
                 break
@@ -412,7 +412,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)              
               sys.exit(1)         
               
-            if seqInDatabase:              
+            if seqInDatabase!=-1 and seqInDatabase!="Ambiguous":              
               for k in include_list:
                 for key,value in modInSeq_all_dict.items():                   
                   combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
@@ -431,7 +431,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       else:
                         modInSeq_dict[k1] = [val]
                       all_mods_for_prot.append(key)
-                        
+             
             sites = ""
             sites_list = []
             for key,value in modInSeq_dict.items():
@@ -519,7 +519,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
                   sys.exit(1)
             else:
-              if not exclude_ambi:               
+              if seqInDatabase!="Ambiguous":           
                 sites = "NA"
                 if type == "6":
                   if protein_list_id not in dropped_invalid_site:
@@ -1028,47 +1028,78 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       for each_prot_id in site_info_dict_rearrange1:
         for each_site in site_info_dict_rearrange1[each_prot_id]:
           if len(site_info_dict_rearrange1[each_prot_id][each_site].keys()) > 1:
-            again_each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict_rearrange1[each_prot_id][each_site], enzyme, include_list)
-            pep_for_prot_site = picked_pep
-            ambi_pep_count += len(dropped_pep) + 1
-            if each_prot_id in dict_of_picked_pep:
-              dict_of_picked_pep[each_prot_id].append(picked_pep)
-            else:
-              dict_of_picked_pep.update({each_prot_id:[picked_pep]})
-            
-            if each_prot_id not in merged_out_dict:
-              merged_out_dict[each_prot_id] = {}
-
-            if 'PickedPeptide' not in merged_out_dict[each_prot_id]:
-              merged_out_dict[each_prot_id].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site]})
-            else:
-              merged_out_dict[each_prot_id]['PickedPeptide'].append(picked_pep+"**")
-              merged_out_dict[each_prot_id]['PickedSite'].append(each_site)
-              
-            for each_dropped_pep in dropped_pep:
-              count_dropped+=1
-              if each_prot_id in all_dropped_pep:
-                all_dropped_pep[each_prot_id].append(each_dropped_pep)
-                if each_site not in ambigious_sites_ptms[each_prot_id]:
-                  ambigious_sites_ptms[each_prot_id].append(each_site)
-                  ambigious_sites[each_prot_id].append(each_site)                
-              else:
-                all_dropped_pep.update({each_prot_id:[each_dropped_pep]})
-                ambigious_sites_ptms.update({each_prot_id:[each_site]})
-                ambigious_sites.update({each_prot_id:[each_site]})
+            if exclude_ambi:
+              again_each_site_info = []
+              if each_prot_id not in merged_out_dict:
+                merged_out_dict[each_prot_id] = {}
+              for each_pep in site_info_dict_rearrange1[each_prot_id][each_site]:
+                ambi_pep_count += 1
+                count_dropped+=1
+                if each_prot_id in all_dropped_pep:
+                  all_dropped_pep[each_prot_id].append(each_pep)
+                  if each_site not in ambigious_sites_ptms[each_prot_id]:
+                    ambigious_sites_ptms[each_prot_id].append(each_site)
+                    ambigious_sites[each_prot_id].append(each_site)                
+                else:
+                  all_dropped_pep.update({each_prot_id:[each_pep]})
+                  ambigious_sites_ptms.update({each_prot_id:[each_site]})
+                  ambigious_sites.update({each_prot_id:[each_site]})
+                  
+                if 'DroppedPeptide' not in merged_out_dict[each_prot_id]:
+                  merged_out_dict[each_prot_id].update({'DroppedPeptide':[each_pep]})
+                  merged_out_dict[each_prot_id].update({'DroppedSite':[each_site]})
+                else:              
+                  merged_out_dict[each_prot_id]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict[each_prot_id]['DroppedSite'].append(each_site)
+                  
+                if 'Comment' not in merged_out_dict[each_prot_id]:
+                  merged_out_dict[each_prot_id].update({'Comment': "Ambiguous site;"})
+                else:
+                  merged_out_dict[each_prot_id]['Comment'] += "Ambiguous site;"
                 
-              if 'DroppedPeptide' not in merged_out_dict[each_prot_id]:
-                merged_out_dict[each_prot_id].update({'DroppedPeptide':[each_dropped_pep]})
-                merged_out_dict[each_prot_id].update({'DroppedSite':[each_site]})
-              else:              
-                merged_out_dict[each_prot_id]['DroppedPeptide'].append(each_dropped_pep)
-                merged_out_dict[each_prot_id]['DroppedSite'].append(each_site)
-                     
-              if 'Comment' not in merged_out_dict[each_prot_id]:
-                merged_out_dict[each_prot_id].update({'Comment': "Ambiguous site;"})
+            else:
+              again_each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict_rearrange1[each_prot_id][each_site], enzyme, include_list)
+              pep_for_prot_site = picked_pep
+              ambi_pep_count += len(dropped_pep) + 1
+              if each_prot_id in dict_of_picked_pep:
+                dict_of_picked_pep[each_prot_id].append(picked_pep)
               else:
-                merged_out_dict[each_prot_id]['Comment'] += "Ambiguous site;"
+                dict_of_picked_pep.update({each_prot_id:[picked_pep]})
+            
+              if each_prot_id not in merged_out_dict:
+                merged_out_dict[each_prot_id] = {}
+
+              if 'PickedPeptide' not in merged_out_dict[each_prot_id]:
+                merged_out_dict[each_prot_id].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site]})
+              else:
+                merged_out_dict[each_prot_id]['PickedPeptide'].append(picked_pep+"**")
+                merged_out_dict[each_prot_id]['PickedSite'].append(each_site)
+              
+              for each_dropped_pep in dropped_pep:
+                count_dropped+=1
+                if each_prot_id in all_dropped_pep:
+                  all_dropped_pep[each_prot_id].append(each_dropped_pep)
+                  if each_site not in ambigious_sites_ptms[each_prot_id]:
+                    ambigious_sites_ptms[each_prot_id].append(each_site)
+                    ambigious_sites[each_prot_id].append(each_site)                
+                else:
+                  all_dropped_pep.update({each_prot_id:[each_dropped_pep]})
+                  ambigious_sites_ptms.update({each_prot_id:[each_site]})
+                  ambigious_sites.update({each_prot_id:[each_site]})
+                
+                if 'DroppedPeptide' not in merged_out_dict[each_prot_id]:
+                  merged_out_dict[each_prot_id].update({'DroppedPeptide':[each_dropped_pep]})
+                  merged_out_dict[each_prot_id].update({'DroppedSite':[each_site]})
+                else:              
+                  merged_out_dict[each_prot_id]['DroppedPeptide'].append(each_dropped_pep)
+                  merged_out_dict[each_prot_id]['DroppedSite'].append(each_site)
+                     
+                if 'Comment' not in merged_out_dict[each_prot_id]:
+                  merged_out_dict[each_prot_id].update({'Comment': "Ambiguous site;"})
+                else:
+                  merged_out_dict[each_prot_id]['Comment'] += "Ambiguous site;"
           else:
+            
             each_key_pep = list(site_info_dict_rearrange1[each_prot_id][each_site].keys())[0]
             if each_prot_id in dict_of_picked_pep:
               dict_of_picked_pep[each_prot_id].append(each_key_pep)
@@ -1077,7 +1108,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
              
             if each_prot_id not in merged_out_dict:
               merged_out_dict[each_prot_id] = {}
-              
+                      
             if 'PickedPeptide' not in merged_out_dict[each_prot_id]:
               merged_out_dict[each_prot_id].update({'PickedPeptide':[each_key_pep], 'PickedSite':[each_site]})
             else:
@@ -1086,7 +1117,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           
             again_each_site_info = site_info_dict_rearrange1[each_prot_id][each_site][each_key_pep]
  
-          if again_each_site_info[0]:
+          if again_each_site_info:
             if each_prot_id not in site_info_dict_rearrange:
               site_info_dict_rearrange[each_prot_id] = {}
               site_info_dict_rearrange[each_prot_id].update({each_site:again_each_site_info})
@@ -1313,7 +1344,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
-   
+  
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -3619,14 +3650,15 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           if FC_val_each_gene > 0:
             calc_up += 1
           elif FC_val_each_gene < 0:
-            calc_down -= 1        
-    if (calc_up/total_genes*100) > 80: 
-      up_or_down.append("Up")
-    elif (abs(calc_down)/total_genes*100) > 80:
-      up_or_down.append("Down")
-    else: 
-      up_or_down.append("None")
-    up_or_down.extend(up_or_down_to_append)
+            calc_down -= 1
+    if type == "1" or type == "5":            
+      if (calc_up/total_genes*100) > 80: 
+        up_or_down.append("Up")
+      elif (abs(calc_down)/total_genes*100) > 80:
+        up_or_down.append("Down")
+      else: 
+        up_or_down.append("None")
+      up_or_down.extend(up_or_down_to_append)
   
   G.vs
   G.vs["query"] = query
