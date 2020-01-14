@@ -40,6 +40,10 @@ import warnings
 from collections import Counter
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+class CytoscapeError(Exception):
+  def __init__(self, message):
+    super().__init__(message)
+
 def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   handler = logging.FileHandler(log_file,mode='w')
   logger = logging.getLogger(name)
@@ -77,8 +81,7 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
       time.sleep(timeout_interval)
       time_count += timeout_interval
       last_exception = e
-  eprint("Cytoscape is not responding.  Please try again")
-  sys.exit(1)
+  raise CytoscapeError(str(last_exception))
 
 def input_failure_comment(uniprot_query, merged_out_dict, input_id, comment):
   uniprot_query[input_id] = {
@@ -4555,6 +4558,12 @@ def main(argv):
     ## Write into outfile
     write_into_out(merged_out_dict, cy_out)
     request_retry("http://localhost:1234/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
+
+  except CytoscapeError as e:
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+    eprint("Error: Cytoscape not responding. Please start the run again")
+    traceback.print_exc()
+    sys.exit(1)
 
   except Exception as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
