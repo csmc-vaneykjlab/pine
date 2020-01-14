@@ -77,7 +77,8 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
       time.sleep(timeout_interval)
       time_count += timeout_interval
       last_exception = e
-  raise last_exception
+  eprint("Cytoscape is not responding.  Please try again")
+  sys.exit(1)
 
 def input_failure_comment(uniprot_query, merged_out_dict, input_id, comment):
   uniprot_query[input_id] = {
@@ -4312,7 +4313,9 @@ def main(argv):
       sys.exit(1) 
     
     # open cytoscape
+    logging.debug("Starting Cytoscape")
     subprocess.Popen([cy_exe])
+    logging.debug("...")
     wait_counter = 0
     while wait_counter < 600: # give 10 minutes max for cytoscape to open
       try:
