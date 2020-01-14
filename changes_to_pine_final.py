@@ -192,7 +192,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ambi_pep_count = 0
   initial_query_prot_count = 0
   initial_query_pep_count = 0
-  
+  unique_prot_pep = {}
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
@@ -303,8 +303,17 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           if not bool(re.match('^[A-Za-z]{1,}([\[\(\{]\+?[0-9][\]\}\)])?[A-Z]{0,}', row[peptide_col])):
             eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
-            sys.exit(1)            
-          initial_query_pep_count += 1
+            sys.exit(1)
+          if type == "6":
+            if row[protein] not in unique_prot_pep:
+              unique_prot_pep.update({row[protein]:[row[peptide_col]]})
+              initial_query_pep_count += 1
+            else:
+              if row[peptide_col] not in unique_prot_pep[row[protein]]:
+                unique_prot_pep[row[protein]].append(row[peptide_col])
+                initial_query_pep_count += 1
+          else:         
+            initial_query_pep_count += 1
           if not is_pval:
             get_pval = 1.0
           else:
@@ -630,7 +639,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       countpep = 0
       for getprot in site_info_dict:
         for getsite,getpep in site_info_dict[getprot].items():
-          countpep += len(list(getpep.keys()))
+          countpep += len(list(getpep.keys()))  
       initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict])
       if exclude_ambi:
         initial_query_prot_count += len(mapping_multiple_regions)
@@ -644,36 +653,42 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           warning_str = each_key
           if dropped_invalid_site[each_key] == None:
             continue
-          if "PeptideandLabel" in dropped_invalid_site[each_key]:
-            if "Site" in dropped_invalid_site[each_key]:
-              pep_len += len(dropped_invalid_site[each_key]["Site"])            
+            
           warning.append(warning_str)
           
-          if "-" in dropped_invalid_site[each_key]["PeptideandLabel"]:
-            each_pep = (dropped_invalid_site[each_key]["PeptideandLabel"].split("-"))[0]
-          else:
-            each_pep = dropped_invalid_site[each_key]["PeptideandLabel"]
+          for get_each_pep,get_each_site in zip(dropped_invalid_site[each_key]["PeptideandLabel"],dropped_invalid_site[each_key]["Site"]):
+            bool_yes = False
+            if "-" in get_each_pep:
+              each_pep = (get_each_pep.split("-"))[0]
+            else:
+              each_pep = get_each_pep
             
-          if each_key in merged_out_dict:
-            if 'DroppedPeptide' not in merged_out_dict[each_key]:
-              merged_out_dict[each_key].update({'DroppedPeptide':each_pep})
-              merged_out_dict[each_key].update({'DroppedSite':dropped_invalid_site[each_key]["Site"]})
-            else:              
-              merged_out_dict[each_key]['DroppedPeptide'].extend(each_pep)
-              merged_out_dict[each_key]['DroppedSite'].extend(dropped_invalid_site[each_key]["Site"])
+            if each_key in merged_out_dict:
+              if 'DroppedPeptide' not in merged_out_dict[each_key]:
+                merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+                merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+                bool_yes = True
+              else:  
+                if each_pep not in merged_out_dict[each_key]['DroppedPeptide']:               
+                  merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict[each_key]['DroppedSite'].append(get_each_site)
+                  bool_yes = True
         
-          else:
-            merged_out_dict[each_key] = {}
-            merged_out_dict[each_key].update({'DroppedPeptide':each_pep})
-            merged_out_dict[each_key].update({'DroppedSite':dropped_invalid_site[each_key]["Site"]}) 
+            else:
+              merged_out_dict[each_key] = {}
+              merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+              bool_yes = True              
             
-          if 'Comment' not in merged_out_dict[each_key]:
-            merged_out_dict[each_key].update({'Comment':"No site;"})
-          else:
-            merged_out_dict[each_key]['Comment'] += "No site;"            
+            if bool_yes:
+              pep_len +=1
+              if 'Comment' not in merged_out_dict[each_key]:
+                merged_out_dict[each_key].update({'Comment':"No site;"})
+              else:
+                merged_out_dict[each_key]['Comment'] += "No site;"            
         
-        logging.debug("No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
-        logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("DROP WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
+        #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
         
     else:
       initial_query_prot_count = len(set(each_protein_list)) + len([x for x in dropped_invalid_fc_pval if x not in each_protein_list])
@@ -705,23 +720,23 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     all_dropped = sorted(all_dropped)
     if cy_debug:
       if all_dropped:       
-        logging.debug("Duplicate query: " + str((initial_length)-len(each_protein_list)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
+        logging.debug("DROP WARNING - Duplicate query: " + str((initial_length)-len(each_protein_list)))
+        #logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
  
   elif type == "3":
     if repeat_prot_ids:
       unique_each_protein_list = list(set(each_protein_list))    
       if cy_debug:
-        logging.debug("Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids))           
+        logging.debug("DROP WARNING - Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
+        #logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids))           
       each_protein_list = unique_each_protein_list      
 
   elif type == "4":
     unique_each_protein_list = list(set(each_protein_list))
     if retain_prot_ids:
       if cy_debug:
-        logging.debug("Duplicate query: " + str(len(retain_prot_ids)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids))           
+        logging.debug("DROP WARNING - Duplicate query: " + str(len(retain_prot_ids)))
+        #logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids))           
     each_protein_list = unique_each_protein_list
 
   elif type == "2":
@@ -746,8 +761,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
         list_of_duplicates = sorted(list_of_duplicates)
         if list_of_duplicates:
-          logging.debug("Duplicate query: " + str(len(list_of_duplicates)))
-          logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
+          logging.debug("DROP WARNING - Duplicate query: " + str(len(list_of_duplicates)))
+          #logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
@@ -770,6 +785,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   
   elif type == "5" or type == "6":
     site_info_dict_rearrange = {}
+    site_info_dict_rearrange1 = {}
     all_dropped_pep = {}
     all_dropped_warning = ""
     count_dropped = 0
@@ -798,7 +814,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     new_each_site += "/"
                   new_each_site += match.group(1) + "{" + new_each_site_num + "}" + match.group(2)
               new_each_site_info = site_info_dict[each_protid][each_site][each_key_pep]
-              
               i = 0              
               for each_fc,each_pval in zip(list(new_each_site_info[0]),list(new_each_site_info[1])): 
                 try:
@@ -848,28 +863,19 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     
                   del new_each_site_info[0][0]
                   del new_each_site_info[1][0]
-                
-                
+
               if new_each_site_info[0]:              
-                if each_protid not in site_info_dict_rearrange:
-                  site_info_dict_rearrange[each_protid] = {}
-                  site_info_dict_rearrange[each_protid].update({new_each_site:new_each_site_info})
+                if each_protid not in site_info_dict_rearrange1:
+                  site_info_dict_rearrange1[each_protid] = {}
+                  site_info_dict_rearrange1[each_protid][new_each_site] = {}
+                  site_info_dict_rearrange1[each_protid][new_each_site].update({each_key_pep:new_each_site_info})
                 else:
-                  site_info_dict_rearrange[each_protid].update({new_each_site:new_each_site_info})  
-              
-              if each_protid in dict_of_picked_pep:
-                dict_of_picked_pep[each_protid].append(each_key_pep)
-              else:
-                dict_of_picked_pep.update({each_protid:[each_key_pep]})
-             
-              if each_protid not in merged_out_dict:
-                merged_out_dict[each_protid] = {}
-              
-              if 'PickedPeptide' not in merged_out_dict[each_protid]:
-                merged_out_dict[each_protid].update({'PickedPeptide':[each_key_pep], 'PickedSite':[new_each_site]})
-              else:
-                merged_out_dict[each_protid]['PickedPeptide'].append(each_key_pep)
-                merged_out_dict[each_protid]['PickedSite'].append(new_each_site)
+                  if new_each_site not in site_info_dict_rearrange1[each_protid]:
+                    site_info_dict_rearrange1[each_protid][new_each_site] = {}
+                    site_info_dict_rearrange1[each_protid][new_each_site].update({each_key_pep:new_each_site_info})
+                  else:
+                    if each_key_pep not in site_info_dict_rearrange1[each_protid][new_each_site]:
+                      site_info_dict_rearrange1[each_protid][new_each_site].update({each_key_pep:new_each_site_info}) 
                 
           else:
             if exclude_ambi:
@@ -901,7 +907,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 else:
                   merged_out_dict[each_protid]['Comment'] += "Ambiguous site;"
                   
-            else:            
+            else:              
               each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict[each_protid][each_site], enzyme, include_list)
               pep_for_prot_site = picked_pep
               ambi_pep_count += len(dropped_pep) + 1
@@ -1017,10 +1023,78 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
             else:
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-
-    site_info_dict = site_info_dict_rearrange     
-    each_protein_list = list(site_info_dict.keys())
     
+    if site_info_dict_rearrange1:
+      for each_prot_id in site_info_dict_rearrange1:
+        for each_site in site_info_dict_rearrange1[each_prot_id]:
+          if len(site_info_dict_rearrange1[each_prot_id][each_site].keys()) > 1:
+            again_each_site_info, dropped_pep, picked_pep = ptm_scoring(site_info_dict_rearrange1[each_prot_id][each_site], enzyme, include_list)
+            pep_for_prot_site = picked_pep
+            ambi_pep_count += len(dropped_pep) + 1
+            if each_prot_id in dict_of_picked_pep:
+              dict_of_picked_pep[each_prot_id].append(picked_pep)
+            else:
+              dict_of_picked_pep.update({each_prot_id:[picked_pep]})
+            
+            if each_prot_id not in merged_out_dict:
+              merged_out_dict[each_prot_id] = {}
+
+            if 'PickedPeptide' not in merged_out_dict[each_prot_id]:
+              merged_out_dict[each_prot_id].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site]})
+            else:
+              merged_out_dict[each_prot_id]['PickedPeptide'].append(picked_pep+"**")
+              merged_out_dict[each_prot_id]['PickedSite'].append(each_site)
+              
+            for each_dropped_pep in dropped_pep:
+              count_dropped+=1
+              if each_prot_id in all_dropped_pep:
+                all_dropped_pep[each_prot_id].append(each_dropped_pep)
+                if each_site not in ambigious_sites_ptms[each_prot_id]:
+                  ambigious_sites_ptms[each_prot_id].append(each_site)
+                  ambigious_sites[each_prot_id].append(each_site)                
+              else:
+                all_dropped_pep.update({each_prot_id:[each_dropped_pep]})
+                ambigious_sites_ptms.update({each_prot_id:[each_site]})
+                ambigious_sites.update({each_prot_id:[each_site]})
+                
+              if 'DroppedPeptide' not in merged_out_dict[each_prot_id]:
+                merged_out_dict[each_prot_id].update({'DroppedPeptide':[each_dropped_pep]})
+                merged_out_dict[each_prot_id].update({'DroppedSite':[each_site]})
+              else:              
+                merged_out_dict[each_prot_id]['DroppedPeptide'].append(each_dropped_pep)
+                merged_out_dict[each_prot_id]['DroppedSite'].append(each_site)
+                     
+              if 'Comment' not in merged_out_dict[each_prot_id]:
+                merged_out_dict[each_prot_id].update({'Comment': "Ambiguous site;"})
+              else:
+                merged_out_dict[each_prot_id]['Comment'] += "Ambiguous site;"
+          else:
+            each_key_pep = list(site_info_dict_rearrange1[each_prot_id][each_site].keys())[0]
+            if each_prot_id in dict_of_picked_pep:
+              dict_of_picked_pep[each_prot_id].append(each_key_pep)
+            else:
+              dict_of_picked_pep.update({each_prot_id:[each_key_pep]})
+             
+            if each_prot_id not in merged_out_dict:
+              merged_out_dict[each_prot_id] = {}
+              
+            if 'PickedPeptide' not in merged_out_dict[each_prot_id]:
+              merged_out_dict[each_prot_id].update({'PickedPeptide':[each_key_pep], 'PickedSite':[each_site]})
+            else:
+              merged_out_dict[each_prot_id]['PickedPeptide'].append(each_key_pep)
+              merged_out_dict[each_prot_id]['PickedSite'].append(each_site)          
+          
+            again_each_site_info = site_info_dict_rearrange1[each_prot_id][each_site][each_key_pep]
+ 
+          if again_each_site_info[0]:
+            if each_prot_id not in site_info_dict_rearrange:
+              site_info_dict_rearrange[each_prot_id] = {}
+              site_info_dict_rearrange[each_prot_id].update({each_site:again_each_site_info})
+            else:
+              site_info_dict_rearrange[each_prot_id].update({each_site:again_each_site_info})
+                        
+    site_info_dict = site_info_dict_rearrange    
+    each_protein_list = list(site_info_dict.keys())
     if cy_debug and all_dropped_pep:
       warn = []
       ambi_site_len = 0
@@ -1028,12 +1102,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         warn.append(each_prot + "(" + ",".join(ambigious_sites_ptms[each_prot]) + ")")
         ambi_site_len += len(ambigious_sites_ptms[each_prot])
         
-      logging.warning("Ambigious sites: " + str(len(ambigious_sites_ptms)) + " proteins , " + str(ambi_site_len) + " sites and " + str(ambi_pep_count) + " peptides")
+      logging.warning("AMBIGUITY WARNING - Ambigious sites: " + str(len(ambigious_sites_ptms)) + " proteins , " + str(ambi_site_len) + " sites and " + str(ambi_pep_count) + " peptides")
+      '''
       if exclude_ambi:
         logging.warning("WARNING - Dropping all ambigious peptide-site: " + ",".join(warn))
       else:      
         logging.warning("WARNING - Dropping all but one representation for peptide-site: " + ",".join(warn))
-      
+      '''
       if len(duplicate_ptm_proteins) > 0:
         if type == "5":
           msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
@@ -1096,19 +1171,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             if pep_only and pep_only in merged_out_dict[prot_only]['PickedPeptide']:         
               indexOf = merged_out_dict[prot_only]['PickedPeptide'].index(pep_only)
               merged_out_dict[prot_only]['PickedPeptide'][indexOf] = merged_out_dict[prot_only]['PickedPeptide'][indexOf] + "**"
-              if 'Comment' not in merged_out_dict[prot_only]:
-                merged_out_dict[prot_only].update({'Comment':"Map to multiple FASTA regions;"})
-              else:
-                merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
                 
           if 'DroppedPeptide' in  merged_out_dict[prot_only]:
             if pep_only and pep_only in merged_out_dict[prot_only]['DroppedPeptide']:         
               indexOf = merged_out_dict[prot_only]['DroppedPeptide'].index(pep_only)
               merged_out_dict[prot_only]['DroppedPeptide'][indexOf] = merged_out_dict[prot_only]['DroppedPeptide'][indexOf] + "**"
-              if 'Comment' not in merged_out_dict[prot_only]:
-                merged_out_dict[prot_only].update({'Comment':"Map to multiple FASTA regions;"})
-              else:
-                merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
         else:
           if exclude_ambi:
             if pep_only:
@@ -1118,9 +1185,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if warning:
         if exclude_ambi:
           logging.warning("Protein ID mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)))
-          logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+          logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(warning))
         else:        
-          logging.warning("WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
+          logging.warning("AMBIGUITY WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
           
     if dropped_invalid_fc_pval:
       site_len = 0
@@ -1173,8 +1240,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           es+=1
           
       if site_len > 0:
-        logging.debug("Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
-      logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("DROP WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+      #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
       
     if dropped_cutoff_fc_pval:
       site_len = 0
@@ -1225,8 +1292,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
            merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
           es+=1 
       if site_len > 0:
-        logging.debug("Fold Change and P-Value cutoff not met: " + str(len(dropped_cutoff_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
-      logging.warning("WARNING - Dropping queries: " + ','.join(warning))  
+        logging.debug("DROP WARNING - Fold Change and P-Value cutoff not met: " + str(len(dropped_cutoff_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+      #logging.warning("WARNING - Dropping queries: " + ','.join(warning))  
                       
     if pep_not_in_fasta:
       warning = []
@@ -1236,8 +1303,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           warning.append(each_mult + "(" + ','.join(pep_not_in_fasta[each_mult]) + ")")
           count_warn +=1 
       if warning:
-        logging.debug("Peptides not found in FASTA: " + str(count_warn))
-        logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("DROP WARNING - Peptides not found in FASTA: " + str(count_warn))
+        #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
   
   if cy_debug:
     if type == "5" or type == "6":
@@ -1246,7 +1313,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
-
+   
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -1260,18 +1327,19 @@ def ptm_scoring(site_dict, enzyme, include_list):
                  
   all_peptides = list(site_dict.keys())
   top_score = [0] * len(all_peptides)
- 
+  index = 0
   for each_peptide in all_peptides: 
     # Other Mods
     total_mods = 0
     om = 0
     all_mods_dict = find_mod(each_peptide)
+    combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+    each_peptide_without_mods = re.sub(combined_pat,'',each_peptide)
     for k in include_list:
-      for key,value in all_mods_dict.items():  
-        combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+      for key,value in all_mods_dict.items():         
         key = re.sub('\+','',key)                               
         k = re.sub('\+','',k)
-        if key.lower() in "C[57]" or key.lower() in "C{57}" or key.lower() in "C(57)":
+        if "c[" in key.lower() or "c{" in key.lower() or "c(" in key.lower():
           total_mods += 1
           continue
         key_match = re.search(combined_pat,key)
@@ -1282,41 +1350,44 @@ def ptm_scoring(site_dict, enzyme, include_list):
         if k.lower() in key.lower():
           total_mods += 1   
     om = len(all_mods_dict) - total_mods
-    
+
     # Miscleavage  
     miscleave = 0
     exception = 0
     # count miscleavages
     for each_cleave in enzyme_info[enzyme.lower()]['cleave']:
-      miscleave += each_peptide.count(each_cleave)
+      miscleave += each_peptide_without_mods.count(each_cleave)
     # Exclude exceptions
     for each_except in enzyme_info[enzyme.lower()]['exceptions']:
-      exception += each_peptide.count(each_except)
-    index = all_peptides.index(each_peptide)
-    
+      exception += each_peptide_without_mods.count(each_except)
+
     #Score update
-    top_score[index] += miscleave - exception + om 
+    top_score[index] += miscleave - exception + om
+    index += 1  
   # Pick lowest score
   min_score = min(top_score)
   indices = [i for i, x in enumerate(top_score) if x == min_score]
   largest_avg_FC = 0
   index = 0
-  for each_index in indices:
-    each_pick_pep = all_peptides[each_index]
-    n = 0
-    avg_FC = 0     
-    for each_site_pos in site_dict[each_pick_pep][0]:
-      try:
-        float(each_site_pos)
-        avg_FC += abs(each_site_pos)
-        n+= 1
-      except:
-        continue
-    if n!= 0:    
-      avg_FC = avg_FC/n
-      if abs(avg_FC) >= largest_avg_FC:     
-        largest_avg_FC = abs(each_site_pos)
-        index = each_index
+  if len(indices) > 1:
+    for each_index in indices:
+      each_pick_pep = all_peptides[each_index]
+      n = 0
+      avg_FC = 0     
+      for each_site_pos in site_dict[each_pick_pep][0]:
+        try:
+          float(each_site_pos)
+          avg_FC += abs(each_site_pos)
+          n+= 1
+        except:
+          continue
+      if n!= 0:    
+        avg_FC = avg_FC/n
+        if abs(avg_FC) >= largest_avg_FC:     
+          largest_avg_FC = abs(each_site_pos)
+          index = each_index
+  else:
+    index = indices[0]
   pick_pep = all_peptides[index]
   dropped_pep = [x for x in all_peptides if not x == pick_pep]
   
@@ -1341,15 +1412,14 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
         merged_out_dict[each_prot] = {}
       if 'Primary' not in merged_out_dict[each_prot]:
         merged_out_dict[each_prot].update({'Primary':'' , 'String':'', 'Genemania':'', 'ClueGO':''})
+      if 'CommentGene' in merged_out_dict[each_prot]:
+        merged_out_dict[each_prot]['CommentGene'] += 'FC/Pval cutoff not met'
       else:
-        if 'Comment' in merged_out_dict[each_prot]:
-          merged_out_dict[each_prot]['Comment'] += 'FC/Pval cutoff not met'
-        else:
-          merged_out_dict[each_prot].update({'Comment':'FC/Pval cutoff not met'})
+        merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met'})
       
   if cy_debug:
-    logging.debug("FC and PVal cutoff not met: " + str(len(queries_dropped)))
-    logging.warning("WARNING - Dropping queries: " + ','.join(queries_dropped))
+    logging.debug("DROP WARNING - FC and PVal cutoff not met: " + str(len(queries_dropped)))
+    #logging.warning("WARNING - Dropping queries: " + ','.join(queries_dropped))
     
   return(unique_each_protein_list, prot_list, merged_out_dict)
 
@@ -1538,9 +1608,9 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if remaining_isoforms:
       if exclude_ambi:
         logging.warning("Isoforms in query: " + str(len(remaining_isoforms)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(remaining_isoforms))
+        logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(remaining_isoforms))
       else:
-        logging.warning("WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
+        logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join(["(" + ", ".join(x) + ")" for x in duplicate_canonical])
@@ -1559,18 +1629,18 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         
     if prot_with_mult_primgene:
       if exclude_ambi:
-        logging.warning("Isoforms in query: " + str(len(prot_with_mult_primgene)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(prot_with_mult_primgene))
+        logging.warning("Uniprot Multiple primary genes in query: " + str(len(prot_with_mult_primgene)))
+        logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(prot_with_mult_primgene))
       else:
-        logging.warning("WARNING - Uniprot Multiple primary genes, first picked: " + ','.join(prot_with_mult_primgene))
+        logging.warning("AMBIGUITY WARNING - Uniprot Multiple primary genes, first picked: " + ','.join(prot_with_mult_primgene))
   
     if no_uniprot_val:
       logging.debug("Uniprot query not mapped: " + str(len(no_uniprot_val)))
-      logging.warning("WARNING - Dropping queries: " + ','.join(no_uniprot_val))
+      logging.warning("DROP WARNING - Dropping queries: " + ','.join(no_uniprot_val))
 
     if no_primgene_val:
       logging.debug("Uniprot Primary gene unavailable: " + str(len(no_primgene_val)))
-      logging.warning("WARNING - Dropping queries: " + ','.join(no_primgene_val))
+      logging.warning("DROP WARNING - Dropping queries: " + ','.join(no_primgene_val))
   
   if type == "1" or type == "2":
     for each_in_list in prot_list:
@@ -1760,20 +1830,10 @@ def check_dup_preferred_gene(mapping, interaction, unique_vertex, search, unipro
     if len(get_dupe_query_proids) != 0:     
       for each_get_dupe_primgene in dropped_primgene_nodes:
         each_get_dupe_ids = [key for key, val in get_dupe_query_proids.items() if val.lower() == each_get_dupe_primgene.lower()][0]
-        comment_merged = str(search) + "- not mapped;"
-        if 'CommentGene' in merged_out_dict:
-          merged_out_dict[each_get_dupe_ids]['CommentGene'] += comment_merged
-        else:
-          merged_out_dict[each_get_dupe_ids].update({'CommentGene':comment_merged})
         warning.append(each_get_dupe_ids + "(" + get_dupe_query_proids[each_get_dupe_ids] + ") ") 
     
     if len(get_dupe_query_proids_2) != 0:    
       for each_get_dupe_ids in get_dupe_query_proids_2:
-        comment_merged = str(search) + "- not mapped;"
-        if 'CommentGene' in merged_out_dict:
-          merged_out_dict[each_get_dupe_ids]['CommentGene'] += comment_merged
-        else:
-          merged_out_dict[each_get_dupe_ids].update({'CommentGene':comment_merged})
         warning.append(each_get_dupe_ids + "(" + get_dupe_query_proids_2[each_get_dupe_ids] + ") ")  
       
   else:
@@ -1878,10 +1938,6 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
         logging.debug("String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
         warning = []
         for each in no_mapping_prots:
-          if 'CommentGene' in merged_out_dict[each]:
-            merged_out_dict[each]['CommentGene'] += "String- not mapped;"
-          else:
-            merged_out_dict[each].update({'Comment':"String- not mapped;"})
           warning.append(each + "(" + no_mapping_prots[each] + ") ")
         if dup_pref_warning:
           logging.debug("WARNING - Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
@@ -1892,10 +1948,6 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
         logging.debug("String queries with no interactions: " + str(len(no_interactions)))
         warning = []
         for each in no_interactions_prots:
-          if 'CommentGene' in merged_out_dict[each]:
-            merged_out_dict[each]['CommentGene'] += "String- no interaction;"
-          else:
-            merged_out_dict[each].update({'Comment':"String- no interaction;"})
           warning.append(each + "(" + no_interactions_prots[each] + ") ")
         logging.debug("WARNING - Dropping queries: " + ','.join(warning))
   except requests.exceptions.HTTPError:
@@ -2002,10 +2054,6 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
       warning = []
       for each in no_mapping_prots:
         warning.append(each + "(" + no_mapping_prots[each] + ") ")
-        if 'CommentGene' in merged_out_dict[each]:
-          merged_out_dict[each]['CommentGene'] += "Genemania- not mapped;"
-        else:
-          merged_out_dict[each].update({'CommentGene':"Genemania- not mapped;"})
       logging.debug("WARNING - Dropping queries: " + ','.join(warning))
     
     if len(no_interactions) != 0:
@@ -2013,10 +2061,6 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
       warning = []
       for each in no_interactions_prots:
         warning.append(each + "(" + no_interactions_prots[each] + ") ")
-        if 'CommentGene' in merged_out_dict[each]:
-          merged_out_dict[each]['CommentGene'] += "Genemania- no interaction;"
-        else:
-          merged_out_dict[each].update({'CommentGene':"Genemania- no interaction;"})
       logging.debug("WARNING - Dropping queries: " + ','.join(warning))
   
   return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
@@ -2125,10 +2169,6 @@ def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, 
       warning = []
       for each in filtered_dropped_nodes_prot:
         warning.append(each + "(" + filtered_dropped_nodes_prot[each] + "->" + get_dropped_query_primgenes[filtered_dropped_nodes_prot[each]] + ") ")
-        if 'CommentGene' in merged_out_dict[each]:
-          merged_out_dict[each]['CommentGene'] += str(search) + "- dropped interaction category;"
-        else:
-          merged_out_dict[each].update({'CommentGene':str(search) + "- dropped interaction category;"})
       logging.debug("WARNING - Dropping queries: " + ','.join(warning))
     logging.debug(str(search) + " Total query nodes: " + str(len(primary_nodes)))
     logging.debug(str(search) + " Total interactions: " + str(count_retained_interactions))
@@ -2420,13 +2460,13 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     for each in not_found_query_prot:
       warning1.append(each + "(" + not_found_query_prot[each] + ") ")
       if 'CommentGene' in merged_out_dict[each]:
-        merged_out_dict[each]['Comment'] += "Cluego- not found;"
+        merged_out_dict[each]['CommentGene'] += "Cluego- not found;"
       else:
-        merged_out_dict[each].update({'Comment':"Cluego- not found;"})
+        merged_out_dict[each].update({'CommentGene':"Cluego- not found;"})
     if cy_debug and (warning1 or warning2):
       logging.debug("ClueGO query + External Interactor unavailable: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning1:
-        logging.warning("WARNING - Dropped queries: " + ','.join(warning1))
+        logging.warning("DROP WARNING - Dropped queries: " + ','.join(warning1))
       if warning2:
         logging.warning("WARNING - Dropped External Interactor: " + ','.join(warning2))
  
@@ -2458,7 +2498,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     if len(not_found_query) != 0 or len(not_found_ei) != 0:
       logging.debug("ClueGO non-primary query + External Interactor genes: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning:
-        logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        logging.warning("DROP WARNING - Dropping queries: " + ','.join(warning))
       if not_found_ei:
         logging.warning("WARNING - Dropping External Interactor: " + ','.join(not_found_ei))  
   
@@ -2555,7 +2595,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     if select_terms.lower() == "biological process" or select_terms.lower() == "all":
       if "BiologicalProcess" in ontologies:
         list_ontology.append(str(i)+";"+"Ellipse")
-    if select_terms.lower() == "subcellular location" or select_terms.lower() == "all":
+    if select_terms.lower() == "cellular component" or select_terms.lower() == "all":
       if "CellularComponent" in ontologies:
         list_ontology.append(str(i)+";"+"Ellipse")
     if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
@@ -2637,11 +2677,11 @@ def write_into_out(merged_out_dict, out):
     for each_prot in merged_out_dict:
       if 'PickedPeptide' in merged_out_dict[each_prot] or 'DroppedPeptide' in merged_out_dict[each_prot]:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,Reason for Dropped Site, String,Genemania,Reason for Dropped Gene\n")
-        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "\n"
+          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,Reason for Dropped Site, \n")
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","")  + "\n"
       else:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,Site,String,Genemania,Reason for Dropped Gene,\n")
+          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,\n")
         line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "\n"
         
       i+=1
@@ -3939,7 +3979,7 @@ def main(argv):
     print("Argument(opt): -u [--run]: interaction databases [Allowed: string, genemania, both; Default: both]")
     print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
     print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
-    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, subcellular location, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki.")
+    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, cellular component, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki.")
     print("Argument(opt): -g [--grouping]: network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium]")
     print("Argument(opt): -y [--cluegopval]: pvalue cutoff for enrichment analysis [Default: 0.05]")
     print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
@@ -4066,7 +4106,7 @@ def main(argv):
   elif cy_type.lower() == "multifc-ptm":
     cy_type_num = "6"
     
-  allowed_selections = ["biological process","subcellular location","molecular function","pathways","all"]
+  allowed_selections = ["biological process","cellular component","molecular function","pathways","all"]
   if select_terms.lower() not in allowed_selections:
     eprint("Error: The visualization type must be one of the following: " + (',').join(allowed_selections))
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
@@ -4164,14 +4204,14 @@ def main(argv):
     mods_list = []
     if cy_type_num == "5" or cy_type_num == "6":
       if not cy_fasta_file or not cy_mods or not cy_enzyme:
-        print("Error: Fasta file, Enzyme and List of Modifications are mandatory for site analysis")
+        eprint("Error: Fasta file, Enzyme and List of Modifications are mandatory for site analysis")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
         sys.exit(1)        
       database_dict = db_handling(cy_fasta_file)
       mods_list = cy_mods.split(",") 
       allowed_enzyme = ['trypsin', 'trypsin_p', 'lys_n', 'asp_n', 'arg_c', 'chymotrypsin', 'lys_c']
       if cy_enzyme.lower() not in allowed_enzyme:
-        print("Error: Enzyme must be one of the following: " + ','.join(allowed_enzyme))
+        eprint("Error: Enzyme must be one of the following: " + ','.join(allowed_enzyme))
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
         sys.exit(1)
   
@@ -4184,6 +4224,19 @@ def main(argv):
     if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
       unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict)  
     
+    if cy_type_num == "5" or cy_type_num == "6":
+      for each_prot_id in merged_out_dict:
+        comment_drop = False
+        if not 'PickedPeptide' in merged_out_dict[each_prot_id]:
+          comment_drop = True
+        elif not merged_out_dict[each_prot_id]['PickedPeptide']:
+          comment_drop = True
+        if comment_drop:
+          if 'CommentGene' in merged_out_dict[each_prot_id]:
+            merged_out_dict[each_prot_id]['CommentGene'] += 'All peptides dropped;'
+          else:
+            merged_out_dict[each_prot_id].update({'CommentGene':'All peptides dropped;'})
+            
     # Limit query inpt number = 1500
     if len(unique_each_protein_list) > 1500:
       eprint("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
@@ -4282,10 +4335,7 @@ def main(argv):
     uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out, cy_cluego_inp_file, path_to_new_dir, logging_file, site_info_dict, cy_ambi)
     
     all_prot_site_snps = {}
-    '''
-    if (cy_type_num == "5" or cy_type_num == "6"): 
-      all_prot_site_snps, variants = get_dbsnp_classification(uniprot_query,each_primgene_list, site_info_dict, merged_out_dict)
-    '''  
+ 
     if cy_cluego_inp_file:
       if cy_debug:
         logging.debug("\nStep 2.5: Start processing the input ClueGO list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -4311,8 +4361,8 @@ def main(argv):
           merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene'})
         warning.append(each_dropped_prot + "(" + drop_dupeprimgene_prot[each_dropped_prot] + ")")
       if cy_debug:
-        logging.debug("Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
-        logging.warning("WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("DROP WARNING - Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
+        #logging.warning("DROP WARNING - Dropping queries: " + ','.join(warning))
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
@@ -4371,6 +4421,14 @@ def main(argv):
     if (cy_run.lower() == "genemania" or cy_run.lower() == "both") and not interaction_skip:
       unique_merged_interactions,unique_nodes = get_merged_interactions(genemania_filtered_dict, unique_merged_interactions, unique_nodes, max_FC_len, each_category, uniprot_query, cy_type_num)
     
+    for each_merged_dict_node in merged_out_dict:
+      if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
+        if merged_out_dict[each_merged_dict_node]['Primary'].lower() not in unique_nodes:
+          if 'CommentGene' in merged_out_dict[each_merged_dict_node]:
+            merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found'
+          else:
+            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found'})
+          
     if cy_debug:
       logging.debug("Total merged query nodes: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])))
       logging.debug("Total merged interactions: " + str(len(unique_merged_interactions)))
