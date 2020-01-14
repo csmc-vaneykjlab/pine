@@ -686,7 +686,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               else:
                 merged_out_dict[each_key]['Comment'] += "No site;"            
         
-        logging.debug("DROP WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
+        logging.debug("DISCARD WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
         #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
         
     else:
@@ -719,14 +719,14 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     all_dropped = sorted(all_dropped)
     if cy_debug:
       if all_dropped:       
-        logging.debug("DROP WARNING - Duplicate query: " + str((initial_length)-len(each_protein_list)))
+        logging.debug("DISCARD WARNING - Duplicate query: " + str((initial_length)-len(each_protein_list)))
         #logging.warning("WARNING - Dropping queries: " + ','.join(all_dropped))
  
   elif type == "3":
     if repeat_prot_ids:
       unique_each_protein_list = list(set(each_protein_list))    
       if cy_debug:
-        logging.debug("DROP WARNING - Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
+        logging.debug("DISCARD WARNING - Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))
         #logging.warning("WARNING - Dropping queries: " + ','.join(repeat_prot_ids))           
       each_protein_list = unique_each_protein_list      
 
@@ -734,7 +734,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     unique_each_protein_list = list(set(each_protein_list))
     if retain_prot_ids:
       if cy_debug:
-        logging.debug("DROP WARNING - Duplicate query: " + str(len(retain_prot_ids)))
+        logging.debug("DISCARD WARNING - Duplicate query: " + str(len(retain_prot_ids)))
         #logging.warning("WARNING - Dropping queries: " + ','.join(retain_prot_ids))           
     each_protein_list = unique_each_protein_list
 
@@ -760,7 +760,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
         list_of_duplicates = sorted(list_of_duplicates)
         if list_of_duplicates:
-          logging.debug("DROP WARNING - Duplicate query: " + str(len(list_of_duplicates)))
+          logging.debug("DISCARD WARNING - Duplicate query: " + str(len(list_of_duplicates)))
           #logging.warning("WARNING - Dropping queries: " + ','.join(list_of_duplicates)) 
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
@@ -1239,7 +1239,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           es+=1
           
       if site_len > 0:
-        logging.debug("DROP WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+        logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
       #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
       
     if dropped_cutoff_fc_pval:
@@ -1291,7 +1291,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
            merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
           es+=1 
       if site_len > 0:
-        logging.debug("DROP WARNING - Fold Change and P-Value cutoff not met: " + str(len(dropped_cutoff_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+        logging.debug("DISCARD WARNING - Fold Change and P-Value cutoff not met: " + str(len(dropped_cutoff_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
       #logging.warning("WARNING - Dropping queries: " + ','.join(warning))  
                       
     if pep_not_in_fasta:
@@ -1302,7 +1302,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           warning.append(each_mult + "(" + ','.join(pep_not_in_fasta[each_mult]) + ")")
           count_warn +=1 
       if warning:
-        logging.debug("DROP WARNING - Peptides not found in FASTA: " + str(count_warn))
+        logging.debug("DISCARD WARNING - Peptides not found in FASTA: " + str(count_warn))
         #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
   
   if cy_debug:
@@ -1417,7 +1417,7 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
         merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met'})
       
   if cy_debug:
-    logging.debug("DROP WARNING - FC and PVal cutoff not met: " + str(len(queries_dropped)))
+    logging.debug("DISCARD WARNING - FC and PVal cutoff not met: " + str(len(queries_dropped)))
     #logging.warning("WARNING - Dropping queries: " + ','.join(queries_dropped))
     
   return(unique_each_protein_list, prot_list, merged_out_dict)
@@ -1497,7 +1497,6 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
      
       if ";" in primary_gene:
         prot_with_mult_primgene.append(each_prot + "(" + primary_gene + ") ")
-        comment_merged = "Multiple primary genes;"
         is_mult_prim_gene_bool = True
         if not exclude_ambi:
           primary_gene = primary_gene.split(";")[0]
@@ -1596,11 +1595,11 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   
     if no_uniprot_val:
       logging.debug("Uniprot query not mapped: " + str(len(no_uniprot_val)))
-      logging.warning("DROP WARNING - Dropping queries: " + ','.join(no_uniprot_val))
+      logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(no_uniprot_val))
 
     if no_primgene_val:
       logging.debug("Uniprot Primary gene unavailable: " + str(len(no_primgene_val)))
-      logging.warning("DROP WARNING - Dropping queries: " + ','.join(no_primgene_val))
+      logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(no_primgene_val))
   
   if type == "1" or type == "2":
     for each_in_list in prot_list:
@@ -2426,7 +2425,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     if cy_debug and (warning1 or warning2):
       logging.debug("ClueGO query + External Interactor unavailable: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning1:
-        logging.warning("DROP WARNING - Dropped queries: " + ','.join(warning1))
+        logging.warning("DISCARD WARNING - Dropped queries: " + ','.join(warning1))
       if warning2:
         logging.warning("WARNING - Dropped External Interactor: " + ','.join(warning2))
  
@@ -2458,7 +2457,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     if len(not_found_query) != 0 or len(not_found_ei) != 0:
       logging.debug("ClueGO non-primary query + External Interactor genes: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning:
-        logging.warning("DROP WARNING - Dropping queries: " + ','.join(warning))
+        logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(warning))
       if not_found_ei:
         logging.warning("WARNING - Dropping External Interactor: " + ','.join(not_found_ei))  
   
@@ -4198,8 +4197,8 @@ def main(argv):
             merged_out_dict[each_prot_id].update({'CommentGene':'All peptides dropped;'})
             
     # Limit query inpt number = 1500
-    if len(unique_each_protein_list) > 1500:
-      eprint("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
+    if len(unique_each_protein_list) > 1800:
+      eprint("Error: The query input is too big. Currently supporting upto 1800 query protein ids")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
       sys.exit(1)
     
@@ -4318,8 +4317,8 @@ def main(argv):
         merged_out_dict[each_dropped_prot]['Comment'] += "Duplicate primary gene;"
         warning.append(each_dropped_prot + "(" + drop_dupeprimgene_prot[each_dropped_prot] + ")")
       if cy_debug:
-        logging.debug("DROP WARNING - Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
-        #logging.warning("DROP WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("DISCARD WARNING - Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
+        #logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(warning))
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
