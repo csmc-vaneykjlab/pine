@@ -79,6 +79,24 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
       last_exception = e
   raise last_exception
 
+def input_failure_comment(uniprot_query, merged_out_dict, input_id, comment):
+  uniprot_query[input_id] = {
+    'Uniprot': "NA",
+    'Primary': "NA",
+    'Synonym': "NA",
+    'Organism': "NA",
+    'Natural_variant': "NA",
+    'Date_modified': "NA"
+  }
+
+  merged_out_dict[input_id] = {
+    'Primary': '',
+    'CommentGene': comment,
+    'String': '',
+    'Genemania': '',
+    'ClueGO': ''
+  }
+
 def db_handling(db_file):
   database_dict = {}
   proteinID = ""
@@ -1479,7 +1497,6 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   ambigious_gene = []
   all_isoforms = []
   duplicate_canonical = []
-  mapped_dropped_ids = set()
   params = {
   'from':'ACC+ID',
   'to':'ACC',
@@ -1520,12 +1537,17 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       if len(split_prot_list) > 1:
         is_isoform_gene_bool = True
         if exclude_ambi:
+          duplicate_canonical.append(split_prot_list)
+          for spl in split_prot_list:
+            input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
           remaining_isoforms = split_prot_list        
           each_prot = ""
         else:
           if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
             duplicate_canonical.append(split_prot_list)
             each_prot = ""
+            for spl in split_prot_list:
+              input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
           else:
             remaining_isoforms = split_prot_list[1:]
             each_prot = split_prot_list[0]
@@ -1541,10 +1563,10 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         else:
           seen_duplicate_mapping_ids[each_prot] = [{"protein": uniprot_protid, "gene": uniprot_list[1]}]
           if exclude_ambi:
+            input_failure_comment(uniprot_query, merged_out_dict, each_prot, "Input ID maps to multiple Uniprot IDs")
             each_prot = ""
 
       if each_prot == "":
-        mapped_dropped_ids.update(split_prot_list)
         continue
       
       primary_gene = uniprot_list[1]
@@ -1596,8 +1618,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   should_exit = False
   for each_prot_in_input in each_protein_list:
     if each_prot_in_input not in uniprot_query:
-      if each_prot_in_input not in mapped_dropped_ids:
-        no_uniprot_val.append(each_prot_in_input)
+      no_uniprot_val.append(each_prot_in_input)
       uniprot_query[each_prot_in_input] = {}
       uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA",'Natural_variant':"NA",'Date_modified':"NA"})
       merged_out_dict[each_prot_in_input] = {}
@@ -1647,7 +1668,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
 
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join(["(" + ", ".join(x) + ")" for x in duplicate_canonical])
-      logging.warning("DROP WARNING - Dropping queries that had multiple canonical IDs map to single ID: " + duplicate_canonical_str)
+      logging.warning("DROP WARNING - Dropping queries that had multiple IDs map to single ID: " + duplicate_canonical_str)
 
     if len(seen_duplicate_mapping_ids) > 0:
       sdmi_list = []
