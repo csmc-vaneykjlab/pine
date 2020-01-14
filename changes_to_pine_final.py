@@ -878,10 +878,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   else:
                     dropped_cutoff_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep)
                     dropped_cutoff_fc_pval[each_protid]["Site"].append(each_site)
+                  if type == "5":  
+                    del new_each_site_info[0][0]
+                    del new_each_site_info[1][0]
+                  else:
+                    new_each_site_info[0].clear()
+                    new_each_site_info[1].clear()
                     
-                  del new_each_site_info[0][0]
-                  del new_each_site_info[1][0]
-
               if new_each_site_info[0]:              
                 if each_protid not in site_info_dict_rearrange1:
                   site_info_dict_rearrange1[each_protid] = {}
@@ -1031,17 +1034,20 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               else:
                 dropped_cutoff_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site)
                 dropped_cutoff_fc_pval[each_protid]["Site"].append(each_site)
-                    
-              del each_site_info[0][0]
-              del each_site_info[1][0]   
-                     
+              if type == "5":      
+                del each_site_info[0][0]
+                del each_site_info[1][0]
+              else:
+                each_site_info[0].clear()
+                each_site_info[1].clear()              
+              
           if each_site_info[0]:
             if each_protid not in site_info_dict_rearrange:
               site_info_dict_rearrange[each_protid] = {}
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
             else:
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-    
+  
     if site_info_dict_rearrange1:
       for each_prot_id in site_info_dict_rearrange1:
         for each_site in site_info_dict_rearrange1[each_prot_id]:
@@ -1170,7 +1176,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         else:
           msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_inc_ptm_proteins])
         logging.warning("WARNING - Dropping queries due to inconsistent fold changes or p-values between duplicates: " + msg_inc)
-        
+ 
   if type == "6":
     site_info_dict_rearrange = {}
     for each_protid_site in site_info_dict:
@@ -1184,7 +1190,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               if each_site not in site_info_dict_rearrange[each_protid_site]:
                 site_info_dict_rearrange[each_protid_site].update({each_site:[[(site_info_dict[each_protid_site][each_site])[0][index_of]],[(site_info_dict[each_protid_site][each_site])[1][index_of]]]})
-              else:
+              else: 
                 site_info_dict_rearrange[each_protid_site][each_site][0].append((site_info_dict[each_protid_site][each_site])[0][index_of])
                 site_info_dict_rearrange[each_protid_site][each_site][1].append((site_info_dict[each_protid_site][each_site])[1][index_of])
           else:
@@ -1315,7 +1321,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             each_pep = (each_pepandlabel.split("-"))[0]
           else:
             each_pep = each_pepandlabel
-        
+          
+          if each_key not in merged_out_dict:
+            merged_out_dict[each_key] = {}
           if 'PickedPeptide' in merged_out_dict[each_key]:
             if each_pep in merged_out_dict[each_key]['PickedPeptide']:
               indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep)
