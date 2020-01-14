@@ -1448,6 +1448,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   ambigious_gene = []
   all_isoforms = []
   duplicate_canonical = []
+  mapped_dropped_ids = set()
   params = {
   'from':'ACC+ID',
   'to':'ACC',
@@ -1512,6 +1513,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
             each_prot = ""
 
       if each_prot == "":
+        mapped_dropped_ids.update(split_prot_list)
         continue
       
       primary_gene = uniprot_list[1]
@@ -1564,7 +1566,8 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   should_exit = False
   for each_prot_in_input in each_protein_list:
     if each_prot_in_input not in uniprot_query:
-      no_uniprot_val.append(each_prot_in_input)
+      if each_prot_in_input not in mapped_dropped_ids:
+        no_uniprot_val.append(each_prot_in_input)
       uniprot_query[each_prot_in_input] = {}
       uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA",'Natural_variant':"NA",'Date_modified':"NA"})
       merged_out_dict[each_prot_in_input] = {}
@@ -1614,7 +1617,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
 
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join(["(" + ", ".join(x) + ")" for x in duplicate_canonical])
-      logging.warning("WARNING - Dropping queries that had multiple canonical IDs map to single ID: " + duplicate_canonical_str)
+      logging.warning("DROP WARNING - Dropping queries that had multiple canonical IDs map to single ID: " + duplicate_canonical_str)
 
     if len(seen_duplicate_mapping_ids) > 0:
       sdmi_list = []
@@ -1623,9 +1626,9 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] + "[" + x["gene"] + "]" for x in sdmi_val]) + ")")
       duplicate_mapping_str = ", ".join(sdmi_list)
       if exclude_ambi:
-        logging.warning("WARNING - Dropping queries that map to multiple IDs: " + duplicate_mapping_str)
+        logging.warning("DROP WARNING - Dropping queries that map to multiple IDs: " + duplicate_mapping_str)
       else:
-        logging.warning("WARNING - Queries that mapped to multiple IDs.  First picked: " + duplicate_mapping_str)
+        logging.warning("AMBIGUITY WARNING - Queries that mapped to multiple IDs.  First picked: " + duplicate_mapping_str)
         
     if prot_with_mult_primgene:
       if exclude_ambi:
