@@ -557,7 +557,7 @@ let vm = new Vue({
             if(isNaN(parsed)) {
                 return false;
             }
-            return parsed >= 0.0 && parsed <= 1.0;
+            return parsed >= 0.0 && parsed <= 0.99;
         },
         validate_inputs_limit: function() {
             const parsed = parseInt(this.input.limit);
