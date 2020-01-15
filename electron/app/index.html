@@ -373,7 +373,10 @@
               <div>
                 <label class="button success-button" for="file-button-reference">Select file</label>
                 <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" accept=".txt" />
-                <div class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">{{ input.reference_path | filename }}</div>
+                <div class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">
+                  {{ input.reference_path | filename }}
+                  <i class="fas fa-times-circle color-2 clickable" v-on:click="set_input('reference_path', '')"></i>
+                </div>
               </div>
 
               <div></div>

@@ -392,6 +392,9 @@ let vm = new Vue({
             this.reset_cluego_pathways();
             this.switchTab(TABS.INPUT);
         },
+        set_input: function(name, val) {
+            this.input[name] = val;
+        },
         session_exists: function() {
             if(this.session_dir) {
                 return true;
