@@ -64,6 +64,7 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
     func = requests.delete
 
   kwargs = {}
+  kwargs["timeout"] = 60
   if headers:
     kwargs["headers"] = headers
   if data:
@@ -71,15 +72,16 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
   if json:
     kwargs["json"] = json
 
-  time_count = 0
-  while time_count < timeout:
+  timer = time.time()
+  timer_end = timer + timeout
+  while timer < timer_end:
     try:
       res = func(url, **kwargs)
       res.raise_for_status()
       return res
     except Exception as e:
       time.sleep(timeout_interval)
-      time_count += timeout_interval
+      timer = time.time()
       last_exception = e
   raise CytoscapeError(str(last_exception))
 
@@ -4319,15 +4321,13 @@ def main(argv):
     logging.debug("Starting Cytoscape")
     subprocess.Popen([cy_exe])
     logging.debug("...")
-    wait_counter = 0
-    while wait_counter < 600: # give 10 minutes max for cytoscape to open
-      try:
-        r = requests.get("http://localhost:1234/v1/version")
-        test = r.json()
-        break
-      except:
-        time.sleep(5)
-        wait_counter += 5
+    try:
+      request_retry("http://localhost:1234/v1/version", "GET")
+    except CytoscapeError:
+      eprint("Could not start Cytoscape")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
+      sys.exit(1)
+    logging.debug("Cytoscape started")
 
     # Check Cytoscape version
     request = request_retry('http://localhost:1234/v1/version', 'GET')
@@ -4562,7 +4562,6 @@ def main(argv):
   except CytoscapeError as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     eprint("Error: Cytoscape not responding. Please start the run again")
-    traceback.print_exc()
     sys.exit(1)
 
   except Exception as e:

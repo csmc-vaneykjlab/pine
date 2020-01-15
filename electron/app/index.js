@@ -147,7 +147,7 @@ let vm = new Vue({
                     ],
                     "defaultId": 0,
                     "title": "Close Cytoscape",
-                    "message": "Cytoscape must be closed before PINE can run to avoid data loss",
+                    "message": "To avoid data loss, Cytoscape must be closed before PINE can run.  Please close all instances of Cytoscape on this computer (including instances running on other user accounts).",
                 });
                 this.running = false;
                 return false;
@@ -557,7 +557,7 @@ let vm = new Vue({
             if(isNaN(parsed)) {
                 return false;
             }
-            return parsed >= 0.0 && parsed <= 1.0;
+            return parsed >= 0.0 && parsed <= 0.99;
         },
         validate_inputs_limit: function() {
             const parsed = parseInt(this.input.limit);
