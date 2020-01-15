@@ -79,7 +79,7 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
       res = func(url, **kwargs)
       res.raise_for_status()
       return res
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
       time.sleep(timeout_interval)
       timer = time.time()
       last_exception = e
@@ -2627,7 +2627,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   
   ## Use custom reference file
   if reference_file:
-    response = request_retry(CLUEGO_BASE_URL+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+SEP+reference_file, "PUT")
+    response = request_retry(CLUEGO_BASE_URL+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+reference_file, "PUT")
   
   # Set the number of Clusters
   number = 1
@@ -2676,9 +2676,8 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
 
   ####Select Ontologies
   #selected_ontologies = json.dumps(["0;Ellipse","1;Triangle","2;Rectangle","3;Ellipse","4;Triangle","5;Rectangle","6;Ellipse","7;Triangle","8;Rectangle","9;Ellipse","10;Triangle","11;Rectangle","12;Ellipse"]) # (run "3.1 Get all available Ontologies" to get all options)
-  if not reference_file:
-    selected_ontologies = json.dumps(list_ontology)
-    response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
+  selected_ontologies = json.dumps(list_ontology)
+  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
   
   ## 3.1 Set kappa Score
   response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-kappa-score-level"+SEP+str(kappa), "PUT")
@@ -4562,6 +4561,7 @@ def main(argv):
   except CytoscapeError as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     eprint("Error: Cytoscape not responding. Please start the run again")
+    traceback.print_exc()
     sys.exit(1)
 
   except Exception as e:
