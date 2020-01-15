@@ -3685,9 +3685,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           elif FC_val_each_gene < 0:
             calc_down -= 1
     if type == "1" or type == "5":            
-      if (calc_up/total_genes*100) > 80: 
+      if (calc_up/total_genes*100) > 60: 
         up_or_down.append("Up")
-      elif (abs(calc_down)/total_genes*100) > 80:
+      elif (abs(calc_down)/total_genes*100) > 60:
         up_or_down.append("Down")
       else: 
         up_or_down.append("None")
