@@ -4562,7 +4562,6 @@ def main(argv):
   except CytoscapeError as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file)
     eprint("Error: Cytoscape not responding. Please start the run again")
-    traceback.print_exc()
     sys.exit(1)
 
   except Exception as e:
