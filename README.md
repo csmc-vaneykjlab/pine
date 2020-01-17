@@ -21,4 +21,4 @@ The following tools and dependencies are required to run the tool-
    - ClueGO (by default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually)
      ![ClueGO species installation](Image/cluego-species-install.jpg)
 1. Download and Install PINE.exe\
-   Download Pine.Setup.zip file from the the latest [release](https://github.com/Niveda-S/PINE/releases) and extract. Click on the .exe file and follow installation instructions
+   - Download Pine.Setup.zip file from the the latest [release](https://github.com/Niveda-S/PINE/releases) and extract. Click on the .exe file and follow installation instructions
