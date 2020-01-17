@@ -22,6 +22,7 @@ const TABS = {
     INPUT: "input",
     PROGRESS: "progress",
     PATHWAY_SELECTION: "pathway-selection",
+    CREDITS: "credits",
 };
 const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "biologicalprocess", "name": "Biological Process"},
@@ -45,6 +46,8 @@ function is_dir(dirname) {
 function is_file(filename) {
     return fs.existsSync(filename) && fs.statSync(filename).isFile();
 }
+
+const LICENSE_DIRECTORY = "app/assets/licenses";
 
 function error_popup(title, message, warning) {
     let type = "error";
@@ -130,70 +133,82 @@ let vm = new Vue({
                 "url": "https://vuejs.org/",
                 "license_file": "vue.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "Font Awesome",
                 "url": "https://fontawesome.com/",
                 "license_file": "font-awesome.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "Electron",
                 "url": "https://electronjs.org/",
                 "license_file": "electron.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "electron-builder",
                 "url": "https://www.electron.build/",
                 "license_file": "electron-builder.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "Sass",
                 "url": "https://sass-lang.com/",
                 "license_file": "sass.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "PyInstaller",
                 "url": "https://www.pyinstaller.org/",
                 "license_file": "pyinstaller.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "Cytoscape",
                 "url": "https://cytoscape.org/",
                 "license_file": "cytoscape.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "py2cytoscape",
                 "url": "https://github.com/cytoscape/py2cytoscape",
                 "license_file": "py2cytoscape.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "GeneMANIA",
                 "url": "https://genemania.org/",
+                "show_license": false,
             },
             {
                 "name": "STRING",
                 "url": "https://string-db.org/",
                 "license_file": "string-db.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "ClueGO",
                 "url": "http://www.ici.upmc.fr/cluego/",
                 "license_file": "cluego.txt",
                 "license": null,
+                "show_license": false,
             },
             {
                 "name": "pandas",
                 "url": "https://pandas.pydata.org/",
                 "license_file": "pandas.txt",
                 "license": null,
+                "show_license": false,
             },
         ],
     },
@@ -1013,6 +1028,8 @@ let vm = new Vue({
                     return this.running || this.stdout;
                 case TABS.PATHWAY_SELECTION:
                     return !this.running && this.session_exists();
+                case TABS.CREDITS:
+                    return true;
             }
             return false;
         },
@@ -1071,12 +1088,43 @@ let vm = new Vue({
         toggle_pathway_selected: function(pathway) {
             pathway.selected = !pathway.selected;
         },
+        toggle_show_license: function(credit) {
+            if(credit.show_license) {
+                credit.show_license = false;
+                return;
+            }
+
+            if(credit.license == null) { // double equals catches null and undefined
+                if(credit.license_file == null) {
+                    return;
+                }
+                fs.readFile(path.join(LICENSE_DIRECTORY, credit.license_file), "utf-8", (err, data) => {
+                    if(err) {
+                        console.log(err);
+                        return;
+                    }
+                    credit.license = data;
+                    credit.show_license = true;
+                });
+            } else {
+                credit.show_license = true;
+            }
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();
         this.set_input_defaults();
         this.load_settings(this.get_settings_file());
         this.searchForPaths();
+        this.credits.sort((a, b) => {
+            if(a.name < b.name) {
+                return -1;
+            }
+            if(a.name > b.name) {
+                return 1;
+            }
+            return 0;
+        });
     },
     filters: {
         filename: function(v) {

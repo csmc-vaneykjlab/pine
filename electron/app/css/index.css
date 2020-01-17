@@ -366,19 +366,31 @@ img.icon {
   cursor: pointer;
 }
 
-.log-header {
-  margin-bottom: 0.25rem;
-}
-.log-header > h4, .log-header div {
-  display: inline-block;
-}
-
 img.pine-img {
   height: 5rem;
 }
 
 .text-align-center {
   text-align: center;
+}
+
+.credits .credit h1, .credits .credit h2, .credits .credit h3, .credits .credit h4, .credits .credit h5, .credits .credit h6 {
+  display: inline-block;
+}
+.credits .license {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.full-section-header-wrapper {
+  margin-bottom: 0.25rem;
+}
+.full-section-header-wrapper > h1, .full-section-header-wrapper h2, .full-section-header-wrapper h3, .full-section-header-wrapper h4, .full-section-header-wrapper h5, .full-section-header-wrapper h6, .full-section-header-wrapper div {
+  display: inline-block;
+}
+.full-section-header-wrapper > .float-right {
+  margin-right: 1rem;
 }
 
 /*# sourceMappingURL=index.css.map */
