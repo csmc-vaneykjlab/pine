@@ -15,7 +15,7 @@
     "cytoscape"
   ],
   "author": "Cedars-Sinai",
-  "license": "Proprietary",
+  "license": "Apache License 2.0",
   "devDependencies": {
     "electron": "^6.0.7",
     "electron-builder": "^21.2.0"
