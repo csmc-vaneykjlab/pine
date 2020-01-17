@@ -385,8 +385,8 @@
             </div>
           </div>
 
-
           <section class="run-section">
+            <input type="text" placeholder="Name your analysis directory" size="30" v-model="input.output_name" v-show="settings_editable()" />
             <span class="button success-button big" v-show="settings_editable()" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
             <span class="horizontal-sep" v-show="settings_editable()"></span>
             <span class="button success-button big" v-show="settings_editable()" v-on:click="set_input_defaults()">Reset</span>
@@ -536,6 +536,10 @@
               <span v-on:click="open_last_cytoscape_file()" class="big button success-button">Open .cys file <img src="assets/Picture2.png" style="height:1rem" /></span>
               <div class="tooltip">View your Cytoscape file</div>
             </span>
+          </div>
+        </div>
+        <div v-if="current_tab === tabs.CREDITS">
+          <div class="full-section">
           </div>
         </div>
       </div>
