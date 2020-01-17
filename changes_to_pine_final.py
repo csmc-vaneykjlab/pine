@@ -3512,10 +3512,10 @@ def pval(my_style):
   If pval significant, border node with black color, width = 3
   '''
   width_kv_pair = {
-    "1":"3",
+    "1":"4",
   }
   bc_kv_pair = {
-    "1":"#000000",
+    "1":"#0000FF",
   }
   my_style.create_discrete_mapping(column='significant', col_type='Double', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
   my_style.create_discrete_mapping(column='significant', col_type='Double', vp='NODE_BORDER_PAINT', mappings=bc_kv_pair)
