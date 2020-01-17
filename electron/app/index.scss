@@ -399,18 +399,36 @@ img.icon {
     cursor: pointer;
 }
 
-.log-header {
-    margin-bottom: 0.25rem;
-
-    & > h4, div {
-        display: inline-block;
-    }
-}
-
 img.pine-img {
     height: 5rem;
 }
 
 .text-align-center {
     text-align: center;
+}
+
+.credits {
+    .credit {
+        h1,h2,h3,h4,h5,h6 {
+            display: inline-block;
+        }
+    }
+
+    .license {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: 'Courier New', Courier, monospace;
+    }
+}
+
+.full-section-header-wrapper {
+    margin-bottom: 0.25rem;
+
+    & > h1,h2,h3,h4,h5,h6,div {
+        display: inline-block;
+    }
+
+    & > .float-right {
+        margin-right: 1rem;
+    }
 }

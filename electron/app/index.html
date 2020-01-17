@@ -109,6 +109,8 @@
             <span class="button success-button big" v-on:click="open_url('https://google.com')">Cite Us</span>
             <span class="horizontal-sep"></span>
             <span class="button success-button big" v-on:click="open_url('https://google.com')">Help</span>
+            <span class="horizontal-sep"></span>
+            <span class="button success-button big" v-on:click="switchTab(tabs.CREDITS)">Credits</span>
           </section>
         </div>
 
@@ -373,7 +375,10 @@
               <div>
                 <label class="button success-button" for="file-button-reference">Select file</label>
                 <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" accept=".txt" />
-                <div class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">{{ input.reference_path | filename }}</div>
+                <div class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">
+                  {{ input.reference_path | filename }}
+                  <i class="fas fa-times-circle color-2 clickable" v-on:click="set_input('reference_path', '')"></i>
+                </div>
               </div>
 
               <div></div>
@@ -382,8 +387,8 @@
             </div>
           </div>
 
-
           <section class="run-section">
+            <input type="text" placeholder="Name your analysis directory" size="30" v-model="input.output_name" v-show="settings_editable()" />
             <span class="button success-button big" v-show="settings_editable()" v-bind:class="{'disabled': !runnable()}" v-on:click="run_full()">Start</span>
             <span class="horizontal-sep" v-show="settings_editable()"></span>
             <span class="button success-button big" v-show="settings_editable()" v-on:click="set_input_defaults()">Reset</span>
@@ -396,13 +401,13 @@
         </div>
 
         <div v-if="current_tab === tabs.PROGRESS">
-          <div style="margin-bottom: 0.25rem" class="log-header">
+          <div style="margin-bottom: 0.25rem" class="full-section-header-wrapper">
             <h4 class="full-section-header" v-show="running">
               Analysis running:
               <i class="fas fa-spinner fa-pulse"></i>
             </h4>
 
-            <div class="float-right" v-show="running" style="margin-right:1rem">
+            <div class="float-right" v-show="running">
               <div class="button danger-button" v-on:click="cancel_pine()"><i class="far fa-stop-circle"></i> Cancel</div>
             </div>
           </div>
@@ -533,6 +538,33 @@
               <span v-on:click="open_last_cytoscape_file()" class="big button success-button">Open .cys file <img src="assets/Picture2.png" style="height:1rem" /></span>
               <div class="tooltip">View your Cytoscape file</div>
             </span>
+          </div>
+        </div>
+        <div v-if="current_tab === tabs.CREDITS">
+          <div class="full-section-header-wrapper">
+            <h4 class="full-section-header">Credits</h4>
+            <div class="float-right">
+              <span class="button success-button" v-on:click="switchTab(tabs.SETUP)">Back</span>
+            </div>
+          </div>
+          <div class="full-section credits">
+            <div class="credit" v-for="(credit, credit_ix) in credits">
+              <div>
+                <h4>{{ credit.name }}</h4>
+                <div class="float-right">
+                  <a href="#" v-show="credit.license_file" v-on:click="toggle_show_license(credit)">[ Show license ]</a>
+                  <span v-show="credit.license_file">|</span>
+                  <a href="#" v-on:click="open_url(credit.url)" v-bind:title="credit.url" >URL</a>
+                </div>
+              </div>
+
+              <div v-show="credit.show_license">
+                <div class="vertical-sep"></div>
+                <div class="license">{{ credit.license }}</div>
+              </div>
+
+              <hr v-show="credit_ix != credits.length - 1" />
+            </div>
           </div>
         </div>
       </div>

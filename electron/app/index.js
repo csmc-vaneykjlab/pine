@@ -22,6 +22,7 @@ const TABS = {
     INPUT: "input",
     PROGRESS: "progress",
     PATHWAY_SELECTION: "pathway-selection",
+    CREDITS: "credits",
 };
 const ONTOLOGY_SOURCE_TYPES = [
     {"phrase": "biologicalprocess", "name": "Biological Process"},
@@ -46,6 +47,8 @@ function is_file(filename) {
     return fs.existsSync(filename) && fs.statSync(filename).isFile();
 }
 
+const LICENSE_DIRECTORY = "app/assets/licenses";
+
 function error_popup(title, message, warning) {
     let type = "error";
     if(warning) {
@@ -65,6 +68,7 @@ let vm = new Vue({
             "singleFC-ptm": {"text": "Single fold change PTM", "er": true},
             "multiFC-ptm": {"text": "Multi fold change PTM", "er": true},
         },
+        extra_required_fields: ["mods", "fasta_file", "enzyme"],
         species_map: {"homo sapiens": "human", "mus musculus": "mouse", "rattus norvegicus": "rat"},
         allowed_runs: ["string", "genemania", "both"],
         allowed_visualize: ["biological process","cellular component","molecular function","pathways","all"],
@@ -83,6 +87,7 @@ let vm = new Vue({
             cluego_base_path: "",
             in: "",
             output: "",
+            output_name: "",
             type: null,
             species: null,
             limit: null,
@@ -122,9 +127,93 @@ let vm = new Vue({
         reanalysis_name: "",
         last_reanalysis_name: "",
         pine: null,
+        credits: [
+            {
+                "name": "Vue.js",
+                "url": "https://vuejs.org/",
+                "license_file": "vue.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "Font Awesome",
+                "url": "https://fontawesome.com/",
+                "license_file": "font-awesome.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "Electron",
+                "url": "https://electronjs.org/",
+                "license_file": "electron.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "electron-builder",
+                "url": "https://www.electron.build/",
+                "license_file": "electron-builder.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "Sass",
+                "url": "https://sass-lang.com/",
+                "license_file": "sass.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "PyInstaller",
+                "url": "https://www.pyinstaller.org/",
+                "license_file": "pyinstaller.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "Cytoscape",
+                "url": "https://cytoscape.org/",
+                "license_file": "cytoscape.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "py2cytoscape",
+                "url": "https://github.com/cytoscape/py2cytoscape",
+                "license_file": "py2cytoscape.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "GeneMANIA",
+                "url": "https://genemania.org/",
+                "show_license": false,
+            },
+            {
+                "name": "STRING",
+                "url": "https://string-db.org/",
+                "license_file": "string-db.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "ClueGO",
+                "url": "http://www.ici.upmc.fr/cluego/",
+                "license_file": "cluego.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "pandas",
+                "url": "https://pandas.pydata.org/",
+                "license_file": "pandas.txt",
+                "license": null,
+                "show_license": false,
+            },
+        ],
     },
     methods: {
-        run: async function(args) {
+        run: async function(args, is_reanalysis) {
             let that = this;
             if(!this.runnable() || this.running) {
                 return false;
@@ -133,7 +222,7 @@ let vm = new Vue({
 
             let file_check = this.runnable_file_check();
             if(!file_check["success"]) {
-                error_popup("File doesn't exist", `${file_check["file"]} doesn't exist.`);
+                error_popup("File error", `${file_check["file"]}`);
                 this.running = false;
                 return false;
             }
@@ -210,18 +299,23 @@ let vm = new Vue({
                     } else {
                         that.stdout += "Run failed\n";
                         that.stderr = stderr;
-                        /* delete the orphaned directory if it exists */
-                        if(new_session_dir && is_dir(new_session_dir)) {
-                            const dir_contents = fs.readdirSync(new_session_dir);
-                            if(dir_contents.length == 1 && dir_contents[0] === "PINE.log") {
-                                const pine_log_file = path.join(new_session_dir, "PINE.log");
-                                if(is_file(pine_log_file)) {
-                                    fs.unlinkSync(pine_log_file);
-                                    fs.rmdirSync(new_session_dir);
+                        http.get("http://localhost:1234/v1/commands/command/quit");
+
+                        if(!is_reanalysis) {
+                            /* delete the orphaned directory if it exists */
+                            if(new_session_dir && is_dir(new_session_dir)) {
+                                const dir_contents = fs.readdirSync(new_session_dir);
+                                if(dir_contents.length == 2 && dir_contents.includes("PINE.log") && dir_contents.includes("settings.json")) {
+                                    const pine_log_file = path.join(new_session_dir, "PINE.log");
+                                    const pine_settings_file = path.join(new_session_dir, "settings.json");
+                                    if(is_file(pine_log_file) && is_file(pine_settings_file)) {
+                                        fs.unlinkSync(pine_log_file);
+                                        fs.unlinkSync(pine_settings_file);
+                                        fs.rmdirSync(new_session_dir);
+                                    }
                                 }
                             }
                         }
-                        http.get("http://localhost:1234/v1/commands/command/quit");
                         resolve(false);
                         document.getElementById("log-wrapper").scrollTop = 0;
                     }
@@ -253,7 +347,7 @@ let vm = new Vue({
             }
 
             let args = this.pine_args();
-            this.run(args);
+            this.run(args, false);
         },
         run_with_cluego_subset: async function() {
             if(!this.runnable_with_cluego_subset()) {
@@ -267,12 +361,19 @@ let vm = new Vue({
             } else {
                 var reanalysis_name = this.generate_reanalysis_name();
             }
+
+            if(!is_dir(this.session_dir)) {
+                error_popup("Invalid session directory", "Your session directory may have been renamed or deleted.  Please reload the session or run this dataset again.", true);
+                return;
+            }
+
             if(!this.unique_reanalysis_name(reanalysis_name)) {
                 error_popup("Name in use", "This name has already been used for this session, please pick a different name", true);
                 return;
             }
             this.last_reanalysis_name = reanalysis_name;
             const filtered_file_name = path.join(this.session_dir, reanalysis_name + ".cluego.txt");
+            const log_file_name = path.join(this.session_dir, reanalysis_name + ".log");
             let file_data = [];
             file_data.push(this.cluego_pathways.header.join("\t"));
             for(const pathway of this.cluego_pathways.data) {
@@ -285,9 +386,12 @@ let vm = new Vue({
             let args = this.pine_args();
             args.push("-a");
             args.push(filtered_file_name);
-            let res = await this.run(args);
+            let res = await this.run(args, true);
             if(!res) {
                 fs.unlinkSync(filtered_file_name);
+                if(is_file(log_file_name)) {
+                    fs.unlinkSync(log_file_name);
+                }
             }
         },
         genemania_check: function() {
@@ -392,6 +496,9 @@ let vm = new Vue({
             this.reset_cluego_pathways();
             this.switchTab(TABS.INPUT);
         },
+        set_input: function(name, val) {
+            this.input[name] = val;
+        },
         session_exists: function() {
             if(this.session_dir) {
                 return true;
@@ -461,12 +568,23 @@ let vm = new Vue({
                 "--cluego-pval", this.input.cluego_pval,
                 "--reference-path", this.input.reference_path,
                 "--grouping", this.input.grouping,
-                "--cytoscape-executable", this.input.cytoscape_path,
-                "--enzyme", this.input.enzyme,
-                "--fasta-file", this.input.fasta_file,
-                "--mods", this.input.mods,
+                "--cytoscape-exe", this.input.cytoscape_path,
                 "--gui",
             ];
+            if(this.is_extra_options_required()) {
+                args.push("--mods");
+                args.push(this.input.mods);
+
+                args.push("--enzyme");
+                args.push(this.input.enzyme);
+
+                args.push("--fasta-file");
+                args.push(this.input.fasta_file);
+            }
+            if(this.input.output_name) {
+                args.push("--output-name");
+                args.push(this.input.output_name);
+            }
             if(this.input.significant) {
                 args.push("--significant");
             }
@@ -477,29 +595,42 @@ let vm = new Vue({
             return args;
         },
         runnable: function() {
-            if(this.input.in && this.get_cluego_mapping() && this.input.output && this.input.type && !this.running && this.validate_inputs()) {
+            const input_check =
+                this.input.in &&
+                this.get_cluego_mapping() &&
+                this.input.output &&
+                this.input.type &&
+                !this.running &&
+                this.validate_inputs();
+            if(input_check) {
                 if(this.is_extra_options_required()) {
-                    if(this.input.mods && this.input.fasta_file && this.input.enzyme) {
-                        return true;
-                    } else {
-                        return false;
+                    for(const erf of this.extra_required_fields) {
+                        if(!this.input[erf]) {
+                            return false;
+                        }
                     }
+                    return true;
                 } else {
                     return true;
                 }
             }
             return false;
         },
-        runnable_file_check: function() {
+        runnable_file_check: function(is_reanalysis) {
             let msg = null;
             if(!is_file(this.input.in)) {
-                msg = "Input file";
+                msg = "Input file doesn't exist.";
             } else if(!is_dir(this.input.output)) {
-                msg = "Output directory";
+                msg = "Output directory doesn't exist.";
             } else if(this.is_extra_options_required() && !is_file(this.input.fasta_file)) {
-                msg = "Fasta file";
+                msg = "Fasta file doesn't exist.";
             } else if(this.input.reference_path && !is_file(this.input.reference_path)) {
-                msg = "Reference path file";
+                msg = "Reference path file doesn't exist.";
+            } else if(this.input.output_name) {
+                const output_name_path = path.join(this.input.output, this.input.output_name);
+                if(is_file(output_name_path) || is_dir(output_name_path)) {
+                    msg = `Output path ${output_name_path} already exists.`;
+                }
             }
             if(msg) {
                 return {"success": false, "file": msg};
@@ -594,6 +725,7 @@ let vm = new Vue({
             this.input.mods = "S,T,Y";
             this.input.in = "";
             this.input.output = "";
+            this.input.output_name = "";
             this.input.remove_ambiguous = false;
         },
         read_cluego_pathways: function() {
@@ -601,7 +733,7 @@ let vm = new Vue({
 
             this.reset_cluego_pathways();
 
-            if(!this.session_exists() || !fs.existsSync(this.session_cluego_file) || !fs.statSync(this.session_cluego_file).isFile()) {
+            if(!this.session_exists() || !is_file(this.session_cluego_file)) {
                 return;
             }
 
@@ -668,24 +800,37 @@ let vm = new Vue({
             }
         },
         save_settings: function(settings_file) {
-            fs.writeFileSync(settings_file, JSON.stringify(this.input, null, 4));
+            let settings = {};
+            for(const inp in this.input) { 
+                if(inp === "output_name") {
+                    continue;
+                }
+                if(!this.is_extra_options_required() && this.extra_required_fields.includes(inp)) {
+                    continue;
+                }
+                settings[inp] = this.input[inp];
+            }
+            fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
         },
         load_settings: function(settings_file) {
             if(!is_file(settings_file)) {
                 return;
             }
             const raw = fs.readFileSync(settings_file, "utf8");
-            const saved_input = JSON.parse(raw);
-            for(const key in saved_input) {
-                if(key in this.input) {
-                    if(key === "cluego_base_path") {
-                        this.setCluegoBasePath(saved_input[key], false);
-                    } else if(key === "cytoscape_path") {
-                        this.setCytoscapePath(saved_input[key], false);
-                    } else {
-                        Vue.set(this.input, key, saved_input[key]);
+            try {
+                const saved_input = JSON.parse(raw);
+                for(const key in saved_input) {
+                    if(key in this.input) {
+                        if(key === "cluego_base_path") {
+                            this.setCluegoBasePath(saved_input[key], false);
+                        } else if(key === "cytoscape_path") {
+                            this.setCytoscapePath(saved_input[key], false);
+                        } else {
+                            Vue.set(this.input, key, saved_input[key]);
+                        }
                     }
                 }
+            } catch(e) {
             }
         },
         get_settings_file: function() {
@@ -883,6 +1028,8 @@ let vm = new Vue({
                     return this.running || this.stdout;
                 case TABS.PATHWAY_SELECTION:
                     return !this.running && this.session_exists();
+                case TABS.CREDITS:
+                    return true;
             }
             return false;
         },
@@ -941,12 +1088,43 @@ let vm = new Vue({
         toggle_pathway_selected: function(pathway) {
             pathway.selected = !pathway.selected;
         },
+        toggle_show_license: function(credit) {
+            if(credit.show_license) {
+                credit.show_license = false;
+                return;
+            }
+
+            if(credit.license == null) { // double equals catches null and undefined
+                if(credit.license_file == null) {
+                    return;
+                }
+                fs.readFile(path.join(LICENSE_DIRECTORY, credit.license_file), "utf-8", (err, data) => {
+                    if(err) {
+                        console.log(err);
+                        return;
+                    }
+                    credit.license = data;
+                    credit.show_license = true;
+                });
+            } else {
+                credit.show_license = true;
+            }
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();
         this.set_input_defaults();
         this.load_settings(this.get_settings_file());
         this.searchForPaths();
+        this.credits.sort((a, b) => {
+            if(a.name < b.name) {
+                return -1;
+            }
+            if(a.name > b.name) {
+                return 1;
+            }
+            return 0;
+        });
     },
     filters: {
         filename: function(v) {
@@ -1100,7 +1278,7 @@ let vm = new Vue({
             if(!this.session_dir) {
                 return "";
             }
-            return path.join(this.session_dir, "settings.txt");
+            return path.join(this.session_dir, "settings-gui.json");
         },
         selectable_species: function() {
             let selectable = [];
@@ -1135,6 +1313,10 @@ let vm = new Vue({
         },
         "cluego_pathways.ontology_sources_filter": function() {
             this.cluego_pathways.page = 1;
+        },
+        "input.output_name": function(new_val) {
+            let re = /[^a-zA-Z0-9-_]/g;
+            this.$set(this.input, "output_name", new_val.replace(re, ""));
         },
     }
 });
