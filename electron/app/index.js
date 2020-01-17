@@ -305,9 +305,9 @@ let vm = new Vue({
                             /* delete the orphaned directory if it exists */
                             if(new_session_dir && is_dir(new_session_dir)) {
                                 const dir_contents = fs.readdirSync(new_session_dir);
-                                if(dir_contents.length == 2 && dir_contents.includes("PINE.log") && dir_contents.includes("settings.json")) {
+                                if(dir_contents.length == 2 && dir_contents.includes("PINE.log") && dir_contents.includes("timestamp.json")) {
                                     const pine_log_file = path.join(new_session_dir, "PINE.log");
-                                    const pine_settings_file = path.join(new_session_dir, "settings.json");
+                                    const pine_settings_file = path.join(new_session_dir, "timestamp.json");
                                     if(is_file(pine_log_file) && is_file(pine_settings_file)) {
                                         fs.unlinkSync(pine_log_file);
                                         fs.unlinkSync(pine_settings_file);
@@ -350,6 +350,7 @@ let vm = new Vue({
             this.run(args, false);
         },
         run_with_cluego_subset: async function() {
+            this.input.output_name = "";
             if(!this.runnable_with_cluego_subset()) {
                 return;
             }

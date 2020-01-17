@@ -1645,7 +1645,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   
   if cy_cluego_in:
     try:
-      settings_file = os.path.join(os.path.dirname(cy_cluego_in), "settings.json")
+      settings_file = os.path.join(os.path.dirname(cy_cluego_in), "timestamp.json")
       if not os.path.exists(settings_file):
         eprint("Error: Settings file is missing for this run. Please restart your run")
         should_exit = True
@@ -4119,7 +4119,7 @@ def main(argv):
     cy_out = os.path.join(path_to_new_dir, "Interactions.csv")
     cy_cluego_out = os.path.join(path_to_new_dir, "PINE.cluego.txt")
     cy_session = os.path.join(path_to_new_dir, "PINE.cys")
-    cy_settings_file = os.path.join(path_to_new_dir, "settings.json")
+    cy_settings_file = os.path.join(path_to_new_dir, "timestamp.json")
     logging_file = os.path.join(path_to_new_dir, "PINE.log")
     reanalyze_flag = False
     with open(cy_settings_file, "w") as f:
