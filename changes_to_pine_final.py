@@ -8,9 +8,9 @@ try:
   from py2cytoscape import cyrest
 except ImportError:
   eprint("Error: Please install module py2cytoscape. [Installation: pip install py2cytoscape]")
-from py2cytoscape.data.cynetwork import CyNetwork
+#from py2cytoscape.data.cynetwork import CyNetwork
 from py2cytoscape.data.cyrest_client import CyRestClient
-from py2cytoscape.data.style import StyleUtil
+#from py2cytoscape.data.style import StyleUtil
 try:
   import requests
 except ImportError:
@@ -43,6 +43,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 CYREST_PORTS = [8010, 8011, 8012, 8013, 8014, 8015, 8016, 8017, 8018, 8019]
 CYREST_URL = None
+CYREST_PORT = None
 
 class CytoscapeError(Exception):
   def __init__(self, message):
@@ -2592,8 +2593,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
 SEP = "/"
 HEADERS = {'Content-Type': 'application/json'}
 
-CYTOSCAPE_BASE_URL = f"{CYREST_URL}{SEP}v1"
-CLUEGO_BASE_URL = CYTOSCAPE_BASE_URL+SEP+"apps"+SEP+"cluego"+SEP+"cluego-manager"
+CLUEGO_BASE_PATH = "/v1/apps/cluego/cluego-manager"
 
 def writeLines(lines,out_file):
     df = pd.read_csv(StringIO(lines), sep='\t')
@@ -2636,20 +2636,20 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     kappa = 0.4
     
   #### Select the ClueGO Organism to analyze ####
-  response = request_retry(CLUEGO_BASE_URL+SEP+"organisms"+SEP+"set-organism"+SEP+str(organism_name), "PUT", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"organisms"+SEP+"set-organism"+SEP+str(organism_name), "PUT", headers=HEADERS)
   
   ## Use custom reference file
   if reference_file:
-    response = request_retry(CLUEGO_BASE_URL+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+reference_file, "PUT")
+    response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+reference_file, "PUT")
   
   # Set the number of Clusters
   number = 1
   max_input_panel_number = number
-  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"max-input-panel"+SEP+str(max_input_panel_number), "PUT")
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"cluster"+SEP+"max-input-panel"+SEP+str(max_input_panel_number), "PUT")
   
   cluster = 1
   gene_list = json.dumps(merged_vertex)
-  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"upload-ids-list"+SEP+quote(str(cluster)), "PUT", data=gene_list, headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"cluster"+SEP+"upload-ids-list"+SEP+quote(str(cluster)), "PUT", data=gene_list, headers=HEADERS)
   
   # 2.5 Set analysis properties for a Cluster
   input_panel_index = 1
@@ -2657,14 +2657,14 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   cluster_color = "#ff0000" # The color in hex, e.g. #F3A455
   
   no_restrictions = False # "True" for no restricions in number and percentage per term
-  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"set-analysis-properties"+SEP+str(input_panel_index)+SEP+node_shape+SEP+quote(cluster_color)+SEP+str(min_number_of_genes_per_term)+SEP+str(min_percentage_of_genes_mapped)+SEP+str(no_restrictions), "PUT", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"cluster"+SEP+"set-analysis-properties"+SEP+str(input_panel_index)+SEP+node_shape+SEP+quote(cluster_color)+SEP+str(min_number_of_genes_per_term)+SEP+str(min_percentage_of_genes_mapped)+SEP+str(no_restrictions), "PUT", headers=HEADERS)
   
   #Select visual style
   visual_style = "ShowClusterDifference"
-  response = request_retry(CLUEGO_BASE_URL+SEP+"cluster"+SEP+"select-visual-style"+SEP+visual_style, "PUT", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"cluster"+SEP+"select-visual-style"+SEP+visual_style, "PUT", headers=HEADERS)
   
   ## 3.1 Get all available Ontologies
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-ontology-info", "GET", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"get-ontology-info", "GET", headers=HEADERS)
   ontology_info = response.json()
   
   i = 0
@@ -2690,44 +2690,44 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   ####Select Ontologies
   #selected_ontologies = json.dumps(["0;Ellipse","1;Triangle","2;Rectangle","3;Ellipse","4;Triangle","5;Rectangle","6;Ellipse","7;Triangle","8;Rectangle","9;Ellipse","10;Triangle","11;Rectangle","12;Ellipse"]) # (run "3.1 Get all available Ontologies" to get all options)
   selected_ontologies = json.dumps(list_ontology)
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"set-ontologies", "PUT", data=selected_ontologies, headers=HEADERS)
   
   ## 3.1 Set kappa Score
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-kappa-score-level"+SEP+str(kappa), "PUT")
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"set-kappa-score-level"+SEP+str(kappa), "PUT")
   
   ## 3.2 Select Evidence Codes
   evidence_codes = json.dumps(["All"]) # (run "3.3 Get all available Evidence Codes" to get all options)
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-evidence-codes", "PUT", data=evidence_codes, headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"set-evidence-codes", "PUT", data=evidence_codes, headers=HEADERS)
 
   ## 3.3 Get all available Evidence Codes
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"get-evidence-code-info", "GET", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"get-evidence-code-info", "GET", headers=HEADERS)
   
   ## 3.4 Use GO Fusion
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"true", "PUT", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"true", "PUT", headers=HEADERS)
   
   ## 3.5 Set min/max level for GO
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies"+SEP+"set-min-max-levels"+SEP+str(min_go)+SEP+str(max_go)+SEP+"false", "PUT", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"set-min-max-levels"+SEP+str(min_go)+SEP+str(max_go)+SEP+"false", "PUT", headers=HEADERS)
   
   ## 3.6 GO Grouping
   # Highest%20Significance, %23Genes%20%2F%20Term, %25Genes%20%2F%20Term, %25Genes%20%2F%20Term%20vs%20Cluster
-  response = request_retry(CLUEGO_BASE_URL+SEP+"grouping"+SEP+"true"+SEP+"Random"+SEP+leading_term_selection+SEP+"Kappa%20Score"+SEP+str(1)+SEP+str(30)+SEP+str(30), "PUT", headers=HEADERS)
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"grouping"+SEP+"true"+SEP+"Random"+SEP+leading_term_selection+SEP+"Kappa%20Score"+SEP+str(1)+SEP+str(30)+SEP+str(30), "PUT", headers=HEADERS)
   
   ## 3.7 Set Pval
-  response = request_retry(CLUEGO_BASE_URL+SEP+"ontologies/true"+SEP+str(cluego_pval), "PUT")
+  response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies/true"+SEP+str(cluego_pval), "PUT")
   
   #### Run ClueGO Analysis ####
   # Run the analysis an save log file
   analysis_name = "ClueGO Network"
   selection = "Continue analysis"                                                                         
-  response = requests.get(CLUEGO_BASE_URL+SEP+analysis_name+SEP+selection, headers=HEADERS)
+  response = requests.get(CYREST_URL+CLUEGO_BASE_PATH+SEP+analysis_name+SEP+selection, headers=HEADERS)
   
   # Get network id (SUID) (CyRest function from Cytoscape)
-  response = request_retry(CYTOSCAPE_BASE_URL+SEP+"networks"+SEP+"currentNetwork", "GET", headers=HEADERS)
+  response = request_retry(CYREST_URL+"/v1"+SEP+"networks"+SEP+"currentNetwork", "GET", headers=HEADERS)
   current_network_suid = response.json()['data']['networkSUID']
     
   # 4.2 Get ClueGO result table
   if output_cluego:   
-    response = requests.get(CLUEGO_BASE_URL+SEP+"analysis-results"+SEP+"get-cluego-table"+SEP+str(current_network_suid))
+    response = requests.get(CYREST_URL+CLUEGO_BASE_PATH+SEP+"analysis-results"+SEP+"get-cluego-table"+SEP+str(current_network_suid))
     try:
       response.raise_for_status()
       table_file_name = output_cluego
@@ -2941,7 +2941,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   degree = G.degree()
   G.vs["degree"] = degree
   
-  cy = CyRestClient()
+  cy = CyRestClient(port=CYREST_PORT)
   g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
   
   cy.layout.apply(name='cose', network=g_cy)
@@ -2955,7 +2955,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   }
   my_style.update_defaults(basic_settings)
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
-  degree_to_label_size = StyleUtil.create_slope(min=min(degree),max=max(degree),values=(10, 20))
+  #degree_to_label_size = StyleUtil.create_slope(min=min(degree),max=max(degree),values=(10, 20))
   node_label_size =  [
     {
       "value": "2",
@@ -3070,7 +3070,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   degree = G.degree()
   G.vs["degree"] = degree
   
-  cy = CyRestClient()
+  cy = CyRestClient(port=CYREST_PORT)
   g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
   
   cy.layout.apply(name='cose', network=g_cy)
@@ -3085,7 +3085,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   }
   my_style.update_defaults(basic_settings)
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
-  degree_to_label_size = StyleUtil.create_slope(min=min(degree),max=max(degree),values=(10, 20))
+  #degree_to_label_size = StyleUtil.create_slope(min=min(degree),max=max(degree),values=(10, 20))
   node_label_size =  [
     {
       "value": "2",
@@ -3208,7 +3208,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   degree = G.degree()
   G.vs["degree"] = degree
   
-  cy = CyRestClient()
+  cy = CyRestClient(port=CYREST_PORT)
   g_cy = cy.network.create_from_igraph(G, name="Category Network")
   
   cy.layout.apply(name='cose', network=g_cy)
@@ -3817,7 +3817,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   if max_FC_len == 0 and not category_present:
     G.vs["query_val"] = query_val_noFC
   
-  cy = CyRestClient()
+  cy = CyRestClient(port=CYREST_PORT)
 
   g_cy = cy.network.create_from_igraph(G, name="Ontology Network")
   
@@ -4266,6 +4266,7 @@ def main(argv):
     # get a local address port that this run will use
     found_open_port = False
     global CYREST_URL
+    global CYREST_PORT
     for cyrest_port in CYREST_PORTS:
       try:
         CYREST_URL = "http://localhost:" + str(cyrest_port)
@@ -4273,9 +4274,11 @@ def main(argv):
       except requests.exceptions.ConnectionError:
         found_open_port = True
         break
+    CYREST_PORT = cyrest_port
 
     if not found_open_port:
       eprint("Could not find an open port to start Cytoscape.  Please close a previous PINE generated Cytoscape session.")
+      sys.exit(1)
     
     if not cy_cluego_inp_file:
       # Check if cluego path exists        
@@ -4344,7 +4347,8 @@ def main(argv):
     
     # open cytoscape
     logging.debug("Starting Cytoscape")
-    subprocess.Popen([cy_exe, "-R", str(cyrest_port)])
+    subprocess.Popen([cy_exe, "-R", str(CYREST_PORT)])
+    print(f"COMMAND CYREST-PORT {str(CYREST_PORT)}")
     logging.debug("...")
     try:
       request_retry(f"{CYREST_URL}/v1/version", "GET")
@@ -4597,6 +4601,7 @@ def main(argv):
     cytoscape_not_responding_msg = "Expecting value: line 1 column 1 (char 0)"
     if cytoscape_not_open_msg in str(e) or cytoscape_not_open_msg2 in str(e):
       eprint("Error: Cytoscape not responding. Please start the run again")
+      traceback.print_exc()
       sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
       traceback.print_exc()

@@ -227,21 +227,6 @@ let vm = new Vue({
                 return false;
             }
 
-            /* warn user about cytoscape running and give them a chance to stop */
-            if(await this.is_cytoscape_running()) {
-                remote.dialog.showMessageBoxSync({
-                    "type": "warning",
-                    "buttons": [
-                        "Ok",
-                    ],
-                    "defaultId": 0,
-                    "title": "Close Cytoscape",
-                    "message": "To avoid data loss, Cytoscape must be closed before PINE can run.  Please close all instances of Cytoscape on this computer (including instances running on other user accounts).",
-                });
-                this.running = false;
-                return false;
-            }
-
             this.switchTab(TABS.PROGRESS);
             this.stdout = "";
             this.stderr = "";
@@ -260,6 +245,7 @@ let vm = new Vue({
             }
 
             let new_session_dir = null;
+            let cyrest_port = null;
             this.pine.stdout.on("data", function(d) {
                 if(typeof d !== "string") {
                     d = d.toString("utf8");
@@ -270,6 +256,9 @@ let vm = new Vue({
                     if(ds.startsWith("COMMAND")) {
                         if(ds.startsWith("COMMAND FILE-SESSION ")) {
                             new_session_dir = ds.replace(/^COMMAND FILE-SESSION /, "");
+                        }
+                        if(ds.startsWith("COMMAND CYREST-PORT ")) {
+                            cyrest_port = ds.replace(/^COMMAND CYREST-PORT /, "");
                         }
                     } else if(ds.length > 0 || i < d_split.length - 1) {
                         /* print every element except the last one */
@@ -299,7 +288,9 @@ let vm = new Vue({
                     } else {
                         that.stdout += "Run failed\n";
                         that.stderr = stderr;
-                        http.get("http://localhost:1234/v1/commands/command/quit");
+                        if(cyrest_port != null) {
+                            http.get(`http://localhost:${cyrest_port}/v1/commands/command/quit`);
+                        }
 
                         if(!is_reanalysis) {
                             /* delete the orphaned directory if it exists */
@@ -524,34 +515,6 @@ let vm = new Vue({
             this.load_settings(this.session_settings_file);
             this.read_cluego_pathways();
             this.switchTab(TABS.PATHWAY_SELECTION);
-        },
-        is_cytoscape_running: async function() {
-            /* check if listening on port 1234 */
-            let running = await new Promise(function(resolve) {
-                const request = remote.net.request("http://localhost:1234/v1/version");
-                request.on("response", function(response) {
-                    response.on("data", (chunk) => {
-                        try {
-                            const parsed = JSON.parse(chunk);
-                            if("cytoscapeVersion" in parsed) {
-                                resolve(true);
-                            } else {
-                                resolve(false);
-                            }
-                        } catch(e) {
-                            resolve(false);
-                        }
-                    });
-                });
-                request.on("error", function() {
-                    resolve(false);
-                });
-                setTimeout(function() {
-                    resolve(false);
-                }, 1000); // give 1 second for request to be run
-                request.end();
-            });
-            return running;
         },
         pine_args: function() {
             let args = [
