@@ -58,6 +58,9 @@ def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
     logger.addHandler(logging.StreamHandler(sys.stdout))
   return logger
 
+def time_print(msg):
+  print(f"DEBUG -- {datetime.now().isoformat()} -- {msg}")
+
 def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300, timeout_interval=5, request_timeout=300):
   if protocol == "GET":
     func = requests.get
@@ -4101,7 +4104,10 @@ def main(argv):
     cy_out = None
     cy_cluego_out = None
     path_to_cluego = (os.path.abspath(cy_cluego_inp_file))
-    session_name = path_to_cluego.split(".")[0]
+    if path_to_cluego.endswith(".cluego.txt"):
+      session_name = ".".join(path_to_cluego.split(".")[:-2])
+    else:
+      session_name = path_to_cluego
     cy_session = session_name + ".cys"
     logging_file = session_name + ".log"
     reanalyze_flag = True
@@ -4501,8 +4507,10 @@ def main(argv):
     #Merge String and Genemania interactions
     if cy_debug:
       logging.debug("\nStep 5: Merge interactions started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
+    time_print("merge started")
     
     interaction_skip = False
+    time_print("en")
     if not string_filtered_dict and not genemania_filtered_dict:
       if not cy_cluego_inp_file: 
         eprint("Error: No interactions found in String and Genemania")
@@ -4511,6 +4519,7 @@ def main(argv):
       else:
         interaction_skip = True
    
+    time_print("to")
     unique_merged_interactions = []
     unique_nodes = []
     #Get a list of merged interactions (ex: [node1 node2, node3 node4] etc) and a list of unique nodes (ex: [node1, node2, node3, node4])
@@ -4519,6 +4528,7 @@ def main(argv):
     if (cy_run.lower() == "genemania" or cy_run.lower() == "both") and not interaction_skip:
       unique_merged_interactions,unique_nodes = get_merged_interactions(genemania_filtered_dict, unique_merged_interactions, unique_nodes, max_FC_len, each_category, uniprot_query, cy_type_num)
     
+    time_print("tre")
     for each_merged_dict_node in merged_out_dict:
       if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
         if merged_out_dict[each_merged_dict_node]['Primary'].lower() not in unique_nodes:
@@ -4532,6 +4542,7 @@ def main(argv):
       logging.debug("Total merged interactions: " + str(len(unique_merged_interactions)))
     
     # Get uniprot query, primary gene and FC values together
+    time_print("fire")
     uniprot_list = {}
     if not cy_cluego_inp_file:
       for each_node in unique_nodes:
@@ -4542,6 +4553,7 @@ def main(argv):
         uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)
     
     # Interactors styling   
+    time_print("fem")
     if not interaction_skip: 
       if not (cy_type_num == "5" or cy_type_num == "6"):         
         cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels)
@@ -4550,11 +4562,13 @@ def main(argv):
         cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels)
     
     # Category styling   
+    time_print("seks")
     if cy_type_num == "4":    
       cy_category_style(unique_nodes, unique_merged_interactions, uniprot_list, each_category)
     
     coverage = 0.0
     
+    time_print("sju")
     if not cy_cluego_inp_file:
       if cy_debug:
         logging.debug("\nStep 6: ClueGO started at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -4576,6 +4590,7 @@ def main(argv):
       coverage = final_length/initial_length *100
       cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     
+    time_print("atte")
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels)
     
@@ -4585,6 +4600,7 @@ def main(argv):
       logging.debug("\nRun completed successfully")
      
     ## Write into outfile
+    time_print("ni")
     write_into_out(merged_out_dict, cy_out)
     request_retry(f"{CYREST_URL}/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
 

@@ -380,7 +380,9 @@ let vm = new Vue({
             args.push(filtered_file_name);
             let res = await this.run(args, true);
             if(!res) {
-                fs.unlinkSync(filtered_file_name);
+                if(is_file(filtered_file_name)) {
+                    fs.unlinkSync(filtered_file_name);
+                }
                 if(is_file(log_file_name)) {
                     fs.unlinkSync(log_file_name);
                 }
