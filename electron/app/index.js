@@ -501,17 +501,20 @@ let vm = new Vue({
         },
         user_load_session: function(e) {
             if(!e.target.files[0].path) {
+                e.target.value = "";
                 return;
             }
             let new_dir = e.target.files[0].path;
             if(!is_dir(new_dir)) {
                 error_popup("Invalid path", "Path provided is not a directory");
+                e.target.value = "";
                 return;
             }
             let old_dir = this.session_dir;
             this.session_dir = new_dir;
             if(!is_file(this.session_cluego_file) || !is_file(this.session_settings_file)) {
                 this.session_dir = old_dir;
+                e.target.value = "";
                 error_popup("Invalid session", "The session directory you provided is not valid");
             }
             this.load_settings(this.session_settings_file);
