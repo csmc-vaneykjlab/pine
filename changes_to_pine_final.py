@@ -4355,7 +4355,8 @@ def main(argv):
     # open cytoscape
     logging.debug("Starting Cytoscape")
     subprocess.Popen([cy_exe, "-R", str(CYREST_PORT)])
-    print(f"COMMAND CYREST-PORT {str(CYREST_PORT)}")
+    if gui_mode:
+      print(f"COMMAND CYREST-PORT {str(CYREST_PORT)}")
     logging.debug("...")
     try:
       request_retry(f"{CYREST_URL}/v1/version", "GET")
