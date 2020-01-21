@@ -27,8 +27,8 @@
     "productName": "Pine",
     "extraResources": [
       {
-        "from": "../dist/changes_to_pine_final",
-        "to": "extra-resources/pine_2"
+        "from": "../dist/pine",
+        "to": "extra-resources/pine"
       }
     ],
     "win": {

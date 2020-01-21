@@ -249,13 +249,13 @@ let vm = new Vue({
             this.save_settings(this.get_settings_file());
 
             if(process.env.NODE_ENV === "dev") {
-                let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
+                let args1 = [path.join(__dirname, "/../../pine.py")].concat(args);
                 this.pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
             } else if(process.env.NODE_ENV === "devj") {
-                let args1 = [path.join(__dirname, "/../../changes_to_pine_final.py")].concat(args);
+                let args1 = [path.join(__dirname, "/../../pine.py")].concat(args);
                 this.pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
             } else {
-                this.pine = spawn(path.join(__dirname, "../../extra-resources/pine_2/changes_to_pine_final.exe"), args);
+                this.pine = spawn(path.join(__dirname, "../../extra-resources/pine/pine.exe"), args);
             }
 
             let new_session_dir = null;
