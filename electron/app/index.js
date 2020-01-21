@@ -210,6 +210,20 @@ let vm = new Vue({
                 "license": null,
                 "show_license": false,
             },
+            {
+                "name": "cyREST",
+                "url": "https://github.com/cytoscape/cyREST",
+                "license_file": "cyrest.txt",
+                "license": null,
+                "show_license": false,
+            },
+            {
+                "name": "igraph",
+                "url": "https://igraph.org/",
+                "license_file": "igraph.txt",
+                "license": null,
+                "show_license": false,
+            },
         ],
     },
     methods: {
