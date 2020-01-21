@@ -7,3 +7,4 @@ __pycache__
 env
 .vscode
 cert
+full-build.ps1
