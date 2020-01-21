@@ -4353,18 +4353,15 @@ def main(argv):
       sys.exit(1) 
     
     # open cytoscape
-    logging.debug("Starting Cytoscape")
     subprocess.Popen([cy_exe, "-R", str(CYREST_PORT)])
     if gui_mode:
       print(f"COMMAND CYREST-PORT {str(CYREST_PORT)}")
-    logging.debug("...")
     try:
       request_retry(f"{CYREST_URL}/v1/version", "GET")
     except CytoscapeError:
-      eprint("Could not start Cytoscape")
+      eprint("Cytoscape could not start.  Please try again.")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
-    logging.debug("Cytoscape started")
 
     # Check Cytoscape version
     request = request_retry(f'{CYREST_URL}/v1/version', 'GET')
