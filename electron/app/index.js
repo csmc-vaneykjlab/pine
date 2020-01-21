@@ -234,7 +234,7 @@ let vm = new Vue({
             }
             this.running = true;
 
-            let file_check = this.runnable_file_check();
+            let file_check = this.runnable_file_check(is_reanalysis);
             if(!file_check["success"]) {
                 error_popup("File error", `${file_check["file"]}`);
                 this.running = false;
@@ -530,10 +530,20 @@ let vm = new Vue({
                 this.session_dir = old_dir;
                 e.target.value = "";
                 error_popup("Invalid session", "The session directory you provided is not valid");
+                return;
             }
             this.load_settings(this.session_settings_file);
+            const file_check = this.runnable_file_check(true);
+            if(!file_check["success"]) {
+                this.session_dir = old_dir; // revert to old session if file check failed
+                this.load_settings(this.session_settings_file);
+                error_popup("Invalid session", `Could not load session due to missing input files: ${file_check["file"]}`);
+            }
             this.read_cluego_pathways();
-            this.switchTab(TABS.PATHWAY_SELECTION);
+            if(file_check["success"]) {
+                this.switchTab(TABS.PATHWAY_SELECTION);
+            }
+            e.target.value = "";
         },
         pine_args: function() {
             let args = [
@@ -603,13 +613,13 @@ let vm = new Vue({
             let msg = null;
             if(!is_file(this.input.in)) {
                 msg = "Input file doesn't exist.";
-            } else if(!is_dir(this.input.output)) {
+            } else if(!is_dir(this.input.output) && !is_reanalysis) {
                 msg = "Output directory doesn't exist.";
             } else if(this.is_extra_options_required() && !is_file(this.input.fasta_file)) {
                 msg = "Fasta file doesn't exist.";
             } else if(this.input.reference_path && !is_file(this.input.reference_path)) {
                 msg = "Reference path file doesn't exist.";
-            } else if(this.input.output_name) {
+            } else if(this.input.output_name && !is_reanalysis) {
                 const output_name_path = path.join(this.input.output, this.input.output_name);
                 if(is_file(output_name_path) || is_dir(output_name_path)) {
                     msg = `Output path ${output_name_path} already exists.`;
