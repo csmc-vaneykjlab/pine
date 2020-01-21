@@ -28,6 +28,7 @@ The following tools and dependencies are required to run the tool-
 ### Using PINE
 1. **Setting up PINE:** when you first launch PINE, it will search your PC for the latest Cytoscape executable and ClueGO configuration directory. If it cannot find them, then you will need to manually provide them.  These settings will be saved so they only need to be provided the first time you use PINE.
    ![PINE setup usage](Image/pine-usage-setup-1.png)
+
 1. **Running an analysis:** to begin an analysis, go to the Settings tab.  All required options must be provided before the analysis can be started (see below for an explanation of each option).  Click **Start** to run the analysis.  Click **Load session** to load a previous session.
    ![PINE setup usage](Image/pine-usage-settings-1.png)
    **Analysis options:** the following are the options that can be set to run an analysis.
@@ -46,9 +47,20 @@ The following tools and dependencies are required to run the tool-
    - *ClueGO grouping* - Network specificity indicating general, representative and specific pathways.
    - *ClueGO p-value* - P-value cutoff for enrichment analysis.
    - *Reference file* - Background reference file containing a list of protein or gene IDs for enrichment analysis in text format.
+
    **PTM analysis options:** If a PTM type analysis is selected, then three more required options will be needed to run the analysis.
    - *Fasta file* (required) - Fasta file for finding locations of PTMs within the protein.
    - *Enzyme* (required) - Digestion enzyme used.
    - *Modifications* (required) - Comma separated list of modifications of interest.
+
+1. **Log:** while PINE is running, output is written to the log. A copy of the log will also be saved to PINE.log within the output subdirectory. The analysis can be cancelled at anytime from this tab.
+   ![PINE log example](Image/pine-usage-log-1.png)
+   When the PINE analysis is complete, you can view the interaction network by going to the Network tab and selecting the Interaction Network.
+   ![Interaction network example](Image/pine-usage-log-2.png)
+
+1. **Pathway selection:** after a PINE analysis successfully completes, the pathway selection tab will load which shows all the pathways and GO terms found from ClueGO analysis. Pathways and GO terms can be selected for reanalysis on the subset of genes found within these terms. The reanalysis can be given a custom name. If a name is not given, then it will automatically named based on the current time. After selecting one or more terms or pathways, click "Reanalyze" to begin the reanalysis.
+   ![Pathway analysis](Image/pine-pathway-analysis-1.png)
+   After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
+   ![Pathway analysis ontology network](Image/pine-pathway-analysis-2.png)
 
 ### Input file description
