@@ -1100,10 +1100,10 @@ let vm = new Vue({
         this.load_settings(this.get_settings_file());
         this.searchForPaths();
         this.credits.sort((a, b) => {
-            if(a.name < b.name) {
+            if(a.name.toLowerCase() < b.name.toLowerCase()) {
                 return -1;
             }
-            if(a.name > b.name) {
+            if(a.name.toLowerCase() > b.name.toLowerCase()) {
                 return 1;
             }
             return 0;
