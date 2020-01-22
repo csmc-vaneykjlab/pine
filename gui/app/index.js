@@ -251,7 +251,7 @@ let vm = new Vue({
             this.save_settings(this.get_settings_file());
 
             if(process.env.NODE_ENV === "dev") {
-                let args1 = [path.join(__dirname, "/../../pine.py")].concat(args);
+                let args1 = [path.join(__dirname, "/../../pine/pine.py")].concat(args);
                 this.pine = spawn("python", args1);
             } else {
                 this.pine = spawn(path.join(__dirname, "../../extra-resources/pine/pine.exe"), args);
