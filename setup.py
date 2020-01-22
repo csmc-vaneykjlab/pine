@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup (
-  name="PINE",
+  name="pine",
   version="0.1",
   description="Protein Interaction Network Extractor",
   license="Apache License 2.0",
