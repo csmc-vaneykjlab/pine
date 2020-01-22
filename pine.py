@@ -4,13 +4,7 @@ import sys
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
-try:
-  from py2cytoscape import cyrest
-except ImportError:
-  eprint("Error: Please install module py2cytoscape. [Installation: pip install py2cytoscape]")
-#from py2cytoscape.data.cynetwork import CyNetwork
-from py2cytoscape.data.cyrest_client import CyRestClient
-#from py2cytoscape.data.style import StyleUtil
+from pinepy2cytoscape.data.cyrest_client import CyRestClient
 try:
   import requests
 except ImportError:
