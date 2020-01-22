@@ -109,7 +109,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Label | `label` |
 
 ### Output directory description
-A diretory is created in the specified output directory after the analysis completes.  This directory will contain six files:
+A directory is created in the specified output directory after the analysis completes.  This directory will contain six files:
 - **Interactions.csv** - The results for each Protein ID in the analysis.
 - **PINE.cluego.txt** - Pathways and GO terms found to be significant by ClueGO.
 - **PINE.cys** - The Cytoscape file containing the interaction network.
