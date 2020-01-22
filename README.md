@@ -4,6 +4,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Using PINE](#using-pine)
 - [Input file description](#input-file-description)
+- [Output directory description](#output-directory-description)
 
 ### Requirements and Setup
 The following tools and dependencies are required to run the tool-
@@ -60,7 +61,7 @@ The following tools and dependencies are required to run the tool-
 
 1. **Pathway selection:** after a PINE analysis successfully completes, the pathway selection tab will load which shows all the pathways and GO terms found from ClueGO analysis. Pathways and GO terms can be selected for reanalysis on the subset of genes found within these terms. The reanalysis can be given a custom name. If a name is not given, then it will automatically named based on the current time. After selecting one or more terms or pathways, click "Reanalyze" to begin the reanalysis.
 
-   From this tab, you can also open the results folder and the Cytoscape file of the most recent analysis.
+   From this tab, you can also open the results folder ([see here for results description](#output-directory-description)) and the Cytoscape file of the most recent analysis.
    ![Pathway analysis](Image/pine-usage-pathway-selection-1.png)
    After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
    ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
@@ -106,3 +107,12 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Peptide sequence | `peptide` |
 | Fold change | `fc` |
 | Label | `label` |
+
+### Output directory description
+A diretory is created in the specified output directory after the analysis completes.  This directory will contain six files:
+- **Interactions.csv** - The results for each Protein ID in the analysis.
+- **PINE.cluego.txt** - Pathways and GO terms found to be significant by ClueGO.
+- **PINE.cys** - The Cytoscape file containing the interaction network.
+- **PINE.log** - Log of analysis.
+- **settings-gui.json** - Settings from the GUI that were provided to the PINE Python script.  This file should not be modified because it is used to retrieve the settings when the session is reloaded.
+- **timestamp.json** - The time when the analysis was run.  This file should not be modified.
