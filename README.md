@@ -5,8 +5,9 @@
 - [Using PINE](#using-pine)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
+- [Command line installation and requirements](#command-line-installation-and-requirements)
 
-### Requirements and Setup
+## Requirements and Setup
 The following tools and dependencies are required to run the tool-
 1. Install [Cytoscape](https://cytoscape.org/download.html)\
    ![Cytoscape](Image/cytoscape.jpg)
@@ -26,7 +27,7 @@ The following tools and dependencies are required to run the tool-
 1. Download and Install PINE.exe
    - Download Pine.Setup.zip file from the the latest [release](https://github.com/Niveda-S/PINE/releases) and extract. Click on the .exe file and follow installation instructions
 
-### Using PINE
+## Using PINE
 1. **Setting up PINE:** when you first launch PINE, it will search your PC for the latest Cytoscape executable and ClueGO configuration directory. If it cannot find them, then you will need to manually provide them.  These settings will be saved so they only need to be provided the first time you use PINE.
    ![PINE setup usage](Image/pine-usage-setup-1.png)
 
@@ -66,41 +67,41 @@ The following tools and dependencies are required to run the tool-
    After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
    ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
 
-### Input file description
+## Input file description
 All input files must be in CSV (comma separated value) format.  All column names are case-insensitive.
 
-#### No fold change
+**No fold change**
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 
-#### Single fold change
+**Single fold change**
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
 
-#### Multi fold change
+**Multi fold change**
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
 | Label | `label` |
 
-#### Category
+**Category**
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Category | `category` |
 
-#### Single fold change PTM
+**Single fold change PTM**
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Peptide sequence | `peptide` |
 | Fold change | `fc` |
 
-#### Multi fold change PTM
+**Multi fold change PTM**
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
@@ -108,7 +109,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Fold change | `fc` |
 | Label | `label` |
 
-### Output directory description
+## Output directory description
 A directory is created in the specified output directory after the analysis completes.  This directory will contain six files:
 - **Interactions.csv** - The results for each Protein ID in the analysis.
 - **PINE.cluego.txt** - Pathways and GO terms found to be significant by ClueGO.
@@ -116,3 +117,15 @@ A directory is created in the specified output directory after the analysis comp
 - **PINE.log** - Log of analysis.
 - **settings-gui.json** - Settings from the GUI that were provided to the PINE Python script.  This file should not be modified because it is used to retrieve the settings when the session is reloaded.
 - **timestamp.json** - The time when the analysis was run.  This file should not be modified.
+
+## Command line installation and requirements
+### Requirements
+- All the requirements listed [above](#requirements-and-setup)
+- Python3
+
+### Installation
+`pip install git+https://https://github.com/csmc-vaneykjlab/pine.git#egg=PINE`
+
+It is strongly recommended you use a virtual environment for installing PINE.
+
+After installing, PINE can be run using `python3 -m pine.pine --help`
