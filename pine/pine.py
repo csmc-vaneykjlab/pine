@@ -4033,11 +4033,6 @@ def main(argv):
         help = True      
   except getopt.GetoptError as e:
     help = True
-
-  if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe or not cy_map:
-    eprint("Error: Mandatory parameter not provided. Please provide path to cytoscape exe, path to ClueGO mapping file, input csv file, species, run type and output directory")
-    sys.exit(1)
-    help = True
     
   if help:
     print("PINE")
@@ -4065,6 +4060,10 @@ def main(argv):
     print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
     print("Argument(opt): -a [--inputcluego]: filtered cluego file with ontology terms of interest")
     sys.exit()
+
+  if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe or not cy_map:
+    eprint("Error: Mandatory parameter not provided. Please provide path to cytoscape exe, path to ClueGO mapping file, input csv file, species, run type and output directory")
+    sys.exit(1)
 
   if not os.path.isdir(cy_out_dir):
     eprint("Error: output is not a directory")
