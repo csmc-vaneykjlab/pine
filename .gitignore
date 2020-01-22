@@ -6,6 +6,5 @@ dist
 __pycache__
 env
 .vscode
-cert
 full-build.ps1
 *.spec
