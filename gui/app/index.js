@@ -525,7 +525,7 @@ let vm = new Vue({
             }
             let old_dir = this.session_dir;
             this.session_dir = new_dir;
-            if(!is_file(this.session_cluego_file) || !is_file(this.session_settings_file)) {
+            if(!is_file(this.session_cluego_file) || !is_file(this.session_settings_file) || !is_file(this.session_timestamp_file)) {
                 this.session_dir = old_dir;
                 e.target.value = "";
                 error_popup("Invalid session", "The session directory you provided is not valid");
@@ -1263,6 +1263,12 @@ let vm = new Vue({
                 return "";
             }
             return path.join(this.session_dir, "settings-gui.json");
+        },
+        session_timestamp_file: function() {
+            if(!this.session_dir) {
+                return "";
+            }
+            return path.join(this.session_dir, "timestamp.json");
         },
         selectable_species: function() {
             let selectable = [];
