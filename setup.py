@@ -25,4 +25,5 @@ setup (
     "six==1.12.0",
     "urllib3==1.25.6",
   ],
+  packages=["pine"],
 )
