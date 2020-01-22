@@ -1,4 +1,4 @@
-const Vue = require("vue/dist/vue.js");
+const Vue = require("vue/dist/vue.min.js");
 const { remote } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -250,10 +250,7 @@ let vm = new Vue({
 
             if(process.env.NODE_ENV === "dev") {
                 let args1 = [path.join(__dirname, "/../../pine.py")].concat(args);
-                this.pine = spawn("C:/Users/SundararamN/AppData/Local/Programs/Python/Python37-32/python.exe", args1);
-            } else if(process.env.NODE_ENV === "devj") {
-                let args1 = [path.join(__dirname, "/../../pine.py")].concat(args);
-                this.pine = spawn("C:/Users/GoJ1/AppData/Local/Programs/Python/Python37/python.exe", args1);
+                this.pine = spawn("python", args1);
             } else {
                 this.pine = spawn(path.join(__dirname, "../../extra-resources/pine/pine.exe"), args);
             }

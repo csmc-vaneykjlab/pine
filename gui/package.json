@@ -6,7 +6,6 @@
   "scripts": {
     "start": "npm run-script sass && electron .",
     "dev": "npm run-script sass && set NODE_ENV=dev&& electron .",
-    "devj": "npm run-script sass && set NODE_ENV=devj&& electron .",
     "sass": "sass app/index.scss app/css/index.css"
   },
   "keywords": [
