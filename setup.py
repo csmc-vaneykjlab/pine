@@ -15,6 +15,7 @@ setup (
     "numpy==1.17.3",
     "pandas==0.25.2",
     "pinepy2cytoscape==0.7.1",
+    "git+https://github.com/fivebillionmph/pinepy2cytoscape.git@pine"
     "pydot==1.4.1",
     "pydotplus==2.0.2",
     "pyparsing==2.4.2",
@@ -25,5 +26,4 @@ setup (
     "six==1.12.0",
     "urllib3==1.25.6",
   ],
-  dependency_links=["https://github.com/fivebillionmph/pinepy2cytoscape/tarball/pine#egg=pinepy2cytoscape-0.7.1"],
 )
