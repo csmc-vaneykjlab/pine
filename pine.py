@@ -2074,15 +2074,11 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species, offline=True)
   try:
     get_genemania = request_retry(f'{CYREST_URL}/v1/commands/genemania/search', 'POST', json=body, timeout=3, request_timeout=10000)
-  except Exception as e:
-    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)  
-    try:
-      requests.get(f"{CYREST_URL}/v1/commands/command/quit")
-      eprint("Error: Genemania timed out- please try again later")
-      sys.exit(1)
-    except:
-      eprint("Error: Cytoscape not responding. Please start the run again")
-      sys.exit(1)
+  except CytoscapeError as e:
+    if "500 Server Error: Internal Server Error" in str(e):
+      return (genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
+    else:
+      raise e
    
   try:    
     uploaded_list = get_genemania.json()
