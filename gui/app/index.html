@@ -524,7 +524,7 @@
             </div>
           </div>
           <div class="run-section">
-            <input type="text" placeholder="Name your reanalysis file (optional)" size="30" v-model="reanalysis_name" v-on:input="validate_reanalysis_name()" class="big" />
+            <input type="text" placeholder="Name your reanalysis file (optional)" size="30" v-model="reanalysis_name" class="big" />
             <div v-on:click="run_with_cluego_subset()" class="button success-button big" v-bind:class="{'disabled': !runnable_with_cluego_subset()}">
               Reanalyze ({{ cluego_pathways_filtered.n_selected }})
             </div>

@@ -39,6 +39,8 @@ const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
 const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
 
+const OUT_NAME_INVALID_REGEX = /[^a-zA-Z0-9-_]/g;
+
 function is_dir(dirname) {
     return fs.existsSync(dirname) && fs.statSync(dirname).isDirectory();
 }
@@ -1064,14 +1066,6 @@ let vm = new Vue({
                 }
             }
         },
-        validate_reanalysis_name: function() {
-            let match = this.reanalysis_name.match(/[A-Za-z0-9\-_ ]/g);
-            if(match) {
-                this.reanalysis_name = match.join("");
-            } else {
-                this.reanalysis_name = "";
-            }
-        },
         open_url: function(url) {
             shell.openExternal(url);
         },
@@ -1305,8 +1299,10 @@ let vm = new Vue({
             this.cluego_pathways.page = 1;
         },
         "input.output_name": function(new_val) {
-            let re = /[^a-zA-Z0-9-_]/g;
-            this.$set(this.input, "output_name", new_val.replace(re, ""));
+            this.$set(this.input, "output_name", new_val.replace(OUT_NAME_INVALID_REGEX, ""));
+        },
+        "reanalysis_name": function(new_val) {
+            this.$set(this, "reanalysis_name", new_val.replace(OUT_NAME_INVALID_REGEX, ""));
         },
     }
 });
