@@ -66,3 +66,22 @@ The following tools and dependencies are required to run the tool-
    ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
 
 ### Input file description
+All input files must be in CSV (comma separated value) format.  All column names are case-insensitive.
+
+#### No fold change
+| Column | Acceptable names |
+| ------ | ---------------- |
+| Uniprot ID | proteinid |
+
+#### Single fold change
+| Column | Acceptable names |
+| ------ | ---------------- |
+| Uniprot ID | `proteinid` |
+| Fold change | `fc` |
+
+#### Multi fold change
+| Column | Acceptable names |
+| ------ | ---------------- |
+| Uniprot ID | `proteinid` |
+| Fold change | `fc` |
+| Label | `label` |
