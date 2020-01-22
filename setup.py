@@ -14,8 +14,7 @@ setup (
     "networkx==2.4",
     "numpy==1.17.3",
     "pandas==0.25.2",
-    "pinepy2cytoscape==0.7.1",
-    "git+https://github.com/fivebillionmph/pinepy2cytoscape.git@pine"
+    "pinepy2cytoscape @ git+https://github.com/fivebillionmph/pinepy2cytoscape.git@pine",
     "pydot==1.4.1",
     "pydotplus==2.0.2",
     "pyparsing==2.4.2",
