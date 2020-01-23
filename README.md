@@ -71,17 +71,20 @@ The following tools and dependencies are required to run the tool-
 All input files must be in CSV (comma separated value) format.  All column names are case-insensitive.
 
 **No fold change**
+
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 
 **Single fold change**
+
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
 
 **Multi fold change**
+
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
@@ -89,12 +92,14 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Label | `label` |
 
 **Category**
+
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Category | `category` |
 
 **Single fold change PTM**
+
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
@@ -102,6 +107,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Fold change | `fc` |
 
 **Multi fold change PTM**
+
 | Column | Input column name |
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
