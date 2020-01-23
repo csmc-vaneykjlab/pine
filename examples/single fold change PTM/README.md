@@ -1,4 +1,5 @@
 # Single fold change PTM example
+This guide will walk you through an example PINE analysis using for single fold changes PTMs.
 
 ## Download the example files
 You'll need the **single-fold-change-data.csv** and **mouse.fasta** to run this example.
