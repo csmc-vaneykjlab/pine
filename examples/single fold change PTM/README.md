@@ -28,7 +28,7 @@ Make sure PINE was able to find your Cytoscape.exe and ClueGO configuration fold
 Your settings should look like the following when you're done.  Click **Start** to run.
 ![settings](images/settings.png)
 
-## Analysis esults
+## Analysis results
 After PINE finishes running, you can go to the **Network** tab in the Cytoscape control panel and select the **Interaction Network**.  This is the single fold change interaction network.  Each yellow square is a gene and the circles represent fold changes for PTMS on the genes' proteins.  Your network should look similar to the image below (but not exactly because the layout algorithms may produce different results and the interaction databases may change over time).
 ![results 1](images/results-1.png)
 
