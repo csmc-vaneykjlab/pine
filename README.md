@@ -130,7 +130,7 @@ A directory is created in the specified output directory after the analysis comp
 - Python3
 
 ### Installation
-`pip install git+https://https://github.com/csmc-vaneykjlab/pine.git#egg=PINE`
+`pip install git+https://https://github.com/csmc-vaneykjlab/pine.git#egg=pine`
 
 It is strongly recommended you use a virtual environment for installing PINE.
 
