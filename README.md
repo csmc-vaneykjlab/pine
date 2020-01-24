@@ -152,10 +152,12 @@ It is strongly recommended you use a virtual environment for installing PINE.
 
 After installing, PINE can be run using `python3 -m pine.pine --help`
 
-### Command line parameters
+### Usage
 ```
 python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz --cytoscape-executable path_to_exe
 ```
+
+### Command line parameters
 | Parameter | Description |
 | --------- | ----------- |
 | -i, --in | input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide |
