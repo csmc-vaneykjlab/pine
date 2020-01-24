@@ -1,16 +1,25 @@
 # PINE Installation and Usage
 
 ## Table of Contents
+- [What is PINE](#what-is-pine)
 - [Requirements and Setup](#requirements-and-setup)
-- [Using PINE](#using-pine)
+- [Using PINE GUI](#using-pine-gui)
+- [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
-- [Command line usage](#command-line-usage)
 - [Support](#support)
 - [License](#license)
 
+## What is PINE
+PINE (**P**rotein **I**nteraction **N**etwork **E**xtractor) is a tool for visualizing protein-protein interactions.  PINE is provided in two forms: a command line version built in Python and a graphical user interface (GUI).
+
 ## Requirements and Setup
-The following tools and dependencies are required to run the tool-
+The following tools and dependencies are required to run PINE:
+- [Cytoscape](https://cytoscape.org/download.html)
+- [Genemania](http://apps.cytoscape.org/apps/genemania)
+- [ClueGO](http://apps.cytoscape.org/apps/cluego)
+
+The PINE graphical user interface is only available for Windows.
 
 ### Install [Cytoscape](https://cytoscape.org/download.html)
 ![Cytoscape](Image/cytoscape.jpg)
@@ -35,7 +44,7 @@ By default human and mouse datasets are installed; all other datasets for suppor
 ### Download and Install PINE.exe
 Download Pine.Setup.zip file from the the latest [release](https://github.com/csmc-vaneykjlab/pine/releases) and extract. Click on the .exe file and follow installation instructions
 
-## Using PINE
+## Using PINE GUI
 
 ### Setting up PINE
 When you first launch PINE, it will search your PC for the latest Cytoscape executable and ClueGO configuration directory. If it cannot find them, then you will need to manually provide them.  These settings will be saved so they only need to be provided the first time you use PINE.
@@ -82,6 +91,49 @@ From this tab, you can also open the results folder ([see here for results descr
 ![Pathway analysis](Image/pine-usage-pathway-selection-1.png)
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
 ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
+
+## Using PINE command line
+
+### Requirements
+- All the requirements listed [above](#requirements-and-setup)
+- Python3
+
+### Installation
+`pip install git+https://https://github.com/csmc-vaneykjlab/pine.git#egg=pine`
+
+It is strongly recommended you use a virtual environment for installing PINE.
+
+After installing, PINE can be run using `python3 -m pine.pine --help`
+
+### Usage
+```
+python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz --cytoscape-executable path_to_exe
+```
+
+### Command line parameters
+| Parameter | Description |
+| --------- | ----------- |
+| -i, --in | input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide |
+| -o, --output | path to output directory |
+| -t, --type | analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm] |
+| -s, --species | species [Allowed: human, mouse, rat] |
+| -x, --enzyme | (required if singlefc-ptm or multifc-ptm) enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c] |
+| -d, --mods | (required if singlefc-ptm or multifc-ptm) comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]] |
+| -b, --fastafile | (required if singlefc-ptm or multifc-ptm) path to fasta file |
+| -m, --mapping | path to cluego mapping file compressed in .gz format |
+| -e, --cytoscape-executable | the path to the Cytoscape executable |
+| -f, --fccutoff | (optional) fold change cutoff for input [Default: abs(FC) >= 0.0] |
+| -p, --pvalcutoff | (optional) pvalue cutoff for input [Default: pval > 1.0] |
+| -n, --significant | (optional) outline statistically significant nodes, i.e pval>0.0 |
+| -k, --exclude-ambiguity | (optional) exclude ambigious genes and sites |
+| -u, --run | (optional) interaction databases [Allowed: string, genemania, both; Default: both] |
+| -r, --score | (optional) interaction confidence score for string [Default:0.4, Range 0-1] |
+| -l, --limit | (optional) maximum number of external interactors [Default:0, Range:0-100] |
+| -z, --visualize | (optional) ontology type [Allowed: biological process, cellular component, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki. |
+| -g, --grouping | (optional) network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium] |
+| -y, --cluegopval | (optional) pvalue cutoff for enrichment analysis [Default: 0.05] |
+| -h, --referencepath | (optional) path to background reference file for enrichment |
+| -a, --inputcluego | (optional) filtered cluego file with ontology terms of interest |
 
 ## Input file description
 All input files must be in CSV (comma separated value) format.  All column names are case-insensitive.
@@ -132,6 +184,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Label | `label` |
 
 ## Output directory description
+
 A directory is created in the specified output directory after the analysis completes.  This directory will contain six files:
 - **Interactions.csv** - The results for each Protein ID in the analysis.
 - **PINE.cluego.txt** - Pathways and GO terms found to be significant by ClueGO.
@@ -139,48 +192,6 @@ A directory is created in the specified output directory after the analysis comp
 - **PINE.log** - Log of analysis.
 - **settings-gui.json** - Settings from the GUI that were provided to the PINE Python script.  This file should not be modified because it is used to retrieve the settings when the session is reloaded.
 - **timestamp.json** - The time when the analysis was run.  This file should not be modified.
-
-## Command line usage
-### Requirements
-- All the requirements listed [above](#requirements-and-setup)
-- Python3
-
-### Installation
-`pip install git+https://https://github.com/csmc-vaneykjlab/pine.git#egg=pine`
-
-It is strongly recommended you use a virtual environment for installing PINE.
-
-After installing, PINE can be run using `python3 -m pine.pine --help`
-
-### Usage
-```
-python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz --cytoscape-executable path_to_exe
-```
-
-### Command line parameters
-| Parameter | Description |
-| --------- | ----------- |
-| -i, --in | input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide |
-| -o, --output | path to output directory |
-| -t, --type | analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm] |
-| -s, --species | species [Allowed: human, mouse, rat] |
-| -x, --enzyme | (required if singlefc-ptm or multifc-ptm) enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c] |
-| -d, --mods | (required if singlefc-ptm or multifc-ptm) comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]] |
-| -b, --fastafile | (required if singlefc-ptm or multifc-ptm) path to fasta file |
-| -m, --mapping | path to cluego mapping file compressed in .gz format |
-| -e, --cytoscape-executable | the path to the Cytoscape executable |
-| -f, --fccutoff | (optional) fold change cutoff for input [Default: abs(FC) >= 0.0] |
-| -p, --pvalcutoff | (optional) pvalue cutoff for input [Default: pval > 1.0] |
-| -n, --significant | (optional) outline statistically significant nodes, i.e pval>0.0 |
-| -k, --exclude-ambiguity | (optional) exclude ambigious genes and sites |
-| -u, --run | (optional) interaction databases [Allowed: string, genemania, both; Default: both] |
-| -r, --score | (optional) interaction confidence score for string [Default:0.4, Range 0-1] |
-| -l, --limit | (optional) maximum number of external interactors [Default:0, Range:0-100] |
-| -z, --visualize | (optional) ontology type [Allowed: biological process, cellular component, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki. |
-| -g, --grouping | (optional) network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium] |
-| -y, --cluegopval | (optional) pvalue cutoff for enrichment analysis [Default: 0.05] |
-| -h, --referencepath | (optional) path to background reference file for enrichment |
-| -a, --inputcluego | (optional) filtered cluego file with ontology terms of interest |
 
 ## Support
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
