@@ -30,7 +30,7 @@ Your settings should look like the following when you're done.  Click **Start** 
 ![settings](images/settings.png)
 
 ## Analysis results
-After PINE finishes running, you can go to the **Network** tab in the Cytoscape control panel and select the **Interaction Network**.  This is the single fold change interaction network.  Each yellow square is a gene and the circles represent fold changes for PTMS on the genes' proteins.  Your network should look similar to the image below.  We recommend installing the [yFiles Layout Algorithms plugin](http://apps.cytoscape.org/apps/yfileslayoutalgorithms).  The **yFiles Organic Layout**
+After PINE finishes running, you can go to the **Network** tab in the Cytoscape control panel and select the **Interaction Network**.  This is the single fold change interaction network.  Each yellow square is a gene and the circles represent fold changes for PTMS on the genes' proteins.  Your network should look similar to the image below.  We recommend installing the [yFiles Layout Algorithms plugin](http://apps.cytoscape.org/apps/yfileslayoutalgorithms).  The **yFiles Organic Layout** was used to layout the network below.
 ![results 1](images/results-1.png)
 
 ## Pathway selection
