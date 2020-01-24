@@ -9,25 +9,32 @@
 
 ## Requirements and Setup
 The following tools and dependencies are required to run the tool-
-### Install [Cytoscape](https://cytoscape.org/download.html)\
+
+### Install [Cytoscape](https://cytoscape.org/download.html)
 ![Cytoscape](Image/cytoscape.jpg)
-### Install Cytoscape Apps\
+
+### Install Cytoscape Apps
 To install apps within Cytoscape navigate to Apps->App Manager on the tab at the top of the Cytoscape screen. Install the following apps:
-- Genemania
-  ![Genemania installation](Image/genemania.jpg)
-- ClueGO (Requires license for usage. Once installation is complete, opening the app prompts license registration)
-  ![ClueGO installation](Image/cluego.jpg)
-  Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
-### Species installation within apps\
+#### [Genemania](http://apps.cytoscape.org/apps/genemania)
+![Genemania installation](Image/genemania.jpg)
+#### [ClueGO](http://apps.cytoscape.org/apps/cluego)
+ClueGO requires license for usage. Once installation is complete, opening the app prompts license registration
+![ClueGO installation](Image/cluego.jpg)
+Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
+
+### Species installation within apps
 PINE currently supports human, mouse and rat analysis. These species datasets must be installed within the following apps:
-- Genemania
-  ![Genemania species installation](Image/genemania-species-install.jpg)
-- ClueGO (by default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually)
-  ![ClueGO species installation](Image/cluego-species-install.jpg)
+#### Genemania
+![Genemania species installation](Image/genemania-species-install.jpg)
+####  ClueGO
+By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
+[ClueGO species installation](Image/cluego-species-install.jpg)
+
 ### Download and Install PINE.exe
-- Download Pine.Setup.zip file from the the latest [release](https://github.com/Niveda-S/PINE/releases) and extract. Click on the .exe file and follow installation instructions
+Download Pine.Setup.zip file from the the latest [release](https://github.com/csmc-vaneykjlab/pine/releases) and extract. Click on the .exe file and follow installation instructions
 
 ## Using PINE
+
 ### Setting up PINE
 When you first launch PINE, it will search your PC for the latest Cytoscape executable and ClueGO configuration directory. If it cannot find them, then you will need to manually provide them.  These settings will be saved so they only need to be provided the first time you use PINE.
 ![PINE setup usage](Image/pine-usage-setup-1.png)
@@ -35,6 +42,7 @@ When you first launch PINE, it will search your PC for the latest Cytoscape exec
 ### Running an analysis
 To begin an analysis, go to the Settings tab.  All required options must be provided before the analysis can be started (see below for an explanation of each option).  Click **Start** to run the analysis.  Click **Load session** to load a previous session.
 ![PINE setup usage](Image/pine-usage-settings-1.png)
+
 #### Analysis options
 The following are the options that can be set to run an analysis.
 - **Input file** (required): The input file in csv format. See more about the input file in the [input file description section](#input-file-description)
@@ -141,3 +149,11 @@ A directory is created in the specified output directory after the analysis comp
 It is strongly recommended you use a virtual environment for installing PINE.
 
 After installing, PINE can be run using `python3 -m pine.pine --help`
+
+### Command line parameters
+
+## Support
+If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
+
+## License
+See the [LICENSE](https://github.com/csmc-vaneykjlab/pine/blob/master/LICENSE) file for license rights and limitations (Apache 2.0).
