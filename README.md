@@ -154,7 +154,7 @@ After installing, PINE can be run using `python3 -m pine.pine --help`
 
 ### Command line parameters
 ```
-"Usage:         python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz")
+python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz --cytoscape-executable path_to_exe
 ```
 | Parameter | Description |
 | --------- | ----------- |
@@ -162,9 +162,9 @@ After installing, PINE can be run using `python3 -m pine.pine --help`
 | -o, --output | path to output directory |
 | -t, --type | analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm] |
 | -s, --species | species [Allowed: human, mouse, rat] |
-| -x, --enzyme | enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c] |
-| -d, --mods | comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]] |
-| -b, --fastafile | path to fasta file |
+| -x, --enzyme | (required if singlefc-ptm or multifc-ptm) enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c] |
+| -d, --mods | (required if singlefc-ptm or multifc-ptm) comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]] |
+| -b, --fastafile | (required if singlefc-ptm or multifc-ptm) path to fasta file |
 | -m, --mapping | path to cluego mapping file compressed in .gz format |
 | -e, --cytoscape-executable | the path to the Cytoscape executable |
 | -f, --fccutoff | (optional) fold change cutoff for input [Default: abs(FC) >= 0.0] |
