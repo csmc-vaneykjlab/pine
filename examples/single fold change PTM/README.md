@@ -2,7 +2,7 @@
 This guide will walk you through an example PINE analysis using for single fold changes PTMs.
 
 ## Download the example files
-You'll need the **single-fold-change-data.csv** and **mouse.fasta** to run this example.
+You'll need the [single-fold-change-data.csv](https://raw.githubusercontent.com/csmc-vaneykjlab/pine/master/examples/single%20fold%20change%20PTM/single-fold-change-data.csv) and [mouse.fasta](https://raw.githubusercontent.com/csmc-vaneykjlab/pine/master/examples/single%20fold%20change%20PTM/mouse.fasta) to run this example.
 
 ## Open PINE and set the run parameters
 Make sure PINE was able to find your Cytoscape.exe and ClueGO configuration folder.  You'll need to provide the locations if it can't find them.
