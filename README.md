@@ -44,6 +44,9 @@ By default human and mouse datasets are installed; all other datasets for suppor
 ### Download and Install PINE.exe
 Download Pine.Setup.zip file from the the latest [release](https://github.com/csmc-vaneykjlab/pine/releases) and extract. Click on the .exe file and follow installation instructions
 
+### Example usage
+Please refer to our single fold change [example](examples/single%20fold%20change%20PTM) for a walkthrough on how to use PINE.
+
 ## Using PINE GUI
 
 ### Setting up PINE
