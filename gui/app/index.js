@@ -402,7 +402,7 @@ let vm = new Vue({
             }
         },
         genemania_check: function() {
-            if(!this.input.run === "both" && !this.input.run === "genemania") {
+            if(this.input.run !== "both" && this.input.run !== "genemania") {
                 return true; // check passed because genemania is not needed
             }
 
