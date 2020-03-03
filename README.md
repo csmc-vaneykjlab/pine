@@ -7,6 +7,7 @@
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
+- [Cite us](#cite-us)
 - [Support](#support)
 - [License](#license)
 
@@ -195,6 +196,9 @@ A directory is created in the specified output directory after the analysis comp
 - **PINE.log** - Log of analysis.
 - **settings-gui.json** - Settings from the GUI that were provided to the PINE Python script.  This file should not be modified because it is used to retrieve the settings when the session is reloaded.
 - **timestamp.json** - The time when the analysis was run.  This file should not be modified.
+
+## Cite us
+If you found PINE to be useful please cite us.  A manuscript for PINE is in review, please check back later for the citation.
 
 ## Support
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
