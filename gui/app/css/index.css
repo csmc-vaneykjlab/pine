@@ -244,7 +244,6 @@ ul.tab-selector li {
 }
 ul.tab-selector li.disabled {
   cursor: not-allowed;
-  color: #b0a1a4;
 }
 ul.tab-selector li.active {
   cursor: default;

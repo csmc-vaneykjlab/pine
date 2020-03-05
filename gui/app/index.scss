@@ -272,7 +272,6 @@ ul.tab-selector {
 
         &.disabled {
             cursor: not-allowed;
-            color: lighten($color-dark, 40%);
         }
 
         &.active {
