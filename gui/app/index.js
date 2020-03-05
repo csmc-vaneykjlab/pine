@@ -108,6 +108,12 @@ let vm = new Vue({
             remove_ambiguous: null,
         },
         session_dir: null,
+        missing_files: {
+            in: false,
+            output: false,
+            fast_file: false,
+            reference_path: false,
+        },
         stdout: "",
         stderr: "",
         running: false,
@@ -534,9 +540,7 @@ let vm = new Vue({
             this.load_settings(this.session_settings_file);
             const file_check = this.runnable_file_check(true);
             if(!file_check["success"]) {
-                this.session_dir = old_dir; // revert to old session if file check failed
-                this.load_settings(this.session_settings_file);
-                error_popup("Invalid session", `Could not load session due to missing input files: ${file_check["file"]}`);
+                error_popup("Invalid session", `This file is missing from your session: ${file_check["file"]}`);
             }
             this.read_cluego_pathways();
             if(file_check["success"]) {
@@ -610,13 +614,14 @@ let vm = new Vue({
         },
         runnable_file_check: function(is_reanalysis) {
             let msg = null;
-            if(!is_file(this.input.in)) {
+            this.reset_missing_files();
+            if(!this.input.in || this.missing_file_check('in', false)) {
                 msg = "Input file doesn't exist.";
-            } else if(!is_dir(this.input.output) && !is_reanalysis) {
+            } else if(!this.input.output || this.missing_file_check('output', true)) {
                 msg = "Output directory doesn't exist.";
-            } else if(this.is_extra_options_required() && !is_file(this.input.fasta_file)) {
+            } else if(this.is_extra_options_required() && (!this.input.fasta_file || this.missing_file_check('fasta_file', false))) {
                 msg = "Fasta file doesn't exist.";
-            } else if(this.input.reference_path && !is_file(this.input.reference_path)) {
+            } else if(this.input.reference_path && this.missing_file_check('reference_path', false)) {
                 msg = "Reference path file doesn't exist.";
             } else if(this.input.output_name && !is_reanalysis) {
                 const output_name_path = path.join(this.input.output, this.input.output_name);
@@ -628,6 +633,23 @@ let vm = new Vue({
                 return {"success": false, "file": msg};
             }
             return {"success": true};
+        },
+        missing_file_check: function(var_name, check_is_dir) {
+            if(!this.input[var_name]) {
+                return this.missing_files[var_name] = false;
+            }
+            let exists;
+            if(check_is_dir) {
+                exists = is_dir(this.input[var_name]);
+            } else {
+                exists = is_file(this.input[var_name]);
+            }
+            return this.missing_files[var_name] = !exists;
+        },
+        reset_missing_files: function() {
+            for(var_name in this.missing_files) {
+                this.missing_files[var_name] = false;
+            }
         },
         runnable_with_cluego_subset: function() {
             return this.runnable() && this.session_exists() && this.cluego_pathways.data.filter((x) => x.selected === true).length > 0;

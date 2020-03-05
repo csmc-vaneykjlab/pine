@@ -432,3 +432,22 @@ img.pine-img {
         margin-right: 1rem;
     }
 }
+
+.missing-file {
+    background-color: $color-light;
+    color: $color2;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1001;
+    text-align: left;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    max-width: 85vw;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.relative {
+    position: relative;
+}
