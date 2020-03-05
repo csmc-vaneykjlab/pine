@@ -506,6 +506,7 @@ let vm = new Vue({
         },
         reset_session: function() {
             this.session_dir = null;
+            this.input.output_name = "";
             this.reset_cluego_pathways();
             this.switchTab(TABS.INPUT);
         },
