@@ -102,7 +102,7 @@ After reanalysis is complete, there will be a new interaction network which cont
 - Python3
 
 ### Installation
-`pip install git+https://https://github.com/csmc-vaneykjlab/pine.git#egg=pine`
+`pip install git+https://github.com/csmc-vaneykjlab/pine.git#egg=pine`
 
 It is strongly recommended you use a virtual environment for installing PINE.
 
