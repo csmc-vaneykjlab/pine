@@ -434,8 +434,9 @@ img.pine-img {
 }
 
 .missing-file {
-    background-color: $color-light;
+    background-color: white;
     color: $color2;
+    border: solid black 1px;
     position: absolute;
     left: 0;
     top: 0;
