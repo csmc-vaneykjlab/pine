@@ -35,7 +35,7 @@ import warnings
 from collections import Counter
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-CYREST_PORTS = [8010, 8011, 8012, 8013, 8014, 8015, 8016, 8017, 8018, 8019]
+CYREST_PORTS = [8012, 8013]
 CYREST_URL = None
 CYREST_PORT = None
 
@@ -4585,7 +4585,7 @@ def main(argv):
   except CytoscapeError as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     eprint("Error: Cytoscape not responding. Please start the run again")
-    traceback.print_exc()
+    #traceback.print_exc()
     sys.exit(1)
 
   except Exception as e:
@@ -4595,14 +4595,14 @@ def main(argv):
     cytoscape_not_responding_msg = "Expecting value: line 1 column 1 (char 0)"
     if cytoscape_not_open_msg in str(e) or cytoscape_not_open_msg2 in str(e):
       eprint("Error: Cytoscape not responding. Please start the run again")
-      traceback.print_exc()
+      #traceback.print_exc()
       sys.exit(1)
     elif cytoscape_not_responding_msg in str(e):
-      traceback.print_exc()
+      #traceback.print_exc()
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      traceback.print_exc()
+      #traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
