@@ -48,10 +48,13 @@ Download pine-setup.exe file from the latest [release](https://github.com/csmc-v
 ### Windows Defender Smartscreen
 You may encounter the following error when running the PINE setup:
 ![Windows Defender Smartscreen](Image/smartscreen-1.png)
+
 To allow PINE to install, right click on the PINE icon within your Downloads folder and select Properties (if you clicked "Run" instaed of "Download", you will have to [download](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe) the file again and save it in a folder on your system):
 ![Windows Defender Smartscreen](Image/smartscreen-2.png)
+
 At the bottom of the Properties in the Security section, click the checkbox labeled "Unblock" then click "Apply":
 ![Windows Defender Smartscreen](Image/smartscreen-3.png)
+
 Windows Defender should now allow you to install PINE.
 
 ### Install PINE
@@ -59,8 +62,10 @@ Open the pine-setup.exe file and follow installation instructions.
 
 Choose if you want to install for a single user account or for all users on the system:
 ![Installation](Image/install-1.png)
+
 Select the installation directory:
 ![Installation](Image/install-2.png)
+
 After installation completes you can run PINE:
 ![Installation](Image/install-3.png)
 
