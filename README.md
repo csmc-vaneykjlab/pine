@@ -42,8 +42,27 @@ PINE currently supports human, mouse and rat analysis. These species datasets mu
 By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
 [ClueGO species installation](Image/cluego-species-install.jpg)
 
-### Download and Install PINE.exe
-Download Pine.Setup.zip file from the the latest [release](https://github.com/csmc-vaneykjlab/pine/releases) and extract. Click on the .exe file and follow installation instructions
+### Download PINE
+Download pine-setup.exe file from the latest [release](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe).
+
+### Windows Defender Smartscreen
+You may encounter the following error when running the PINE setup:
+![Windows Defender Smartscreen](Image/smartscreen-1.png)
+To allow PINE to install, right click on the PINE icon within your Downloads folder and select Properties:
+![Windows Defender Smartscreen](Image/smartscreen-2.png)
+At the bottom of the Properties in the Security section, click the checkbox labeled "Unblock" then click "Apply":
+![Windows Defender Smartscreen](Image/smartscreen-3.png)
+Windows Defender should now allow you to install PINE.
+
+### Install PINE
+Open the pine-setup.exe file and follow installation instructions.
+
+Choose if you want to install for a single user account or for all users on the system:
+![Installation](Image/install-1.png)
+Select the installation directory:
+![Installation](Image/install-2.png)
+After installation completes you can run PINE:
+![Installation](Image/install-3.png)
 
 ### Example usage
 Please refer to our single fold change [example](examples/single%20fold%20change%20PTM) for a walkthrough on how to use PINE.
