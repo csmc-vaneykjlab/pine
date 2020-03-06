@@ -46,7 +46,7 @@ By default human and mouse datasets are installed; all other datasets for suppor
 [ClueGO species installation](Image/cluego-species-install.jpg)
 
 ### Download PINE
-Download pine-setup.exe file from the latest [release](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe).
+Download and run pine-setup.exe from the latest [release](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe).
 
 ### Windows Defender Smartscreen
 You may encounter the following error when running the PINE setup:
