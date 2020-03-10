@@ -31,7 +31,9 @@ To install apps within Cytoscape navigate to Apps->App Manager on the tab at the
 ![Genemania installation](Image/genemania.jpg)
 #### [ClueGO](http://apps.cytoscape.org/apps/cluego)
 ClueGO requires license for usage. Once installation is complete, opening the app prompts license registration
+
 ![ClueGO installation](Image/cluego.jpg)
+
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
 
 ### Species installation within apps
@@ -40,10 +42,41 @@ PINE currently supports human, mouse and rat analysis. These species datasets mu
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
 By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
+
 [ClueGO species installation](Image/cluego-species-install.jpg)
 
-### Download and Install PINE.exe
-Download Pine.Setup.zip file from the the latest [release](https://github.com/csmc-vaneykjlab/pine/releases) and extract. Click on the .exe file and follow installation instructions
+### Download PINE
+Download and run pine-setup.exe from the latest [release](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe).
+
+### Windows Defender Smartscreen
+You may encounter the following error when running the PINE setup:
+
+![Windows Defender Smartscreen](Image/smartscreen-1.png)
+
+To allow PINE to install, right click on the PINE icon within your Downloads folder and select Properties (if you clicked "Run" instaed of "Download", you will have to [download](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe) the file again and save it in a folder on your system):
+
+![Windows Defender Smartscreen](Image/smartscreen-2.png)
+
+At the bottom of the Properties in the Security section, click the checkbox labeled "Unblock" then click "Apply":
+
+![Windows Defender Smartscreen](Image/smartscreen-3.png)
+
+Windows Defender should now allow you to install PINE.
+
+### Install PINE
+Open the pine-setup.exe file and follow installation instructions.
+
+Choose if you want to install for a single user account or for all users on the system:
+
+![Installation](Image/install-1.png)
+
+Select the installation directory:
+
+![Installation](Image/install-2.png)
+
+After installation completes you can run PINE:
+
+![Installation](Image/install-3.png)
 
 ### Example usage
 Please refer to our single fold change [example](examples/single%20fold%20change%20PTM) for a walkthrough on how to use PINE.
@@ -52,10 +85,12 @@ Please refer to our single fold change [example](examples/single%20fold%20change
 
 ### Setting up PINE
 When you first launch PINE, it will search your PC for the latest Cytoscape executable and ClueGO configuration directory. If it cannot find them, then you will need to manually provide them.  These settings will be saved so they only need to be provided the first time you use PINE.
+
 ![PINE setup usage](Image/pine-usage-setup-1.png)
 
 ### Running an analysis
 To begin an analysis, go to the Settings tab.  All required options must be provided before the analysis can be started (see below for an explanation of each option).  Click **Start** to run the analysis.  Click **Load session** to load a previous session.
+
 ![PINE setup usage](Image/pine-usage-settings-1.png)
 
 #### Analysis options
@@ -84,16 +119,21 @@ The following are the options that can be set to run an analysis.
 
 ### Log
 While PINE is running, output is written to the log. A copy of the log will also be saved to PINE.log within the output subdirectory. The analysis can be cancelled at anytime from this tab.
+
 ![PINE log example](Image/pine-usage-log-1.png)
 When the PINE analysis is complete, you can view the interaction network by going to the Network tab and selecting the Interaction Network.
+
 ![Interaction network example](Image/pine-usage-log-2.png)
 
 ### Pathway selection
 After a PINE analysis successfully completes, the pathway selection tab will load which shows all the pathways and GO terms found from ClueGO analysis. Pathways and GO terms can be selected for reanalysis on the subset of genes found within these terms. The reanalysis can be given a custom name. If a name is not given, then it will automatically named based on the current time. After selecting one or more terms or pathways, click "Reanalyze" to begin the reanalysis.
 
 From this tab, you can also open the results folder ([see here for results description](#output-directory-description)) and the Cytoscape file of the most recent analysis.
+
 ![Pathway analysis](Image/pine-usage-pathway-selection-1.png)
+
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
+
 ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
 
 ## Using PINE command line

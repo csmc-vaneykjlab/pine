@@ -23,6 +23,7 @@
     "vue": "^2.6.10"
   },
   "build": {
+    "appId": "org.cshs.pine",
     "productName": "Pine",
     "extraResources": [
       {
@@ -36,7 +37,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "pine-setup.exe"
     }
   }
 }
