@@ -449,19 +449,21 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if k1.lower() in key1.lower(): 
                     for each_val in value:
                       val = int(each_val)+int(seqInDatabase)+1
-                      if k1 in modInSeq_dict:            
-                        modInSeq_dict[k1].append(val)                          
+                      match_unimod = re.findall(r"([0-9]+)", key)
+                      key_with_unimod = k1 + "{" + match_unimod[0] + "}" 
+                      if key_with_unimod in modInSeq_dict:                      
+                        modInSeq_dict[key_with_unimod].append(val)                          
                       else:
-                        modInSeq_dict[k1] = [val]
+                        modInSeq_dict[key_with_unimod] = [val]
                       all_mods_for_prot.append(key)
-             
+            
             sites = ""
             sites_list = []
             for key,value in modInSeq_dict.items():
               for each_val in value:
                 sites += key + str(each_val) + "/"
             sites = sites.strip("/")
-            if sites: 
+            if sites:            
               if type == "5":
                 if (protein_list_id, sites, peptide) in duplicate_inc_ptm_proteins_set:
                   # this is already a bad label, skip
@@ -2940,10 +2942,11 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   my_style = cy.style.create('Initial Network Style')
   basic_settings = {
     'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
-    'EDGE_TRANSPARENCY':"15",
+    'EDGE_TRANSPARENCY':"150",
     'NODE_BORDER_PAINT':"#999999",
     'NODE_SIZE':"30",
-    'EDGE_WIDTH':"2"
+    'EDGE_WIDTH':"1",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
@@ -3071,11 +3074,12 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   my_style = cy.style.create('Initial Network Style')
   basic_settings = {
     'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
-    'EDGE_TRANSPARENCY':"15",
+    'EDGE_TRANSPARENCY':"150",
     'NODE_BORDER_PAINT':"#999999",
     'NODE_SIZE':"30",
-    'EDGE_WIDTH':"2",
-    'NODE_SHAPE':"ROUND_RECTANGLE"
+    'EDGE_WIDTH':"1",
+    'NODE_SHAPE':"ROUND_RECTANGLE",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
@@ -3209,9 +3213,10 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   my_style = cy.style.create('Category-Network-Style')
   basic_settings = {
     #'NODE_FILL_COLOR':"#33CCFF",
-    'EDGE_TRANSPARENCY':"15",
+    'EDGE_TRANSPARENCY':"150",
     'NODE_BORDER_PAINT':"#999999",
-    'EDGE_WIDTH':"2"
+    'EDGE_WIDTH':"1",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
@@ -3270,7 +3275,8 @@ def singleFC(my_style, uniprot_list, type):
   basic_settings = {
     'EDGE_TRANSPARENCY':"15",
     'NODE_BORDER_PAINT':"#999999",
-    'NODE_FILL_COLOR':"#E2E2E2"
+    'NODE_FILL_COLOR':"#E2E2E2",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   if min(uniprot_list['FC1']) != 0 and max(uniprot_list['FC1']) != 0:
     points1 =  [
@@ -3394,8 +3400,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   bar_columns = bar_columns[:-1]
   color_columns = color_columns[:-1]
  
-  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]}"
-
+  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_showItemLabels" + '\"' + ":true," + '\"' + "cy_itemLabelsColumn" + '\"' + ":[" + bar_columns  + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
   kv_pair = {
     "1":value
   }
@@ -3449,7 +3454,8 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   '''
   basic_settings = {
     'EDGE_TRANSPARENCY':"15",
-    'NODE_BORDER_PAINT':"#999999"
+    'NODE_BORDER_PAINT':"#999999",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
   color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
@@ -3474,8 +3480,8 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     "0.0":"c,c,c,0.00,0.00"
   }
   kv_edge_width = {
-    "1.0":"2",
-    "0.0":"2"
+    "1.0":"1",
+    "0.0":"1"
   }
   kv_node_border_width = {
     "1.0":"0",
@@ -3820,9 +3826,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   my_style = cy.style.create('GAL_Style3')
   
   basic_settings = {
-    'EDGE_TRANSPARENCY':"15",
+    'EDGE_TRANSPARENCY':"150",
     'NODE_BORDER_PAINT':"#999999",
-    'EDGE_WIDTH':"2"
+    'EDGE_WIDTH':"1",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
   my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
@@ -4602,7 +4609,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      #traceback.print_exc()
+      traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
