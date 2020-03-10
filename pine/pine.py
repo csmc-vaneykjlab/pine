@@ -2812,7 +2812,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   '''
   Styling + visualization for the entire gene list interaction network & its sites
   '''
-  color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
+  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   G = igraph.Graph()
   
   site_interactions = []
@@ -3020,7 +3020,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   '''
   Styling + visualization for the entire gene list interaction network
   '''
-  color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
+  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   G = igraph.Graph()
   for each in merged_vertex:
     G.add_vertex(each)
@@ -3141,7 +3141,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   '''
   Styling + visualization for the cateory network
   '''
-  color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
+  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   G = igraph.Graph()
   
   additional_nodes = []
@@ -3379,7 +3379,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   '''
   Styling specific to multipleFC case
   '''
-  color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
+  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   bar_columns = ""
   color_columns = ""
   min_fc = 0
@@ -3458,7 +3458,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
-  color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
+  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
 
   bar_columns = ""
   color_columns = ""
@@ -3560,7 +3560,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   Based on top clusters picked, construct function interaction network + visualization and styling
   '''
   G = igraph.Graph()
-  color_code = ["#3366FF", "#33FFFF", "#FF6600", "#FFFF66", "#FF0000", "#006666", "#33FF33", "#FFCCCC", "#3300FF", "#CCCCFF"] 
+  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   
   cluster_list = cluster
   
@@ -4609,7 +4609,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      traceback.print_exc()
+      #traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
