@@ -1265,35 +1265,42 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           if "Site" in dropped_invalid_fc_pval[each_key]:
             warning_str += "(" + ",".join(set(dropped_invalid_fc_pval[each_key]["Site"])) + ")"
             site_len += len(set(dropped_invalid_fc_pval[each_key]["Site"]))
-            pep_len += len(dropped_invalid_fc_pval[each_key]["Site"])            
+            pep_len += len(dropped_invalid_fc_pval[each_key]["Site"])
+           
         warning.append(warning_str)
         
         es = 0
         for each_pepandlabel in dropped_invalid_fc_pval[each_key]["PeptideandLabel"]:
-          e_s = dropped_invalid_fc_pval[each_key]["Site"][es]
+          if "Site" in dropped_invalid_fc_pval[each_key]:
+            e_s = dropped_invalid_fc_pval[each_key]["Site"][es]
           if "-" in dropped_invalid_fc_pval[each_key]["PeptideandLabel"]:
             each_pep = (each_pepandlabel.split("-"))[0]
           else:
             each_pep = each_pepandlabel
           
-          if 'PickedPeptide' in merged_out_dict[each_key]:
-            if each_pep in merged_out_dict[each_key]['PickedPeptide']:
-              indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep)
-            elif each_pep+"**" in merged_out_dict[each_key]['PickedPeptide']:
-              indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep+"**")
-              each_pep = each_pep+"**"
-            else:
-              indexOf = -1
-            if indexOf >=0:
-              del merged_out_dict[each_key]['PickedPeptide'][indexOf]
-              del merged_out_dict[each_key]['PickedSite'][indexOf] 
-              
+          if each_key in merged_out_dict:
+            if 'PickedPeptide' in merged_out_dict[each_key]:
+              if each_pep in merged_out_dict[each_key]['PickedPeptide']:
+                indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep)
+              elif each_pep+"**" in merged_out_dict[each_key]['PickedPeptide']:
+                indexOf = merged_out_dict[each_key]['PickedPeptide'].index(each_pep+"**")
+                each_pep = each_pep+"**"
+              else:
+                indexOf = -1
+              if indexOf >=0:
+                del merged_out_dict[each_key]['PickedPeptide'][indexOf]
+                del merged_out_dict[each_key]['PickedSite'][indexOf] 
+          else:
+            merged_out_dict[each_key] = {}
+            
           if 'DroppedPeptide' not in merged_out_dict[each_key]:
             merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
-            merged_out_dict[each_key].update({'DroppedSite':[e_s]})
+            if "Site" in dropped_invalid_fc_pval[each_key]:
+              merged_out_dict[each_key].update({'DroppedSite':[e_s]})
           else:              
             merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
-            merged_out_dict[each_key]['DroppedSite'].append(e_s)
+            if "Site" in dropped_invalid_fc_pval[each_key]:
+              merged_out_dict[each_key]['DroppedSite'].append(e_s)
         
           if 'Comment' not in merged_out_dict[each_key]:
             merged_out_dict[each_key].update({'Comment':"Invalid FC/PVal;"})
@@ -1303,8 +1310,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           
       if site_len > 0:
         logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+      else:
+        logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins ")
       #logging.warning("WARNING - Dropping queries: " + ','.join(warning))
-      
+    
     if dropped_cutoff_fc_pval:
       site_len = 0
       pep_len = 0
@@ -4609,7 +4618,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      #traceback.print_exc()
+      traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
