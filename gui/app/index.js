@@ -825,6 +825,7 @@ let vm = new Vue({
                 }
                 settings[inp] = this.input[inp];
             }
+            settings.cluego_picked_version = this.cluego_picked_version.version;
             fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
         },
         load_settings: function(settings_file) {
@@ -832,6 +833,7 @@ let vm = new Vue({
                 return;
             }
             const raw = fs.readFileSync(settings_file, "utf8");
+            let cluego_picked_version = null;
             try {
                 const saved_input = JSON.parse(raw);
                 for(const key in saved_input) {
@@ -843,9 +845,19 @@ let vm = new Vue({
                         } else {
                             Vue.set(this.input, key, saved_input[key]);
                         }
+                    } else if(key === "cluego_picked_version") {
+                        cluego_picked_version = saved_input[key];
                     }
                 }
             } catch(e) {
+            }
+
+            if(cluego_picked_version != null) {
+                for(const cv of this.cluego_versions) {
+                    if(cv.version === cluego_picked_version) {
+                        this.cluego_picked_version = cv;
+                    }
+                }
             }
         },
         get_settings_file: function() {
