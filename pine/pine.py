@@ -418,8 +418,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                           if each_include_list == each_mod_key:
                             for each_pos_in_list in modInSeq_all_dict[each_mod]:
                               store_as_mult.append(each_include_list + str(each_pos_in_list+each_pos+1))
-                      each_pos_store_as_mult.append('/'.join(store_as_mult))
-                    if key_val not in mapping_multiple_regions:
+                      if store_as_mult:
+                        each_pos_store_as_mult.append('/'.join(store_as_mult))
+                    if key_val not in mapping_multiple_regions and each_pos_store_as_mult:
                       mapping_multiple_regions.update({key_val:each_pos_store_as_mult})
                       if protein_list_id not in ambigious_sites:
                         ambigious_sites.update({protein_list_id:[each_pos_store_as_mult[0]]})
@@ -2699,20 +2700,21 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   list_ontology = []
   for each_ontology in ontology_info:
     get_each = ontology_info[each_ontology]
-    m = re.search(r"name=([A-Za-z\-]+)\,",get_each)
-    ontologies = m.group(1)
-    if select_terms.lower() == "biological process" or select_terms.lower() == "all":
-      if "BiologicalProcess" in ontologies:
-        list_ontology.append(str(i)+";"+"Ellipse")
-    if select_terms.lower() == "cellular component" or select_terms.lower() == "all":
-      if "CellularComponent" in ontologies:
-        list_ontology.append(str(i)+";"+"Ellipse")
-    if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
-      if "MolecularFunction" in ontologies:
-        list_ontology.append(str(i)+";"+"Ellipse")
-    if select_terms.lower() == "pathways" or select_terms.lower() == "all":
-      if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies or "CORUM" in ontologies:
-        list_ontology.append(str(i)+";"+"Ellipse")
+    m = re.search(r"name=([A-Za-z\-\.0-9]+)\,",get_each)
+    if m:
+      ontologies = m.group(1)
+      if select_terms.lower() == "biological process" or select_terms.lower() == "all":
+        if "BiologicalProcess" in ontologies:
+          list_ontology.append(str(i)+";"+"Ellipse")
+      if select_terms.lower() == "cellular component" or select_terms.lower() == "all":
+        if "CellularComponent" in ontologies:
+          list_ontology.append(str(i)+";"+"Ellipse")
+      if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
+        if "MolecularFunction" in ontologies:
+          list_ontology.append(str(i)+";"+"Ellipse")
+      if select_terms.lower() == "pathways" or select_terms.lower() == "all":
+        if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies or "CORUM" in ontologies:
+          list_ontology.append(str(i)+";"+"Ellipse")
     i+=1
 
   ####Select Ontologies
@@ -4356,8 +4358,8 @@ def main(argv):
             merged_out_dict[each_prot_id].update({'CommentGene':'All peptides dropped;'})
             
     # Limit query inpt number = 1500
-    if len(unique_each_protein_list) > 1800:
-      eprint("Error: The query input is too big. Currently supporting upto 1800 query protein ids")
+    if len(unique_each_protein_list) > 1500:
+      eprint("Error: The query input is too big. Currently supporting upto 1500 query protein ids")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
     
@@ -4412,13 +4414,13 @@ def main(argv):
         ver_reactome = app_version
     
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
-      if not app_genemania or not ver_genemania == "3.5.1":
-        eprint("Error: Cytoscape app GeneMANIA v3.5.1 not installed or not responding properly")
+      if not app_genemania or not bool(re.match('^3.5', ver_genemania)):
+        eprint("Error: Cytoscape app GeneMANIA v3.5.0 or above not installed or not responding properly")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       
-    if not app_cluego or not (ver_cluego == "2.5.4" or ver_cluego == "2.5.5"):
-      eprint("Error: Cytoscape app ClueGO v2.5.4/v2.5.5 not installed or not responding properly")
+    if not app_cluego or not bool(re.match('^2.5', ver_cluego)):
+      eprint("Error: Cytoscape app ClueGO v2.5.0 or above not installed or not responding properly")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
     
@@ -4427,8 +4429,8 @@ def main(argv):
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
       
-    if cluego_reference_file and ver_cluego != "2.5.5":
-      eprint("Error: Using ClueGO custom reference file needs version 2.5.5 of ClueGO")
+    if cluego_reference_file and (ver_cluego == "2.5.0" or ver_cluego == "2.5.1" or ver_cluego == "2.5.2" or ver_cluego == "2.5.3" or ver_cluego == "2.5.4"):
+      eprint("Error: Using ClueGO custom reference file needs version 2.5.5 or above of ClueGO")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
     
@@ -4624,7 +4626,6 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
