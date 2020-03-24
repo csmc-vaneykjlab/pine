@@ -146,20 +146,28 @@ Appropriate yfiles layout can be chosen by selecting from options available in t
 ### Font
 To change font, navigate to the Style Tab on the Control Panel on the left side of the Cytoscape screen. 'Label Font Size' is the option to set node font size. Font has been set by PINE based on length of node text. To change, the range of minumum and maximum font must be modified.
 Open up the node font size section by clicking on the dropdown arrow. Double-click on the current mapping graph. This opens up a new tab called Continuous Mapping Editor. Move the node label font size pointer up or down to increase or decrease font size respectively.
+![Font Size](Image/FontSize.png)
 
 Alternatively, to change font sizes of specific node labels, click to select the required node and select the bypass box for Label Font Size on the Style tab. This opens up a new tab where node label font size for the selected node can be set.
+![Bypass](Image/BypassFont.png)
 
 ### Colors
 **Color Gradient for single fold change type networks**  
 To modify color of fold change greadient for the nodes, navigate to the Style Tab on the Control Panel on the left side of the Cytoscape screen. 'Fill Color' controls node colors.   
 Open up the fill color section by clicking on the dropdown arrow. Double-click on the current mapping gradient. This opens up a new tab called Continuous Mapping Editor. Set a new gradient by double-clicking on the arrow buttons for fold changes that are up-regulated (>0) and down regulated(<0) and setting new colors from a color palette.  
+![SinglefcColor](Image/SinglefcColor.png)
 
 **Bar and Pie Charts for multiple fold change or category type networks**  
 The colors of the bar and pie charts can be modified by navigating to the 'Image/Chart' option on the Style Tab. Click on the currently configured bar chart to open up a Graphics tab. Its options section shows the currently configured colors. Double-clicking on the colors opens up a color palette allowing you to make any changes.  
+![BarColor](Image/BarChartColor.png)  
 
 Additionally, for bar charts, the option is provided to include:  
 - **Value Labels** in the bar showing the numeric value that represents height of the bar. Select 'Show Value Labels' and choose the PINE generated column pine_value_label to enable this option  
 - **Domain Labels** showing bar labels. Select 'Show Domain Axis' and choose the PINE generated column pine_domain_label to enable this option   
+![BarOptions](Image/BarChartOptions.png)
+
+This labels bar charts appropriately as below:  
+![Ex](Image/ExBarChart.png)  
 
 ## Using PINE command line
 
