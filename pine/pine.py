@@ -2948,11 +2948,9 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     
   G.vs
   G.vs["name"] = all_names
-  G.vs["length"] = all_length  
-  G.vs["significant"] = sig_na
-  G.vs["FC_exists"] = fc_na
-  G.vs["SNP"] = is_snp
-  
+  #G.vs["SNP"] = is_snp
+  domain_labels = [] 
+  value_labels = []
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
@@ -2962,14 +2960,27 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     else:
       val_term_FC = term_FC
       val_term_pval = term_pval
+    collect_fcs = all_fcs[term_FC] + all_other_fcs
+    domain_labels.append(str(val_term_FC))
+    if collect_fcs:
+      if not value_labels:
+        value_labels = [ [str(collect_fcs[i])] for i in range(0, len(collect_fcs)) ]
+      else:
+        for i in range(0, len(collect_fcs)):
+          value_labels[i].append(str(collect_fcs[i])) 
     G.vs[val_term_FC] = all_fcs[term_FC] + all_other_fcs
     G.vs[val_term_pval] = all_pval[term_pval] + all_other_pval
   
-  G.vs["query"] = query_val
-  
+  G.vs["pine_query"] = query_val
+  G.vs["pine_length"] = all_length  
+  G.vs["pine_outline"] = sig_na
+  G.vs["pine_FC_exists"] = fc_na
   degree = G.degree()
-  G.vs["degree"] = degree
-  
+  G.vs["pine_degree"] = degree
+  if max_FC_len > 1:
+    tot = len(query_val)
+    G.vs["pine_domain_labels"] = [domain_labels]*tot
+    G.vs["pine_value_labels"] = value_labels
   cy = CyRestClient(port=CYREST_PORT)
   g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
   
@@ -3000,8 +3011,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       "greater": "1"
     }
   ]
-  my_style.create_continuous_mapping(column='length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
-  columns = ['length','degree']
+  my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
+  columns = ['pine_length','pine_degree']
 
   chart={'cy_range':'[2.0,9.0]','cy_colorScheme':"Custom"}
   chart = json.dumps(chart)
@@ -3016,7 +3027,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     "Gene":"ROUND_RECTANGLE",
     "EI":"ROUND_RECTANGLE"
   }
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
 
   label_color_kv_pair = {
         "Function":"#FFFFFF",
@@ -3024,7 +3035,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
         "Site":"#000000",
         "EI":"#000000"
   }
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
   
   width_kv_pair = {
     "Function":"210",
@@ -3032,7 +3043,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     "EI":"70",
     "Site":"60"
   }
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   
   if max_FC_len > 1:
     my_style = multipleFC(my_style, fc_na,query_val,"-1",all_names,max_FC_len, uniprot_list, unique_labels)
@@ -3069,11 +3080,9 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   G.vs 
   G.vs["name"] = uniprot_list['name']
   G.vs["shared name"] = uniprot_list['ambigious_genes']
-  G.vs["length"] = uniprot_list['length']
   
-  if max_FC_len >= 1:
-    G.vs["significant"] = uniprot_list["significant"]
-    G.vs["FC_exists"] = uniprot_list["FC_exists"]
+  domain_labels = []
+  value_labels = []
   
   for i in range(1,max_FC_len+1):
     term_FC = 'FC' + str(i)
@@ -3084,21 +3093,38 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     else:
       val_term_FC = term_FC
       val_term_pval = term_pval
+      
+    collect_fcs = uniprot_list[term_FC] 
+    domain_labels.append(str(val_term_FC))
+    if collect_fcs:
+      if not value_labels:
+        value_labels = [ [str(collect_fcs[i])] for i in range(0, len(collect_fcs)) ]
+      else:
+        for i in range(0, len(collect_fcs)):
+          value_labels[i].append(str(collect_fcs[i]))
     G.vs[val_term_FC] = uniprot_list[term_FC]
     G.vs[val_term_pval] = uniprot_list[term_pval]
   
-  G.vs["query"] = uniprot_list["query"]
+  G.vs["pine_query"] = uniprot_list["query"]
+  G.vs["pine_length"] = uniprot_list['length']
   
+  if max_FC_len >= 1:
+    G.vs["pine_outline"] = uniprot_list["significant"]
+    G.vs["pine_FC_exists"] = uniprot_list["FC_exists"]
+  if max_FC_len > 1:
+    tot = len(uniprot_list["query"])
+    G.vs["pine_domain_labels"] = [domain_labels]*tot
+    G.vs["pine_value_labels"] = value_labels
+    
+  degree = G.degree()
+  G.vs["pine_degree"] = degree  
   category_present = 0
   
   for each in each_category:
     category_present = 1
     G.vs[each] = uniprot_list[each]
   if category_present == 1:
-    G.vs['category_true'] = uniprot_list['category_true']
-
-  degree = G.degree()
-  G.vs["degree"] = degree
+    G.vs['pine_category_true'] = uniprot_list['category_true']
   
   cy = CyRestClient(port=CYREST_PORT)
   g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
@@ -3131,8 +3157,8 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
       "greater": "1"
     }
   ]
-  my_style.create_continuous_mapping(column='length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
-  columns = ['length','degree']
+  my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
+  columns = ['pine_length','pine_degree']
 
   chart={'cy_range':'[2.0,9.0]','cy_colorScheme':"Custom"}
   chart = json.dumps(chart)
@@ -3142,12 +3168,12 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   slash_delim = chr(92)
   
   if category_present == 1:
-    my_style = get_category(my_style,uniprot_list['category_true'],"1",uniprot_list["query"],uniprot_list['name'], each_category)
+    my_style = get_category(my_style,uniprot_list['pine_category_true'],"1",uniprot_list["pine_query"],uniprot_list['name'], each_category)
     color_kv_pair = {
       "1":"#FFFFFF",
       "0":"#E2E2E2"
     }
-    my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
+    my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if max_FC_len > 1:
     my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list, unique_labels)
@@ -3225,17 +3251,18 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
         G.add_edge(each_node,each_cat,name=each_node + " " + each_cat,interaction="with")
   G.vs
   G.vs["name"] = all_names
-  G.vs["length"] = length_of
-  G.vs["breadth"] = breadth_of
-  G.vs["query"] = additional_query
+  
   
   for each in each_category:
     G.vs[each] = category_values.get(each,[]) + additional_each
-    
-  G.vs['category_true'] = category_true
-
+  
+  G.vs["pine_query"] = additional_query 
+  G.vs["pine_length"] = length_of
+  G.vs["pine_breadth"] = breadth_of
+  
   degree = G.degree()
-  G.vs["degree"] = degree
+  G.vs["pine_degree"] = degree
+  G.vs['pine_category_true'] = category_true
   
   cy = CyRestClient(port=CYREST_PORT)
   g_cy = cy.network.create_from_igraph(G, name="Category Network")
@@ -3256,7 +3283,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
     "Function":"OCTAGON",
     "Gene":"ROUND_RECTANGLE",
   }
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
   height_kv_pair = {
     "Function":"70",
     "Gene":"30",
@@ -3283,10 +3310,10 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
       "greater": "1"
     }
   ]
-  my_style.create_continuous_mapping(column='length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
+  my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
 
   my_style = get_category(my_style,category_true,"2",additional_query,all_names,each_category)
   
@@ -3363,7 +3390,7 @@ def singleFC(my_style, uniprot_list, type):
   if type == "5":
     data = {
       "bypass": "true",
-      "nodeList": "query:EI",
+      "nodeList": "pine_query:EI",
       "propertyList": "Fill Color",
       "valueList": "#E2E2E2"
     }
@@ -3371,7 +3398,7 @@ def singleFC(my_style, uniprot_list, type):
   else:
     data = {
       "bypass": "true",
-      "nodeList": "FC_exists:0.0",
+      "nodeList": "pine_FC_exists:0.0",
       "propertyList": "Fill Color",
       "valueList": "#E2E2E2"
     }
@@ -3380,7 +3407,7 @@ def singleFC(my_style, uniprot_list, type):
   
   data = {
     "bypass": "true",
-    "nodeList": "Regulated:Up",
+    "nodeList": "pine_regulated:Up",
     "propertyList": "Fill Color, Label Color",
     "valueList": "#FF6633, #FFFFFF"
   }
@@ -3388,7 +3415,7 @@ def singleFC(my_style, uniprot_list, type):
     
   data = {
     "bypass": "true",
-    "nodeList": "Regulated:Down",
+    "nodeList": "pine_regulated:Down",
     "propertyList": "Fill Color, Label Color",
     "valueList": "#0000CC, #FFFFFF"
   }
@@ -3396,7 +3423,7 @@ def singleFC(my_style, uniprot_list, type):
   
   data = {
     "bypass": "true",
-    "nodeList": "Regulated:None",
+    "nodeList": "pine_regulated:None",
     "propertyList": "Fill Color",
     "valueList": "#E2E2E2"
   }
@@ -3427,15 +3454,15 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   bar_columns = bar_columns[:-1]
   color_columns = color_columns[:-1]
  
-  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_showItemLabels" + '\"' + ":true," + '\"' + "cy_itemLabelsColumn" + '\"' + ":[" + bar_columns  + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
+  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
   kv_pair = {
     "1":value
   }
   kv_pair_node_position = {
     "1":"S,N,c,0.00,0.00"
   }
-  my_style.create_discrete_mapping(column='FC_exists', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
-  my_style.create_discrete_mapping(column='FC_exists', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
+  my_style.create_discrete_mapping(column='pine_FC_exists', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
+  my_style.create_discrete_mapping(column='pine_FC_exists', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
 
   kv_pair_color = {}
   width_kv_pair = {}
@@ -3447,7 +3474,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
         color_value = "#FFFFFF"
       if i not in kv_pair_color:
         kv_pair_color.update({i:color_value})
-    my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_FILL_COLOR',mappings=kv_pair_color)
+    my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_FILL_COLOR',mappings=kv_pair_color)
     
   else:
     for i,does_fc_exist,each_name in zip(query,FC_exists,name):
@@ -3512,10 +3539,10 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     "1.0":"0",
     "0.0":"1"
   }
-  my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
-  my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
-  my_style.create_discrete_mapping(column='category_true', col_type='Double', vp='EDGE_WIDTH',mappings=kv_edge_width)
-  my_style.create_discrete_mapping(column='category_true', col_type='String', vp='NODE_BORDER_WIDTH', mappings=kv_node_border_width)
+  my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
+  my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
+  my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='EDGE_WIDTH',mappings=kv_edge_width)
+  my_style.create_discrete_mapping(column='pine_category_true', col_type='String', vp='NODE_BORDER_WIDTH', mappings=kv_node_border_width)
   
   if cat_val == "2":
     kv_pair_color = {}
@@ -3552,8 +3579,8 @@ def pval(my_style):
   bc_kv_pair = {
     "1":"#0000FF",
   }
-  my_style.create_discrete_mapping(column='significant', col_type='Double', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
-  my_style.create_discrete_mapping(column='significant', col_type='Double', vp='NODE_BORDER_PAINT', mappings=bc_kv_pair)
+  my_style.create_discrete_mapping(column='pine_outline', col_type='Double', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
+  my_style.create_discrete_mapping(column='pine_outline', col_type='Double', vp='NODE_BORDER_PAINT', mappings=bc_kv_pair)
   return(my_style)
   
 def snp_bold(my_style):
@@ -3574,7 +3601,7 @@ def color(my_style, uniprot_list):
         color_kv_pair.update({each_query:"#E2E2E2"})
     else:
       color_kv_pair.update({each_query:"#FFFFBF"})
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
 def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels):
@@ -3728,17 +3755,11 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       up_or_down.extend(up_or_down_to_append)
   
   G.vs
-  G.vs["query"] = query
   G.vs["name"] = merged_vertex
   G.vs["shared name"] = merged_vertex_sites_only
-  G.vs["length"] = length_of
-  G.vs["breadth"] = breadth_of
-  degree = G.degree()
-  G.vs["degree"] = degree
-  if up_or_down:
-    G.vs["Regulated"] = up_or_down
-  if type == "5" or type == "6":
-    G.vs["SNP"] = is_snp
+
+  #if type == "5" or type == "6":
+    #G.vs["SNP"] = is_snp
   is_category_present = []
   first_cat_iteration = 0
   for each in each_category:
@@ -3766,18 +3787,18 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       k+=1    
     first_cat_iteration +=1
     G.vs[each] = category
-    
-  if category_present == 1:
-    G.vs["category_true"] = is_category_present  
-  
+      
   add_term_pval = []
   FC_exists = []
+  significant_val = []
   fc_exists_count = 0
-
+  add_term_FC = []
+  value_labels = []
   if type == "5" or type == "6":
     search_list_for_fc = [a.lower() for a in uniprot_list["site"]]
   else:
     search_list_for_fc = uniprot_list["name"]
+  domain_labels = []
   for i in range(1,max_FC_len+1):
     k = 0
     term_FC = 'FC' + str(i)
@@ -3788,6 +3809,13 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     else:
       val_term_FC = term_FC
       val_term_pval = term_pval
+    domain_labels.append(str(val_term_FC))
+    if add_term_FC:
+      if not value_labels:
+        value_labels = [ [str(add_term_FC[i])] for i in range(0, len(add_term_FC)) ]
+      else:
+        for i in range(0, len(add_term_FC)):
+          value_labels[i].append(str(add_term_FC[i]))       
     add_term_FC = []
     add_term_pval = []
     significant_val = []
@@ -3831,11 +3859,32 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
 
     G.vs[val_term_FC] = add_term_FC
     G.vs[val_term_pval] = add_term_pval
-    G.vs["significant"] = significant_val
-    G.vs["FC_exists"] = FC_exists
+  
+  if add_term_FC:
+    if not value_labels:
+      value_labels = [ [str(add_term_FC[i])] for i in range(0, len(add_term_FC)) ]
+    else:
+      for i in range(0, len(add_term_FC)):
+        value_labels[i].append(str(add_term_FC[i]))  
+        
+  G.vs["pine_outline"] = significant_val
+  if max_FC_len > 1:
+    tot = len(significant_val)
+    G.vs["pine_domain_labels"] = [domain_labels]*tot
+    G.vs["pine_value_labels"] = value_labels
+  G.vs["pine_FC_exists"] = FC_exists  
+  G.vs["pine_query"] = query
+  G.vs["pine_length"] = length_of
+  G.vs["pine_breadth"] = breadth_of
+  degree = G.degree()
+  G.vs["pine_degree"] = degree
+  if up_or_down:
+    G.vs["pine_regulated"] = up_or_down
+  if category_present == 1:
+    G.vs["pine_category_true"] = is_category_present  
     
   if max_FC_len == 0 and not category_present:
-    G.vs["query_val"] = query_val_noFC
+    G.vs["pine_query_val"] = query_val_noFC
   
   cy = CyRestClient(port=CYREST_PORT)
 
@@ -3866,7 +3915,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "Gene":"ROUND_RECTANGLE",
       "EI":"ROUND_RECTANGLE"
     }
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
   height_kv_pair = {
     "Function":"70",
     "Gene":"30",
@@ -3906,10 +3955,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "greater": "1"
     }
   ]
-  my_style.create_continuous_mapping(column='length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
-  my_style.create_discrete_mapping(column='query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
+  my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
 
   pval_sig = 0
   if max_FC_len == 1:
@@ -3936,7 +3985,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       else:
         color_kv_pair.update({each_val:"#FFFFBF"})
 
-    my_style.create_discrete_mapping(column='query_val', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
+    my_style.create_discrete_mapping(column='pine_query_val', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if pval_sig == 1:
     my_style = pval(my_style)
@@ -4418,21 +4467,22 @@ def main(argv):
         eprint("Error: Cytoscape app GeneMANIA v3.5.0 or above not installed or not responding properly")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
-      
-    if not app_cluego or not bool(re.match('^2.5', ver_cluego)):
-      eprint("Error: Cytoscape app ClueGO v2.5.0 or above not installed or not responding properly")
-      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-      sys.exit(1)
+        
+    if not cy_cluego_inp_file:  
+      if not app_cluego or not bool(re.match('^2.5', ver_cluego)):
+        eprint("Error: Cytoscape app ClueGO v2.5.0 or above not installed or not responding properly")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
     
-    if ver_cluego not in cy_map:
-      eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map)
-      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-      sys.exit(1)
+      if ver_cluego not in cy_map:
+        eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map)
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
       
-    if cluego_reference_file and (ver_cluego == "2.5.0" or ver_cluego == "2.5.1" or ver_cluego == "2.5.2" or ver_cluego == "2.5.3" or ver_cluego == "2.5.4"):
-      eprint("Error: Using ClueGO custom reference file needs version 2.5.5 or above of ClueGO")
-      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-      sys.exit(1)
+      if cluego_reference_file and (ver_cluego == "2.5.0" or ver_cluego == "2.5.1" or ver_cluego == "2.5.2" or ver_cluego == "2.5.3" or ver_cluego == "2.5.4"):
+        eprint("Error: Using ClueGO custom reference file needs version 2.5.5 or above of ClueGO")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
     
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       body = dict(offline=True)
@@ -4456,12 +4506,10 @@ def main(argv):
     all_prot_site_snps = {}
  
     if cy_cluego_inp_file:
-      if cy_debug:
-        logging.debug("\nStep 2.5: Start processing the input ClueGO list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
       leading_term_cluster, each_primgene_list = cluego_input_file(cy_cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       cy_lim = 0
       if cy_debug:
-        logging.debug("ClueGO query: " + str(len(each_primgene_list)) )
+        logging.debug("Limiting query to re-analyze terms: " + str(len(each_primgene_list)) )
         
     drop_dupeprimgene_prot = {}
     unique_each_primgene_list = each_primgene_list
