@@ -315,6 +315,10 @@ ul.tab-selector {
         left: auto;
         right: 0;
     }
+
+    &.tooltip-wide {
+        width: 400px;
+    }
 }
 
 .tooltip {
@@ -432,28 +436,10 @@ img.pine-img {
     }
 }
 
-.missing-file {
-    background-color: rgba(255, 255, 255, 0.9);
-    color: $color2;
-    border: solid black 1px;
-    position: absolute;
-    top: 4rem;
-    z-index: 1001;
-    text-align: left;
-    padding: 0.5rem;
-    min-height: 2rem;
-    overflow-wrap: break-word;
-    margin-left: auto;
-    margin-right: auto;
-    left: 0;
-    right: 0;
-    width: 80%;
-    display: flex;
-    justify-content: center;
-    align-content: center;
-    flex-direction: column;
-}
-
 .relative {
     position: relative;
+}
+
+.lock-error {
+    z-index: 1001;
 }
