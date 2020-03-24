@@ -813,6 +813,8 @@ let vm = new Vue({
             } else {
                 this.input[name] = path;
             }
+
+            this.runnable_file_check(false);
         },
         save_settings: function(settings_file) {
             let settings = {};

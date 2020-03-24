@@ -115,16 +115,24 @@
         </div>
 
         <div v-if="current_tab === tabs.INPUT">
-
           <h4 class="full-section-header">Required options</h4>
           <div class="full-section">
+            <div class="missing-file" v-if="missing_files.in && !settings_editable()">
+              Missing input file: {{ input.in }}
+            </div>
+            <div class="missing-file" v-else-if="missing_files.output && !settings_editable()">
+              Missing output directory: {{ input.output }}
+            </div>
+            <div class="missing-file" v-else-if="missing_files.fasta_file && !settings_editable()">
+              Missing fasta file: {{ input.fasta_file }}
+            </div>
+            <div class="missing-file" v-else-if="missing_files.reference_path && !settings_editable()">
+              Missing reference file: {{ input.reference_path }}
+            </div>
             <div v-show="!settings_editable()" class="full-section-cover"></div>
             <div class="grid-options">
 
               <div class="align-right relative">
-                <div class="missing-file" v-show="missing_files.in && !settings_editable()">
-                  Missing input file: {{ input.in }}
-                </div>
                 <span class="tooltip-parent">
                   Input file <i class="far fa-question-circle"></i>
                   <div class="tooltip">Input file in csv format.</div>
@@ -155,9 +163,6 @@
               </div>
 
               <div class="align-right relative">
-                <div class="missing-file" v-show="missing_files.output && !settings_editable()">
-                  Missing output directory: {{ input.output }}
-                </div>
                 <span class="tooltip-parent">
                   Output directory <i class="far fa-question-circle"></i>
                   <div class="tooltip">Path to output directory.  A timestamped subdirectory will be created inside your output directory for each analysis.</div>
@@ -190,9 +195,6 @@
               </div>
 
               <div v-if="is_extra_options_required()" class="align-right relative">
-                <div class="missing-file" v-show="missing_files.fasta_file && !settings_editable()">
-                  Missing fasta file: {{ input.fasta_file }}
-                </div>
                 <span class="tooltip-parent">
                   Fasta file <i class="far fa-question-circle"></i>
                   <div class="tooltip">Path to fasta file</div>
@@ -371,9 +373,6 @@
               </div>
 
               <div class="align-right relative">
-                <div class="missing-file" v-show="missing_files.reference_path && !settings_editable()">
-                  Missing reference file: {{ input.reference_path }}
-                </div>
                 <span class="tooltip-parent">
                   ClueGO p-value <i class="far fa-question-circle"></i>
                   <div class="tooltip">P-value cutoff for enrichment analysis.</div>
@@ -392,7 +391,7 @@
               <div class="align-right">
                 <span class="tooltip-parent">
                   Reference file <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Background reference file containing a list of protein or gene IDs for enrichment analysis in text format.</div>
+                  <div class="tooltip">Background reference file in .txt format listing protein or gene IDs separated by new line</div>
                 </span>
               </div>
               <div>
