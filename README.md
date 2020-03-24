@@ -4,6 +4,7 @@
 - [What is PINE](#what-is-pine)
 - [Requirements and Setup](#requirements-and-setup)
 - [Using PINE GUI](#using-pine-gui)
+- [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
@@ -136,6 +137,10 @@ After reanalysis is complete, there will be a new interaction network which cont
 
 ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
 
+## Customized Styling in Cytoscape
+
+### Layout
+It is recommended to install the Cytoscape App yfiles Layout Algorithms to improve your layouts after PINE has finished building you network. To install navigate to Apps->App Manager on the tab at the top of the Cytoscape screen.
 ## Using PINE command line
 
 ### Requirements
