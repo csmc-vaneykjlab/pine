@@ -150,11 +150,11 @@ Open up the node font size section by clicking on the dropdown arrow. Double-cli
 Alternatively, to change font sizes of specific node labels, click to select the required node and select the bypass box for Label Font Size on the Style tab. This opens up a new tab where node label font size for the selected node can be set.
 
 ### Colors
-** Color Gradient for single fold change type networks **
+**Color Gradient for single fold change type networks**
 To modify color of fold change greadient for the nodes, navigate to the Style Tab on the Control Panel on the left side of the Cytoscape screen. 'Fill Color' controls node colors. 
 Open up the fill color section by clicking on the dropdown arrow. Double-click on the current mapping gradient. This opens up a new tab called Continuous Mapping Editor. Set a new gradient by double-clicking on the arrow buttons for fold changes that are up-regulated (>0) and down regulated(<0) and setting new colors from a color palette.
 
-** Bar and Pie Charts for multiple fold change or category type networks**
+**Bar and Pie Charts for multiple fold change or category type networks**
 The colors of the bar and pie charts can be modified by navigating to the 'Image/Chart' option on the Style Tab. Click on the currently configured bar chart to open up a Graphics tab. Its options section shows the currently configured colors. Double-clicking on the colors opens up a color palette allowing you to make any changes.
 
 Additionally, for bar charts, the option is provided to include:
