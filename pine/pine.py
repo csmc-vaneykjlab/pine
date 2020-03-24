@@ -2,6 +2,7 @@
  
 import sys
 def eprint(*args, **kwargs):
+  ''' Print to stderr instead of stdout '''
   print(*args, file=sys.stderr, **kwargs)
 
 from pinepy2cytoscape.data.cyrest_client import CyRestClient
@@ -54,7 +55,13 @@ def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   return logger
 
 def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300, timeout_interval=5, request_timeout=300):
-  ''' API request calls to implement app calls, network construction and style changes within Cytoscape '''
+  '''
+  API request calls to implement app calls, network construction and style changes within Cytoscape
+  Retries requests until a 200 status is returned or the timeout expires
+  timeout is the maximum time of the function
+  request_timeout is the maximum time for a single request.
+  If request_timeout > timeout, then request_timeout will be the maximum time for the function
+  '''
   if protocol == "GET":
     func = requests.get
   elif protocol == "PUT":
@@ -188,6 +195,10 @@ def find_mod(seq):
   return result_dict
 
 def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, include_list, db_file, enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, exclude_ambi, cy_settings_file):
+  '''
+  Reads input file and processes data based on type of analysis that will be performed
+  Checks for all required columns and errors out the wrong analysis was chosen
+  '''
   is_prot_col = False
   is_FC = False
   is_pval = False
@@ -1496,6 +1507,7 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
   return(unique_each_protein_list, prot_list, merged_out_dict)
 
 def inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info):
+  ''' Filter input based on user defined fold change or p-value cutoffs for PTM based analysis '''
   delete_site = False
   for each_fc_val,each_pval in zip(each_site_info[0],each_site_info[1]):
     try:         
@@ -2284,8 +2296,8 @@ def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, 
   return(search_dict, merged_out_dict)  
 
 def get_merged_interactions(filtered_dict, unique_merged_interactions, unique_nodes, max_FC_len, each_category, uniprot_query, type):
-  unique_merged_interactions = set(unique_merged_interactions)
   ''' Merge interactions from String and Genemania '''
+  unique_merged_interactions = set(unique_merged_interactions)
   unique_nodes = set(unique_nodes)
   for each_node1 in filtered_dict:
     for each_node2 in filtered_dict[each_node1]:
