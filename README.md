@@ -4,6 +4,7 @@
 - [What is PINE](#what-is-pine)
 - [Requirements and Setup](#requirements-and-setup)
 - [Using PINE GUI](#using-pine-gui)
+- [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
