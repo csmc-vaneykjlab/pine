@@ -158,8 +158,8 @@ Open up the fill color section by clicking on the dropdown arrow. Double-click o
 The colors of the bar and pie charts can be modified by navigating to the 'Image/Chart' option on the Style Tab. Click on the currently configured bar chart to open up a Graphics tab. Its options section shows the currently configured colors. Double-clicking on the colors opens up a color palette allowing you to make any changes.  
 
 Additionally, for bar charts, the option is provided to include:  
-- value labels in the bar showing the numeric value that represents height of the bar. Select 'Show Value Labels' and choose the PINE generated column pine_value_label to enable this option  
-- domain labels showing bar labels. Select 'Show Domain Axis' and choose the PINE generated column pine_domain_label to enable this option   
+- **Value Labels** in the bar showing the numeric value that represents height of the bar. Select 'Show Value Labels' and choose the PINE generated column pine_value_label to enable this option  
+- **Domain Labels** showing bar labels. Select 'Show Domain Axis' and choose the PINE generated column pine_domain_label to enable this option   
 
 ## Using PINE command line
 
