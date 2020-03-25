@@ -140,8 +140,8 @@ After reanalysis is complete, there will be a new interaction network which cont
 ## Customized Styling in Cytoscape
 
 ### Layout
-It is recommended to install the Cytoscape App yfiles Layout Algorithms to improve your layouts after PINE has finished building you network. To install navigate to Apps->App Manager on the tab at the top of the Cytoscape screen.
-Appropriate yfiles layout can be chosen by selecting from options available in the Layout tab at the top of the Cytoscape screen.
+It is recommended to install the Cytoscape App yFiles Layout Algorithms to improve your layouts after PINE has finished building your network. To install navigate to Apps->App Manager on the tab at the top of the Cytoscape screen.
+Appropriate yFiles layout can be chosen by selecting from options available in the Layout tab at the top of the Cytoscape screen. For example, figures 4 and 5 in the manuscript have been constructed using yFiles Organic Layout. Figures 6 and 7 have been constructed using yFiles Heirarchic Layout. 
 
 ### Font
 To change font, navigate to the Style Tab on the Control Panel on the left side of the Cytoscape screen. 'Label Font Size' is the option to set node font size. Font has been set by PINE based on length of node text. To change, the range of minumum and maximum font must be modified.
