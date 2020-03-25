@@ -17,9 +17,9 @@ PINE (**P**rotein **I**nteraction **N**etwork **E**xtractor) is a tool for visua
 
 ## Requirements and Setup
 The following tools and dependencies are required to run PINE:
-- [Cytoscape](https://cytoscape.org/download.html)
-- [Genemania](http://apps.cytoscape.org/apps/genemania)
-- [ClueGO](http://apps.cytoscape.org/apps/cluego)
+- [Cytoscape](https://cytoscape.org/download.html) (version 3.7 and above)
+- [Genemania](http://apps.cytoscape.org/apps/genemania) (version 3.5 and above)
+- [ClueGO](http://apps.cytoscape.org/apps/cluego) (version 2.5 and above)
 
 The PINE graphical user interface is only available for Windows.
 
