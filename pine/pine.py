@@ -94,6 +94,7 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
   raise CytoscapeError(str(last_exception))
 
 def input_failure_comment(uniprot_query, merged_out_dict, input_id, comment):
+  ''' Label an ID from the input with a failure comment '''
   uniprot_query[input_id] = {
     'Uniprot': "NA",
     'Primary': "NA",
@@ -2516,6 +2517,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
   return(uniprot_list)
       
 def remove_list_duplicates(list):
+  ''' Return only elements from the list where the lower case version is seen multiple times '''
   dupe_gene_list = []
   set_list = []
   for x in list:
@@ -2637,14 +2639,16 @@ HEADERS = {'Content-Type': 'application/json'}
 CLUEGO_BASE_PATH = "/v1/apps/cluego/cluego-manager"
 
 def writeLines(lines,out_file):
-    df = pd.read_csv(StringIO(lines), sep='\t')
-    df = df.drop_duplicates(subset=['GOTerm','Ontology Source', 'Nr. Genes', 'Associated Genes Found'])
-    df.to_csv(out_file, header=True, index=False, sep='\t', mode='w')
+  ''' Write the lines to a file, removing duplicates of specific columns '''
+  df = pd.read_csv(StringIO(lines), sep='\t')
+  df = df.drop_duplicates(subset=['GOTerm','Ontology Source', 'Nr. Genes', 'Associated Genes Found'])
+  df.to_csv(out_file, header=True, index=False, sep='\t', mode='w')
  
 def writeBin(raw,out_file):
-    file = open(out_file,'wb')
-    file.write(raw)
-    file.close()
+  ''' Write binary data to a file '''
+  file = open(out_file,'wb')
+  file.write(raw)
+  file.close()
     
 def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file):
   '''
@@ -2779,6 +2783,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       sys.exit(1)  
   
 def get_interactions_dict(filtered_dict, search, merged_out_dict):
+  ''' Add interactions found in the search database to merged_out_dict '''
   lower_filtered = [name.lower() for name in filtered_dict]
   for each_uniprot_query in merged_out_dict:    
     for name in filtered_dict:
@@ -4039,6 +4044,16 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new
     pass
     
 def main(argv):
+  '''
+  Run PINE - a tool for visualizing protein-protein interactions
+  Parse command line arguments
+  Create an analysis session directory or load an existing session
+  Start Cytoscape
+  Parse input
+  Search protein-protein interaction databases (STRING and Genemania)
+  Create networks in Cytoscape
+  Save Cytoscape and network and analysis results
+  '''
   cy_in = ""
   cy_species = ""
   cy_lim = 0
