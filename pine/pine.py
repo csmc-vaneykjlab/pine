@@ -216,6 +216,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   repeat_prot_ids = []
   retain_prot_ids = []
   repeat_prot_ids_2 = {}
+  list_of_duplicates = []
   to_return_unique_protids_length = 0
   ambigious_sites = {}
   ambigious_sites_ptms = {}
@@ -233,6 +234,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   initial_query_prot_count = 0
   initial_query_pep_count = 0
   unique_prot_pep = {}
+  ctr = 0
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
@@ -518,6 +520,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         del site_info_dict[protein_list_id][sites]
                         if len(site_info_dict[protein_list_id]) == 0:
                           del site_info_dict[protein_list_id]
+                          ctr +=1 
                     else:
                       duplicate_ptm_proteins.append((protein_list_id, sites, peptide, get_fc_val, get_pval))
                     continue
@@ -560,6 +563,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                           del site_info_dict[protein_list_id][sites]
                           if len(site_info_dict[protein_list_id]) == 0:
                             del site_info_dict[protein_list_id]
+                            ctr +=1 
                     else:
                       duplicate_ptm_proteins.append((protein_list_id, sites, peptide, row[label], get_fc_val, get_pval))
                     continue
@@ -689,8 +693,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       countpep = 0
       for getprot in site_info_dict:
         for getsite,getpep in site_info_dict[getprot].items():
-          countpep += len(list(getpep.keys()))  
-      initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict])
+          countpep += len(list(getpep.keys()))          
+      initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict]) + ctr
       if exclude_ambi:
         initial_query_prot_count += len(mapping_multiple_regions)
       logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides")
@@ -751,13 +755,15 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     each_protein_list = list(site_info_dict.keys())
 
   if type == "1": 
-    dropping_repeats = []    
+    dropping_repeats = []
+    initial_each_protein_list = each_protein_list    
     if repeat_prot_ids:
       unique_each_protein_list = [x for x in each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids]]  
       dropping_repeats = [x for x in each_protein_list if x.lower() in [name.lower() for name in repeat_prot_ids]]        
       for x in list(prot_list):
         if x.lower() in [name.lower() for name in repeat_prot_ids]:
           del prot_list[x]
+    
     else:
       unique_each_protein_list = each_protein_list
     if retain_prot_ids:
@@ -770,7 +776,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     if cy_debug:
       if all_dropped:       
         logging.debug("DISCARD WARNING - Duplicate query: " + str((initial_length)-len(each_protein_list)))
- 
+        list_of_duplicates = [i for i in initial_each_protein_list if i not in each_protein_list or each_protein_list.remove(i)]
   elif type == "3":
     if repeat_prot_ids:
       unique_each_protein_list = list(set(each_protein_list))    
@@ -804,7 +810,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   del prot_list[each_prot_2]                
       
       if cy_debug:
-        list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
+        repeat_prot_ids_key_append = []
+        for list_each_dropped_protid in repeat_prot_ids_2:
+          for value_of_key in repeat_prot_ids_2[list_each_dropped_protid]:
+            repeat_prot_ids_key_append.append(list_each_dropped_protid)           
+        list_of_duplicates = additional_dropped + repeat_prot_ids_key_append + retain_prot_ids
         list_of_duplicates = sorted(list_of_duplicates)
         if list_of_duplicates:
           logging.debug("DISCARD WARNING - Duplicate query: " + str(len(list_of_duplicates))) 
@@ -1398,8 +1408,16 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
-  
-  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
+  dup_prot_ids_to_return = []
+  if type == "3":
+    dup_prot_ids_to_return = repeat_prot_ids # nofc
+  elif type == "4":
+    dup_prot_ids_to_return = retain_prot_ids # category
+  elif type == "1" or type == "2":
+    dup_prot_ids_to_return = list_of_duplicates # multifc, singlefc
+    each_protein_list = list(prot_list.keys())
+
+  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return)
 
 def ptm_scoring(site_dict, enzyme, include_list):
   ''' PTM scoring algorithm for ambiguous sites: For proteins having different peptides for the same modification site, one representation of site is picked by choosing the peptide having no miscleavages or modifications other than the mod of interest '''
@@ -2794,7 +2812,7 @@ def get_interactions_dict(filtered_dict, search, merged_out_dict):
           break      
   return(merged_out_dict)
 
-def write_into_out(merged_out_dict, out):
+def write_into_out(merged_out_dict, out, dup_prot_ids):
   ''' Write into interactions.csv containing for the list of input protein ids the list of its interactions, if present or comments describing reason for drop in any of the steps of the pipeline '''  
   if not out:
     return
@@ -2813,6 +2831,11 @@ def write_into_out(merged_out_dict, out):
         
       i+=1
       csv_file.write(line)
+      
+    if dup_prot_ids:
+      for each_prot in dup_prot_ids:
+        line = each_prot + ","  + "," + "," + "," + "Duplicate Query" + "\n"
+        csv_file.write(line)        
   csv_file.close()
     
 def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file):
@@ -3185,7 +3208,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   slash_delim = chr(92)
   
   if category_present == 1:
-    my_style = get_category(my_style,uniprot_list['pine_category_true'],"1",uniprot_list["pine_query"],uniprot_list['name'], each_category)
+    my_style = get_category(my_style,uniprot_list['category_true'],"1",uniprot_list["query"],uniprot_list['name'], each_category)
     color_kv_pair = {
       "1":"#FFFFFF",
       "0":"#E2E2E2"
@@ -4416,7 +4439,7 @@ def main(argv):
     CYREST_PORT = cyrest_port
 
     if not found_open_port:
-      eprint("Could not find an open port to start Cytoscape. Please close a previous PINE generated Cytoscape session.")
+      eprint("Could not find an open port to start Cytoscape. Please close a previous PINE generated Cytoscape session and start the run again.")
       sys.exit(1)
     
     if not cy_cluego_inp_file:
@@ -4454,7 +4477,7 @@ def main(argv):
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels, dup_prot_ids = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
     
     # FC and Pval cutoff
     if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
@@ -4721,7 +4744,7 @@ def main(argv):
       logging.debug("\nRun completed successfully")
      
     #Write into outfile
-    write_into_out(merged_out_dict, cy_out)
+    write_into_out(merged_out_dict, cy_out, dup_prot_ids)
     request_retry(f"{CYREST_URL}/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
 
   except CytoscapeError as e:
