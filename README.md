@@ -43,15 +43,15 @@ PINE currently supports human, mouse and rat analysis. These species datasets mu
 
 If you've never used Genemania before, navigate to Apps -> GeneMANIA -> Local Search...
 
-![Genemania species installation](Image/genemania-initial-install-1.jpg)
+![Genemania species installation](Image/genemania-initial-install-1.png)
 
 Then select the latest dataset
 
-![Genemania species installation](Image/genemania-initial-install-2.jpg)
+![Genemania species installation](Image/genemania-initial-install-2.png)
 
 Then select which species you would like to install
 
-![Genemania species installation](Image/genemania-initial-install-3.jpg)
+![Genemania species installation](Image/genemania-initial-install-3.png)
 
 If you've used Genemania before, then open the App within Cytoscape and click on Install Data...
 
