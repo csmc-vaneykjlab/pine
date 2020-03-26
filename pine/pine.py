@@ -687,7 +687,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Number of categories should not exceed 6")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-
+  merged_out_dict_2 = {}
   if cy_debug:
     if type == "5" or type == "6":
       countpep = 0
@@ -717,30 +717,30 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               each_pep = get_each_pep
             
-            if each_key in merged_out_dict:
-              if 'DroppedPeptide' not in merged_out_dict[each_key]:
-                merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
-                merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+            if each_key in merged_out_dict_2:
+              if 'DroppedPeptide' not in merged_out_dict_2[each_key]:
+                merged_out_dict_2[each_key].update({'DroppedPeptide':[each_pep]})
+                merged_out_dict_2[each_key].update({'DroppedSite':[get_each_site]})
                 bool_yes = True
               else:  
-                if each_pep not in merged_out_dict[each_key]['DroppedPeptide']:               
-                  merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
-                  merged_out_dict[each_key]['DroppedSite'].append(get_each_site)
+                if each_pep not in merged_out_dict_2[each_key]['DroppedPeptide']:               
+                  merged_out_dict_2[each_key]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict_2[each_key]['DroppedSite'].append(get_each_site)
                   bool_yes = True
         
             else:
-              merged_out_dict[each_key] = {}
-              merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
-              merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+              merged_out_dict_2[each_key] = {}
+              merged_out_dict_2[each_key].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict_2[each_key].update({'DroppedSite':[get_each_site]})
               bool_yes = True              
             
             if bool_yes:
-              pep_len +=1
-              if 'Comment' not in merged_out_dict[each_key]:
-                merged_out_dict[each_key].update({'Comment':"No site;"})
+              pep_len +=1            
+              if 'Comment' not in merged_out_dict_2[each_key]:
+                merged_out_dict_2[each_key].update({'Comment':"No site;"})
               else:
-                merged_out_dict[each_key]['Comment'] += "No site;"            
-        
+                merged_out_dict_2[each_key]['Comment'] += "No site;"            
+            
         logging.debug("DISCARD WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
         
     else:
@@ -1084,7 +1084,44 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
             else:
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-  
+    
+    if cy_debug:
+      if dropped_invalid_site:
+        i = 0
+        for each_key in dropped_invalid_site:
+          if dropped_invalid_site[each_key] == None:
+            continue
+          
+          for get_each_pep,get_each_site in zip(dropped_invalid_site[each_key]["PeptideandLabel"],dropped_invalid_site[each_key]["Site"]):
+            bool_yes = False
+            if "-" in get_each_pep:
+              each_pep = (get_each_pep.split("-"))[0]
+            else:
+              each_pep = get_each_pep
+            
+            if each_key in merged_out_dict:
+              if 'DroppedPeptide' not in merged_out_dict[each_key]:
+                merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+                merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+                bool_yes = True
+              else:  
+                if each_pep not in merged_out_dict[each_key]['DroppedPeptide']:               
+                  merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict[each_key]['DroppedSite'].append(get_each_site)
+                  bool_yes = True
+        
+            else:
+              merged_out_dict[each_key] = {}
+              merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+              bool_yes = True              
+            
+            if bool_yes:
+              if 'Comment' not in merged_out_dict[each_key]:
+                merged_out_dict[each_key].update({'Comment':"No site;"})
+              else:
+                merged_out_dict[each_key]['Comment'] += "No site;"
+                
     if site_info_dict_rearrange1:
       for each_prot_id in site_info_dict_rearrange1:
         for each_site in site_info_dict_rearrange1[each_prot_id]:
