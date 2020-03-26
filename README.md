@@ -4,6 +4,7 @@
 - [What is PINE](#what-is-pine)
 - [Requirements and Setup](#requirements-and-setup)
 - [Using PINE GUI](#using-pine-gui)
+- [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
@@ -16,9 +17,9 @@ PINE (**P**rotein **I**nteraction **N**etwork **E**xtractor) is a tool for visua
 
 ## Requirements and Setup
 The following tools and dependencies are required to run PINE:
-- [Cytoscape](https://cytoscape.org/download.html)
-- [Genemania](http://apps.cytoscape.org/apps/genemania)
-- [ClueGO](http://apps.cytoscape.org/apps/cluego)
+- [Cytoscape](https://cytoscape.org/download.html) (version 3.7 and above)
+- [Genemania](http://apps.cytoscape.org/apps/genemania) (version 3.5 and above)
+- [ClueGO](http://apps.cytoscape.org/apps/cluego) (version 2.5 and above)
 
 The PINE graphical user interface is only available for Windows.
 
@@ -26,7 +27,7 @@ The PINE graphical user interface is only available for Windows.
 ![Cytoscape](Image/cytoscape.jpg)
 
 ### Install Cytoscape Apps
-To install apps within Cytoscape navigate to Apps->App Manager on the tab at the top of the Cytoscape screen. Install the following apps:
+To install apps, open Cytoscape and navigate to Apps->App Manager on the tab at the top of the Cytoscape window. Install the following apps:
 #### [Genemania](http://apps.cytoscape.org/apps/genemania)
 ![Genemania installation](Image/genemania.jpg)
 #### [ClueGO](http://apps.cytoscape.org/apps/cluego)
@@ -39,6 +40,21 @@ Once installed apps can be opened by navigating to Apps-> [App Name] on the tab 
 ### Species installation within apps
 PINE currently supports human, mouse and rat analysis. These species datasets must be installed within the following apps:
 #### Genemania
+
+If you've never used Genemania before, navigate to Apps -> GeneMANIA -> Local Search...
+
+![Genemania species installation](Image/genemania-initial-install-1.png)
+
+Then select the latest dataset
+
+![Genemania species installation](Image/genemania-initial-install-2.png)
+
+Then select which species you would like to install
+
+![Genemania species installation](Image/genemania-initial-install-3.png)
+
+If you've used Genemania before, then open the App within Cytoscape and click on Install Data...
+
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
 By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
@@ -135,6 +151,38 @@ From this tab, you can also open the results folder ([see here for results descr
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
 
 ![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
+
+## Customized Styling in Cytoscape
+
+### Layout
+It is recommended to install the Cytoscape App yFiles Layout Algorithms to improve your layouts after PINE has finished building your network. To install navigate to Apps->App Manager on the tab at the top of the Cytoscape screen.
+Appropriate yFiles layout can be chosen by selecting from options available in the Layout tab at the top of the Cytoscape screen. For example, figures 4 and 5 in the manuscript have been constructed using yFiles Organic Layout. Figures 6 and 7 have been constructed using yFiles Heirarchic Layout. 
+
+### Font
+To change font, navigate to the Style Tab on the Control Panel on the left side of the Cytoscape screen. 'Label Font Size' is the option to set node font size. Font has been set by PINE based on length of node text. To change, the range of minumum and maximum font must be modified.
+Open up the node font size section by clicking on the dropdown arrow. Double-click on the current mapping graph. This opens up a new tab called Continuous Mapping Editor. Move the node label font size pointer up or down to increase or decrease font size respectively.
+![Font Size](Image/FontSize.png)
+
+Alternatively, to change font sizes of specific node labels, click to select the required node and select the bypass box for Label Font Size on the Style tab. This opens up a new tab where node label font size for the selected node can be set.
+![Bypass](Image/BypassFont.png)
+
+### Colors
+**Color Gradient for single fold change type networks**  
+To modify color of fold change greadient for the nodes, navigate to the Style Tab on the Control Panel on the left side of the Cytoscape screen. 'Fill Color' controls node colors.   
+Open up the fill color section by clicking on the dropdown arrow. Double-click on the current mapping gradient. This opens up a new tab called Continuous Mapping Editor. Set a new gradient by double-clicking on the arrow buttons for fold changes that are up-regulated (>0) and down regulated(<0) and setting new colors from a color palette.  
+![SinglefcColor](Image/SinglefcColor.png)
+
+**Bar and Pie Charts for multiple fold change or category type networks**  
+The colors of the bar and pie charts can be modified by navigating to the 'Image/Chart' option on the Style Tab. Click on the currently configured bar chart to open up a Graphics tab. Its options section shows the currently configured colors. Double-clicking on the colors opens up a color palette allowing you to make any changes.  
+![BarColor](Image/BarChartColor.png)  
+
+Additionally, for bar charts, the option is provided to include:  
+- **Value Labels** in the bar showing the numeric value that represents height of the bar. Select 'Show Value Labels' and choose the PINE generated column pine_value_label to enable this option  
+- **Domain Labels** showing bar labels. Select 'Show Domain Axis' and choose the PINE generated column pine_domain_label to enable this option   
+![BarOptions](Image/BarChartOptions.png)
+
+This labels bar charts appropriately as below:  
+![Ex](Image/ExBarChart.png)  
 
 ## Using PINE command line
 

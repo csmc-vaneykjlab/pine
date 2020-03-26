@@ -541,7 +541,7 @@ let vm = new Vue({
             this.load_settings(this.session_settings_file);
             const file_check = this.runnable_file_check(true);
             if(!file_check["success"]) {
-                error_popup("Invalid session", `This file is missing from your session: ${file_check["file"]}`);
+                error_popup("Invalid session", `Input file ${file_check["filename"]} has been moved or deleted.  Please restore this file to original location or start a new session.`);
             }
             this.read_cluego_pathways();
             if(file_check["success"]) {
@@ -615,23 +615,33 @@ let vm = new Vue({
         },
         runnable_file_check: function(is_reanalysis) {
             let msg = null;
+            let filename = null;
             this.reset_missing_files();
             if(!this.input.in || this.missing_file_check('in', false)) {
                 msg = "Input file doesn't exist.";
+                filename = this.input.in;
             } else if(!this.input.output || this.missing_file_check('output', true)) {
                 msg = "Output directory doesn't exist.";
+                filename = this.input.output;
             } else if(this.is_extra_options_required() && (!this.input.fasta_file || this.missing_file_check('fasta_file', false))) {
                 msg = "Fasta file doesn't exist.";
+                filename = this.input.fasta_file;
             } else if(this.input.reference_path && this.missing_file_check('reference_path', false)) {
                 msg = "Reference path file doesn't exist.";
+                filename = this.input.reference_path;
             } else if(this.input.output_name && !is_reanalysis) {
                 const output_name_path = path.join(this.input.output, this.input.output_name);
                 if(is_file(output_name_path) || is_dir(output_name_path)) {
                     msg = `Output path ${output_name_path} already exists.`;
                 }
+                filename = output_name_path;
             }
             if(msg) {
-                return {"success": false, "file": msg};
+                return {
+                    "success": false,
+                    "file": msg,
+                    "filename": filename,
+                };
             }
             return {"success": true};
         },
@@ -827,6 +837,7 @@ let vm = new Vue({
                 }
                 settings[inp] = this.input[inp];
             }
+            settings.cluego_picked_version = this.cluego_picked_version.version;
             fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
         },
         load_settings: function(settings_file) {
@@ -834,6 +845,7 @@ let vm = new Vue({
                 return;
             }
             const raw = fs.readFileSync(settings_file, "utf8");
+            let cluego_picked_version = null;
             try {
                 const saved_input = JSON.parse(raw);
                 for(const key in saved_input) {
@@ -845,9 +857,19 @@ let vm = new Vue({
                         } else {
                             Vue.set(this.input, key, saved_input[key]);
                         }
+                    } else if(key === "cluego_picked_version") {
+                        cluego_picked_version = saved_input[key];
                     }
                 }
             } catch(e) {
+            }
+
+            if(cluego_picked_version != null) {
+                for(const cv of this.cluego_versions) {
+                    if(cv.version === cluego_picked_version) {
+                        this.cluego_picked_version = cv;
+                    }
+                }
             }
         },
         get_settings_file: function() {

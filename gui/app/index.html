@@ -117,18 +117,6 @@
         <div v-if="current_tab === tabs.INPUT">
           <h4 class="full-section-header">Required options</h4>
           <div class="full-section">
-            <div class="missing-file" v-if="missing_files.in && !settings_editable()">
-              Missing input file: {{ input.in }}
-            </div>
-            <div class="missing-file" v-else-if="missing_files.output && !settings_editable()">
-              Missing output directory: {{ input.output }}
-            </div>
-            <div class="missing-file" v-else-if="missing_files.fasta_file && !settings_editable()">
-              Missing fasta file: {{ input.fasta_file }}
-            </div>
-            <div class="missing-file" v-else-if="missing_files.reference_path && !settings_editable()">
-              Missing reference file: {{ input.reference_path }}
-            </div>
             <div v-show="!settings_editable()" class="full-section-cover"></div>
             <div class="grid-options">
 
@@ -142,9 +130,9 @@
                 <label class="button success-button" for="file-button-input">Select file</label>
                 <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" accept=".csv" />
                 <span class="text-small" v-show="input.in" v-bind:title="input.in">{{ input.in | filename }}</span>
-                <span class="tooltip-parent" v-show="missing_files.in">
+                <span class="tooltip-parent lock-error" v-show="missing_files.in">
                   <i class="fas fa-exclamation-circle color-2"></i>
-                  <div class="tooltip">Input file is missing</div>
+                  <div class="tooltip tooltip-wide">Input file is missing:<br/>{{ input.in }}</div>
                 </span>
               </div>
 
@@ -172,9 +160,9 @@
                 <label class="button success-button" for="file-button-output">Select directory</label>
                 <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory />
                 <span class="text-small" v-show="input.output" v-bind:title="input.output">{{ input.output | filename }}</span>
-                <span class="tooltip-parent" v-show="missing_files.output">
+                <span class="tooltip-parent lock-error" v-show="missing_files.output">
                   <i class="fas fa-exclamation-circle color-2"></i>
-                  <div class="tooltip">Output directory is missing</div>
+                  <div class="tooltip tooltip-wide">Output directory is missing: {{ input.output }}</div>
                 </span>
               </div>
 
@@ -204,9 +192,9 @@
                 <label class="button success-button" for="file-button-fasta">Select file</label>
                 <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" accept=".fasta" />
                 <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | filename }}</span>
-                <span class="tooltip-parent" v-show="missing_files.fasta_file">
+                <span class="tooltip-parent lock-error" v-show="missing_files.fasta_file">
                   <i class="fas fa-exclamation-circle color-2"></i>
-                  <div class="tooltip">Fasta file is missing</div>
+                  <div class="tooltip tooltip-wide">Fasta file is missing: {{ input.fasta_file }}</div>
                 </span>
               </div>
 
@@ -401,9 +389,9 @@
                   {{ input.reference_path | filename }}
                   <i class="fas fa-times-circle color-2 clickable" v-on:click="set_input('reference_path', '')"></i>
                 </span>
-                <span class="tooltip-parent" v-show="missing_files.reference_path">
+                <span class="tooltip-parent lock-error" v-show="missing_files.reference_path">
                   <i class="fas fa-exclamation-circle color-2"></i>
-                  <div class="tooltip">Reference file is missing</div>
+                  <div class="tooltip tooltip-right tooltip-wide">Reference file is missing:<br/>{{ input.reference_path }}</div>
                 </span>
               </div>
 
