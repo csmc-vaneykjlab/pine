@@ -197,6 +197,11 @@ It is strongly recommended you use a virtual environment for installing PINE.
 
 After installing, PINE can be run using `python3 -m pine.pine --help`
 
+#### Windows issues
+Installing the python-igraph dependency may have issues on Windows.
+If you encounter an error related to python-igraph, you can install a binary of the package from here: https://www.lfd.uci.edu/~gohlke/pythonlibs/#python-igraph.
+After downloading the package, run `pip install path\to\wheel\python_igraph‑0.7.1.post6‑cp38‑cp38‑win_amd64.whl`.
+
 ### Usage
 ```
 python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz --cytoscape-executable path_to_exe
