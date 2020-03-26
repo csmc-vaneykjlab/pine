@@ -1,5 +1,5 @@
 #Goal: Given list of protein IDs (optionally including their corresponding PTM modification,FC and pval or category), construct 1) an interaction network among all proteins in list 2) construct a pathway network of proteins in the list
- 
+#python pine/pine.py -i C:\Users\SundararamN\Documents\PINE\PENN\PENN.csv -m "C:\Users\SundararamN\ClueGOConfiguration\v2.5.6\ClueGOSourceFiles\Organism_Homo Sapiens\Homo Sapiens.gene2accession_2020.02.17.txt.gz" -s human -t nofc -e "C:\Program Files\Cytoscape_v3.7.1\Cytoscape.exe" -o C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run -u string -r 0.9 -f 0.32 -p 0.05
 import sys
 def eprint(*args, **kwargs):
   ''' Print to stderr instead of stdout '''
@@ -216,6 +216,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   repeat_prot_ids = []
   retain_prot_ids = []
   repeat_prot_ids_2 = {}
+  list_of_duplicates = []
   to_return_unique_protids_length = 0
   ambigious_sites = {}
   ambigious_sites_ptms = {}
@@ -233,6 +234,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   initial_query_prot_count = 0
   initial_query_pep_count = 0
   unique_prot_pep = {}
+  ctr = 0
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
@@ -518,6 +520,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         del site_info_dict[protein_list_id][sites]
                         if len(site_info_dict[protein_list_id]) == 0:
                           del site_info_dict[protein_list_id]
+                          ctr +=1 
                     else:
                       duplicate_ptm_proteins.append((protein_list_id, sites, peptide, get_fc_val, get_pval))
                     continue
@@ -560,6 +563,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                           del site_info_dict[protein_list_id][sites]
                           if len(site_info_dict[protein_list_id]) == 0:
                             del site_info_dict[protein_list_id]
+                            ctr +=1 
                     else:
                       duplicate_ptm_proteins.append((protein_list_id, sites, peptide, row[label], get_fc_val, get_pval))
                     continue
@@ -683,14 +687,14 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Number of categories should not exceed 6")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-
+  merged_out_dict_2 = {}
   if cy_debug:
     if type == "5" or type == "6":
       countpep = 0
       for getprot in site_info_dict:
         for getsite,getpep in site_info_dict[getprot].items():
-          countpep += len(list(getpep.keys()))  
-      initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict])
+          countpep += len(list(getpep.keys()))          
+      initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict]) + ctr
       if exclude_ambi:
         initial_query_prot_count += len(mapping_multiple_regions)
       logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides")
@@ -713,30 +717,30 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               each_pep = get_each_pep
             
-            if each_key in merged_out_dict:
-              if 'DroppedPeptide' not in merged_out_dict[each_key]:
-                merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
-                merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+            if each_key in merged_out_dict_2:
+              if 'DroppedPeptide' not in merged_out_dict_2[each_key]:
+                merged_out_dict_2[each_key].update({'DroppedPeptide':[each_pep]})
+                merged_out_dict_2[each_key].update({'DroppedSite':[get_each_site]})
                 bool_yes = True
               else:  
-                if each_pep not in merged_out_dict[each_key]['DroppedPeptide']:               
-                  merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
-                  merged_out_dict[each_key]['DroppedSite'].append(get_each_site)
+                if each_pep not in merged_out_dict_2[each_key]['DroppedPeptide']:               
+                  merged_out_dict_2[each_key]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict_2[each_key]['DroppedSite'].append(get_each_site)
                   bool_yes = True
         
             else:
-              merged_out_dict[each_key] = {}
-              merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
-              merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+              merged_out_dict_2[each_key] = {}
+              merged_out_dict_2[each_key].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict_2[each_key].update({'DroppedSite':[get_each_site]})
               bool_yes = True              
             
             if bool_yes:
-              pep_len +=1
-              if 'Comment' not in merged_out_dict[each_key]:
-                merged_out_dict[each_key].update({'Comment':"No site;"})
+              pep_len +=1            
+              if 'Comment' not in merged_out_dict_2[each_key]:
+                merged_out_dict_2[each_key].update({'Comment':"No site;"})
               else:
-                merged_out_dict[each_key]['Comment'] += "No site;"            
-        
+                merged_out_dict_2[each_key]['Comment'] += "No site;"            
+            
         logging.debug("DISCARD WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
         
     else:
@@ -751,13 +755,15 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     each_protein_list = list(site_info_dict.keys())
 
   if type == "1": 
-    dropping_repeats = []    
+    dropping_repeats = []
+    initial_each_protein_list = each_protein_list    
     if repeat_prot_ids:
       unique_each_protein_list = [x for x in each_protein_list if x.lower() not in [name.lower() for name in repeat_prot_ids]]  
       dropping_repeats = [x for x in each_protein_list if x.lower() in [name.lower() for name in repeat_prot_ids]]        
       for x in list(prot_list):
         if x.lower() in [name.lower() for name in repeat_prot_ids]:
           del prot_list[x]
+    
     else:
       unique_each_protein_list = each_protein_list
     if retain_prot_ids:
@@ -770,7 +776,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     if cy_debug:
       if all_dropped:       
         logging.debug("DISCARD WARNING - Duplicate query: " + str((initial_length)-len(each_protein_list)))
- 
+        list_of_duplicates = [i for i in initial_each_protein_list if i not in each_protein_list or each_protein_list.remove(i)]
   elif type == "3":
     if repeat_prot_ids:
       unique_each_protein_list = list(set(each_protein_list))    
@@ -804,7 +810,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   del prot_list[each_prot_2]                
       
       if cy_debug:
-        list_of_duplicates = additional_dropped + list(repeat_prot_ids_2.keys()) + retain_prot_ids
+        repeat_prot_ids_key_append = []
+        for list_each_dropped_protid in repeat_prot_ids_2:
+          for value_of_key in repeat_prot_ids_2[list_each_dropped_protid]:
+            repeat_prot_ids_key_append.append(list_each_dropped_protid)           
+        list_of_duplicates = additional_dropped + repeat_prot_ids_key_append + retain_prot_ids
         list_of_duplicates = sorted(list_of_duplicates)
         if list_of_duplicates:
           logging.debug("DISCARD WARNING - Duplicate query: " + str(len(list_of_duplicates))) 
@@ -1074,7 +1084,44 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
             else:
               site_info_dict_rearrange[each_protid].update({each_site:each_site_info})
-  
+    
+    if cy_debug:
+      if dropped_invalid_site:
+        i = 0
+        for each_key in dropped_invalid_site:
+          if dropped_invalid_site[each_key] == None:
+            continue
+          
+          for get_each_pep,get_each_site in zip(dropped_invalid_site[each_key]["PeptideandLabel"],dropped_invalid_site[each_key]["Site"]):
+            bool_yes = False
+            if "-" in get_each_pep:
+              each_pep = (get_each_pep.split("-"))[0]
+            else:
+              each_pep = get_each_pep
+            
+            if each_key in merged_out_dict:
+              if 'DroppedPeptide' not in merged_out_dict[each_key]:
+                merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+                merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+                bool_yes = True
+              else:  
+                if each_pep not in merged_out_dict[each_key]['DroppedPeptide']:               
+                  merged_out_dict[each_key]['DroppedPeptide'].append(each_pep)
+                  merged_out_dict[each_key]['DroppedSite'].append(get_each_site)
+                  bool_yes = True
+        
+            else:
+              merged_out_dict[each_key] = {}
+              merged_out_dict[each_key].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict[each_key].update({'DroppedSite':[get_each_site]})
+              bool_yes = True              
+            
+            if bool_yes:
+              if 'Comment' not in merged_out_dict[each_key]:
+                merged_out_dict[each_key].update({'Comment':"No site;"})
+              else:
+                merged_out_dict[each_key]['Comment'] += "No site;"
+                
     if site_info_dict_rearrange1:
       for each_prot_id in site_info_dict_rearrange1:
         for each_site in site_info_dict_rearrange1[each_prot_id]:
@@ -1398,8 +1445,16 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         countpep += len(list(getsite.keys()))
       logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
-  
-  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels)
+  dup_prot_ids_to_return = []
+  if type == "3":
+    dup_prot_ids_to_return = repeat_prot_ids # nofc
+  elif type == "4":
+    dup_prot_ids_to_return = retain_prot_ids # category
+  elif type == "1" or type == "2":
+    dup_prot_ids_to_return = list_of_duplicates # multifc, singlefc
+    each_protein_list = list(prot_list.keys())
+
+  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return)
 
 def ptm_scoring(site_dict, enzyme, include_list):
   ''' PTM scoring algorithm for ambiguous sites: For proteins having different peptides for the same modification site, one representation of site is picked by choosing the peptide having no miscleavages or modifications other than the mod of interest '''
@@ -1696,7 +1751,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1) 
     
-  organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA"]
+  organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA" and dict['Organism'] != ""]
   unique_organisms = list(set(organisms))
   
   if len(unique_organisms) > 1:
@@ -1718,7 +1773,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
     if duplicate_canonical:
-      duplicate_canonical_str = ", ".join(["(" + ", ".join(x) + ")" for x in duplicate_canonical])
+      duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x) + ")" for x in duplicate_canonical])
       logging.warning("DROP WARNING - Dropping queries that had multiple IDs map to single ID: " + duplicate_canonical_str)
 
     if len(seen_duplicate_mapping_ids) > 0:
@@ -1757,7 +1812,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     for each_in_list in prot_list:
       if each_in_list in uniprot_query:
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})      
-  
+
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_dbsnp_classification(uniprot_query, primgene_list, prot_list, merged_out_dict):
@@ -2794,7 +2849,7 @@ def get_interactions_dict(filtered_dict, search, merged_out_dict):
           break      
   return(merged_out_dict)
 
-def write_into_out(merged_out_dict, out):
+def write_into_out(merged_out_dict, out, dup_prot_ids):
   ''' Write into interactions.csv containing for the list of input protein ids the list of its interactions, if present or comments describing reason for drop in any of the steps of the pipeline '''  
   if not out:
     return
@@ -2813,6 +2868,11 @@ def write_into_out(merged_out_dict, out):
         
       i+=1
       csv_file.write(line)
+      
+    if dup_prot_ids:
+      for each_prot in dup_prot_ids:
+        line = each_prot + ","  + "," + "," + "," + "Duplicate Query" + "\n"
+        csv_file.write(line)        
   csv_file.close()
     
 def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file):
@@ -3185,7 +3245,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   slash_delim = chr(92)
   
   if category_present == 1:
-    my_style = get_category(my_style,uniprot_list['pine_category_true'],"1",uniprot_list["pine_query"],uniprot_list['name'], each_category)
+    my_style = get_category(my_style,uniprot_list['category_true'],"1",uniprot_list["query"],uniprot_list['name'], each_category)
     color_kv_pair = {
       "1":"#FFFFFF",
       "0":"#E2E2E2"
@@ -3497,19 +3557,19 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
     for i,does_fc_exist,each_name in zip(query,FC_exists,name):
       if i == "Function":
         color_value = "#E2E2E2"
-        width_value = "1"
+        width_value = "3"
       elif i == "Gene" and does_fc_exist == 1.0:
         color_value = "#FFFFFF"
-        width_value = "1"
+        width_value = "3"
       elif i == "Gene" and does_fc_exist != 1.0:
         color_value = "#FFFF99"
-        width_value = "1"
+        width_value = "3"
       elif i == "Site":
         color_value = "#FFFFFF"
-        width_value = "1"
+        width_value = "3"
       else:
         color_value = "#E2E2E2"
-        width_value = "1"
+        width_value = "3"
         
       if each_name not in kv_pair_color:
         kv_pair_color.update({each_name:color_value})
@@ -3554,7 +3614,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   }
   kv_node_border_width = {
     "1.0":"0",
-    "0.0":"1"
+    "0.0":"3"
   }
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
@@ -3568,7 +3628,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     for i,each_is_category_present,each_name in zip(query,is_category_present,name):
         if i == "Function":
           color_value = "#E2E2E2"
-          width_value = "1"
+          width_value = "3"
           node_width_value = "210"
         elif i == "Gene" and each_is_category_present == 1.0:
           color_value = "#FFFFFF"
@@ -3576,7 +3636,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
           node_width_value = "30"
         else:
           color_value = "#E2E2E2"
-          width_value = "1"
+          width_value = "3"
           node_width_value = "60"
         if each_name not in kv_pair_color:
           kv_pair_color.update({each_name:color_value})
@@ -3589,9 +3649,9 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   return(my_style)
   
 def pval(my_style):
-  ''' If pval significant, border node with blue color, width = 4 '''
+  ''' If pval significant, border node with blue color, width = 3 '''
   width_kv_pair = {
-    "1":"4",
+    "1":"3",
   }
   bc_kv_pair = {
     "1":"#0000FF",
@@ -3775,8 +3835,6 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   G.vs["name"] = merged_vertex
   G.vs["shared name"] = merged_vertex_sites_only
 
-  #if type == "5" or type == "6":
-    #G.vs["SNP"] = is_snp
   is_category_present = []
   first_cat_iteration = 0
   for each in each_category:
@@ -3876,7 +3934,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
 
     G.vs[val_term_FC] = add_term_FC
     G.vs[val_term_pval] = add_term_pval
-  
+    G.vs["pine_outline"] = significant_val
+    G.vs["pine_FC_exists"] = FC_exists
+    
   if add_term_FC:
     if not value_labels:
       value_labels = [ [str(add_term_FC[i])] for i in range(0, len(add_term_FC)) ]
@@ -3884,12 +3944,11 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       for i in range(0, len(add_term_FC)):
         value_labels[i].append(str(add_term_FC[i]))  
         
-  G.vs["pine_outline"] = significant_val
   if max_FC_len > 1:
-    tot = len(significant_val)
+    tot = len(query)
     G.vs["pine_domain_labels"] = [domain_labels]*tot
     G.vs["pine_value_labels"] = value_labels
-  G.vs["pine_FC_exists"] = FC_exists  
+    
   G.vs["pine_query"] = query
   G.vs["pine_length"] = length_of
   G.vs["pine_breadth"] = breadth_of
@@ -3933,18 +3992,33 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "EI":"ROUND_RECTANGLE"
     }
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
-  height_kv_pair = {
-    "Function":"70",
-    "Gene":"30",
-    "EI":"30",
-    "Site":"30"
-  }
-  if type == "5" or type == "6":
+  if type == "2" or type == "6":
+    height_kv_pair = {
+      "Function":"130",
+      "Gene":"90",
+      "EI":"90",
+      "Site":"130"
+    } 
+  else:
+    height_kv_pair = {
+      "Function":"70",
+      "Gene":"30",
+      "EI":"30",
+      "Site":"30"
+    }
+  if type == "5":
     width_kv_pair = {
       "Function":"210",
       "Gene":"70",
       "Site":"60",
       "EI":"70"
+    }
+  elif type == "2" or type == "6":
+    width_kv_pair = {
+      "Function":"250",
+      "Gene":"120",
+      "Site":"90",
+      "EI":"120"
     }
   else:
     width_kv_pair = {
@@ -3958,20 +4032,36 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "Gene":"#000000",
       "Site":"#000000"
   }
-  node_label_size =  [
-    {
-      "value": "2",
-      "lesser": "1",
-      "equal": "14",
-      "greater": "14"
-    },
-    {
-      "value": "100",
-      "lesser": "8",
-      "equal": "8",
-      "greater": "1"
-    }
-  ]
+  if type == "2" or type == "6":
+    node_label_size =  [
+      {
+        "value": "2",
+        "lesser": "1",
+        "equal": "32",
+        "greater": "32"
+      },
+      {
+        "value": "100",
+        "lesser": "8",
+        "equal": "8",
+        "greater": "1"
+      }
+    ] 
+  else:
+    node_label_size =  [
+      {
+        "value": "2",
+        "lesser": "1",
+        "equal": "14",
+        "greater": "14"
+      },
+      {
+        "value": "100",
+        "lesser": "8",
+        "equal": "8",
+        "greater": "1"
+      }
+    ]
   my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
@@ -3993,15 +4083,24 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     my_style = get_category(my_style,is_category_present,"2",query,merged_vertex,each_category)
   
   if max_FC_len == 0 and not category_present:
+    basic_settings = {
+      'NODE_BORDER_WIDTH':"3"
+    }
+    my_style.update_defaults(basic_settings)
     color_kv_pair = {}
+    label_color_kv_pair = { }
     for each_val in query_val_noFC:
       if each_val == "NA":
         color_kv_pair.update({each_val:"#E2E2E2"})
+        label_color_kv_pair.update({each_val:"#000000"})
       elif each_val == "Function":
         color_kv_pair.update({each_val:"#333333"})
+        label_color_kv_pair.update({each_val:"#FFFFFF"})
       else:
         color_kv_pair.update({each_val:"#FFFFBF"})
-
+        label_color_kv_pair.update({each_val:"#000000"})
+    
+    my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
     my_style.create_discrete_mapping(column='pine_query_val', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if pval_sig == 1:
@@ -4045,13 +4144,14 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new
     
 def main(argv):
   '''
-  Run PINE - a tool for visualizing protein-protein interactions
+  Run PINE - a tool for visualizing protein-protein interactions and annotations
   Parse command line arguments
   Create an analysis session directory or load an existing session
   Start Cytoscape
   Parse input
   Search protein-protein interaction databases (STRING and Genemania)
-  Create networks in Cytoscape
+  Obtain annotation terms for proteins using Cytoscape App, ClueGO
+  Create interaction and annotation networks in Cytoscape
   Save Cytoscape and network and analysis results
   '''
   cy_in = ""
@@ -4376,7 +4476,7 @@ def main(argv):
     CYREST_PORT = cyrest_port
 
     if not found_open_port:
-      eprint("Could not find an open port to start Cytoscape. Please close a previous PINE generated Cytoscape session.")
+      eprint("Could not find an open port to start Cytoscape. Please close a previous PINE generated Cytoscape session and start the run again.")
       sys.exit(1)
     
     if not cy_cluego_inp_file:
@@ -4410,11 +4510,11 @@ def main(argv):
         eprint("Error: Enzyme must be one of the following: " + ','.join(allowed_enzyme))
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
-  
+
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels, dup_prot_ids = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
     
     # FC and Pval cutoff
     if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
@@ -4502,7 +4602,7 @@ def main(argv):
         sys.exit(1)
     
       if ver_cluego not in cy_map:
-        eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map)
+        eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map + ". Please ensure the correct version is chosen in setup page. If the version installed in Cytoscape is not available as an option in the Setup page, please reinstall ClueGO and try again.")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       
@@ -4681,7 +4781,7 @@ def main(argv):
       logging.debug("\nRun completed successfully")
      
     #Write into outfile
-    write_into_out(merged_out_dict, cy_out)
+    write_into_out(merged_out_dict, cy_out, dup_prot_ids)
     request_retry(f"{CYREST_URL}/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
 
   except CytoscapeError as e:
