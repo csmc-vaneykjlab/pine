@@ -40,6 +40,21 @@ Once installed apps can be opened by navigating to Apps-> [App Name] on the tab 
 ### Species installation within apps
 PINE currently supports human, mouse and rat analysis. These species datasets must be installed within the following apps:
 #### Genemania
+
+If you've never used Genemania before, navigate to Apps -> GeneMANIA -> Local Search...
+
+![Genemania species installation](Image/genemania-initial-install-1.jpg)
+
+Then select the latest dataset
+
+![Genemania species installation](Image/genemania-initial-install-2.jpg)
+
+Then select which species you would like to install
+
+![Genemania species installation](Image/genemania-initial-install-3.jpg)
+
+If you've used Genemania before, then open the App within Cytoscape and click on Install Data...
+
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
 By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
