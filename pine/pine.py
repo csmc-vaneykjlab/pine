@@ -978,10 +978,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 merged_out_dict[each_protid] = {}
 
               if 'PickedPeptide' not in merged_out_dict[each_protid]:
-                merged_out_dict[each_protid].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site]})
+                merged_out_dict[each_protid].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site+"**"]})
               else:
                 merged_out_dict[each_protid]['PickedPeptide'].append(picked_pep+"**")
-                merged_out_dict[each_protid]['PickedSite'].append(each_site)
+                merged_out_dict[each_protid]['PickedSite'].append(each_site+"**")
               
               for each_dropped_pep in dropped_pep:
                 count_dropped+=1
@@ -1168,10 +1168,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 merged_out_dict[each_prot_id] = {}
 
               if 'PickedPeptide' not in merged_out_dict[each_prot_id]:
-                merged_out_dict[each_prot_id].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site]})
+                merged_out_dict[each_prot_id].update({'PickedPeptide':[picked_pep+"**"], 'PickedSite':[each_site+"**"]})
               else:
                 merged_out_dict[each_prot_id]['PickedPeptide'].append(picked_pep+"**")
-                merged_out_dict[each_prot_id]['PickedSite'].append(each_site)
+                merged_out_dict[each_prot_id]['PickedSite'].append(each_site+"**")
               
               for each_dropped_pep in dropped_pep:
                 count_dropped+=1
@@ -1295,6 +1295,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             if pep_only and pep_only in merged_out_dict[prot_only]['PickedPeptide']:         
               indexOf = merged_out_dict[prot_only]['PickedPeptide'].index(pep_only)
               merged_out_dict[prot_only]['PickedPeptide'][indexOf] = merged_out_dict[prot_only]['PickedPeptide'][indexOf] + "**"
+              merged_out_dict[prot_only]['PickedSite'][indexOf] = merged_out_dict[prot_only]['PickedSite'][indexOf] + "**"
                 
           if 'DroppedPeptide' in  merged_out_dict[prot_only]:
             if pep_only and pep_only in merged_out_dict[prot_only]['DroppedPeptide']:         
