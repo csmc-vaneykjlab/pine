@@ -27,7 +27,7 @@ The PINE graphical user interface is only available for Windows.
 ![Cytoscape](Image/cytoscape.jpg)
 
 ### Install Cytoscape Apps
-To install apps within Cytoscape navigate to Apps->App Manager on the tab at the top of the Cytoscape screen. Install the following apps:
+To install apps, open Cytoscape and navigate to Apps->App Manager on the tab at the top of the Cytoscape window. Install the following apps:
 #### [Genemania](http://apps.cytoscape.org/apps/genemania)
 ![Genemania installation](Image/genemania.jpg)
 #### [ClueGO](http://apps.cytoscape.org/apps/cluego)
