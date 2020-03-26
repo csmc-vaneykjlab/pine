@@ -1,5 +1,5 @@
 #Goal: Given list of protein IDs (optionally including their corresponding PTM modification,FC and pval or category), construct 1) an interaction network among all proteins in list 2) construct a pathway network of proteins in the list
- 
+#python pine/pine.py -i C:\Users\SundararamN\Documents\PINE\PENN\PENN.csv -m "C:\Users\SundararamN\ClueGOConfiguration\v2.5.6\ClueGOSourceFiles\Organism_Homo Sapiens\Homo Sapiens.gene2accession_2020.02.17.txt.gz" -s human -t nofc -e "C:\Program Files\Cytoscape_v3.7.1\Cytoscape.exe" -o C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run -u string -r 0.9 -f 0.32 -p 0.05
 import sys
 def eprint(*args, **kwargs):
   ''' Print to stderr instead of stdout '''
@@ -1696,7 +1696,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1) 
     
-  organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA"]
+  organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA" and dict['Organism'] != ""]
   unique_organisms = list(set(organisms))
   
   if len(unique_organisms) > 1:
@@ -1718,7 +1718,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
     if duplicate_canonical:
-      duplicate_canonical_str = ", ".join(["(" + ", ".join(x) + ")" for x in duplicate_canonical])
+      duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x) + ")" for x in duplicate_canonical])
       logging.warning("DROP WARNING - Dropping queries that had multiple IDs map to single ID: " + duplicate_canonical_str)
 
     if len(seen_duplicate_mapping_ids) > 0:
@@ -1757,7 +1757,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     for each_in_list in prot_list:
       if each_in_list in uniprot_query:
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})      
-  
+
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_dbsnp_classification(uniprot_query, primgene_list, prot_list, merged_out_dict):
@@ -3497,19 +3497,19 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
     for i,does_fc_exist,each_name in zip(query,FC_exists,name):
       if i == "Function":
         color_value = "#E2E2E2"
-        width_value = "1"
+        width_value = "3"
       elif i == "Gene" and does_fc_exist == 1.0:
         color_value = "#FFFFFF"
-        width_value = "1"
+        width_value = "3"
       elif i == "Gene" and does_fc_exist != 1.0:
         color_value = "#FFFF99"
-        width_value = "1"
+        width_value = "3"
       elif i == "Site":
         color_value = "#FFFFFF"
-        width_value = "1"
+        width_value = "3"
       else:
         color_value = "#E2E2E2"
-        width_value = "1"
+        width_value = "3"
         
       if each_name not in kv_pair_color:
         kv_pair_color.update({each_name:color_value})
@@ -3554,7 +3554,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   }
   kv_node_border_width = {
     "1.0":"0",
-    "0.0":"1"
+    "0.0":"3"
   }
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
@@ -3568,7 +3568,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     for i,each_is_category_present,each_name in zip(query,is_category_present,name):
         if i == "Function":
           color_value = "#E2E2E2"
-          width_value = "1"
+          width_value = "3"
           node_width_value = "210"
         elif i == "Gene" and each_is_category_present == 1.0:
           color_value = "#FFFFFF"
@@ -3576,7 +3576,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
           node_width_value = "30"
         else:
           color_value = "#E2E2E2"
-          width_value = "1"
+          width_value = "3"
           node_width_value = "60"
         if each_name not in kv_pair_color:
           kv_pair_color.update({each_name:color_value})
@@ -3589,9 +3589,9 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   return(my_style)
   
 def pval(my_style):
-  ''' If pval significant, border node with blue color, width = 4 '''
+  ''' If pval significant, border node with blue color, width = 3 '''
   width_kv_pair = {
-    "1":"4",
+    "1":"3",
   }
   bc_kv_pair = {
     "1":"#0000FF",
@@ -3775,8 +3775,6 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   G.vs["name"] = merged_vertex
   G.vs["shared name"] = merged_vertex_sites_only
 
-  #if type == "5" or type == "6":
-    #G.vs["SNP"] = is_snp
   is_category_present = []
   first_cat_iteration = 0
   for each in each_category:
@@ -4025,6 +4023,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     my_style = get_category(my_style,is_category_present,"2",query,merged_vertex,each_category)
   
   if max_FC_len == 0 and not category_present:
+    basic_settings = {
+      'NODE_BORDER_WIDTH':"3"
+    }
+    my_style.update_defaults(basic_settings)
     color_kv_pair = {}
     label_color_kv_pair = { }
     for each_val in query_val_noFC:
@@ -4082,13 +4084,14 @@ def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new
     
 def main(argv):
   '''
-  Run PINE - a tool for visualizing protein-protein interactions
+  Run PINE - a tool for visualizing protein-protein interactions and annotations
   Parse command line arguments
   Create an analysis session directory or load an existing session
   Start Cytoscape
   Parse input
   Search protein-protein interaction databases (STRING and Genemania)
-  Create networks in Cytoscape
+  Obtain annotation terms for proteins using Cytoscape App, ClueGO
+  Create interaction and annotation networks in Cytoscape
   Save Cytoscape and network and analysis results
   '''
   cy_in = ""
