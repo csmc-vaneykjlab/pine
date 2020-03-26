@@ -3871,7 +3871,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
 
     G.vs[val_term_FC] = add_term_FC
     G.vs[val_term_pval] = add_term_pval
-  
+    G.vs["pine_outline"] = significant_val
+    G.vs["pine_FC_exists"] = FC_exists
+    
   if add_term_FC:
     if not value_labels:
       value_labels = [ [str(add_term_FC[i])] for i in range(0, len(add_term_FC)) ]
@@ -3879,12 +3881,11 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       for i in range(0, len(add_term_FC)):
         value_labels[i].append(str(add_term_FC[i]))  
         
-  G.vs["pine_outline"] = significant_val
   if max_FC_len > 1:
-    tot = len(significant_val)
+    tot = len(query)
     G.vs["pine_domain_labels"] = [domain_labels]*tot
     G.vs["pine_value_labels"] = value_labels
-  G.vs["pine_FC_exists"] = FC_exists  
+    
   G.vs["pine_query"] = query
   G.vs["pine_length"] = length_of
   G.vs["pine_breadth"] = breadth_of
@@ -3928,18 +3929,33 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "EI":"ROUND_RECTANGLE"
     }
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
-  height_kv_pair = {
-    "Function":"70",
-    "Gene":"30",
-    "EI":"30",
-    "Site":"30"
-  }
-  if type == "5" or type == "6":
+  if type == "2" or type == "6":
+    height_kv_pair = {
+      "Function":"130",
+      "Gene":"90",
+      "EI":"90",
+      "Site":"130"
+    } 
+  else:
+    height_kv_pair = {
+      "Function":"70",
+      "Gene":"30",
+      "EI":"30",
+      "Site":"30"
+    }
+  if type == "5":
     width_kv_pair = {
       "Function":"210",
       "Gene":"70",
       "Site":"60",
       "EI":"70"
+    }
+  elif type == "2" or type == "6":
+    width_kv_pair = {
+      "Function":"250",
+      "Gene":"120",
+      "Site":"90",
+      "EI":"120"
     }
   else:
     width_kv_pair = {
@@ -3953,20 +3969,36 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       "Gene":"#000000",
       "Site":"#000000"
   }
-  node_label_size =  [
-    {
-      "value": "2",
-      "lesser": "1",
-      "equal": "14",
-      "greater": "14"
-    },
-    {
-      "value": "100",
-      "lesser": "8",
-      "equal": "8",
-      "greater": "1"
-    }
-  ]
+  if type == "2" or type == "6":
+    node_label_size =  [
+      {
+        "value": "2",
+        "lesser": "1",
+        "equal": "32",
+        "greater": "32"
+      },
+      {
+        "value": "100",
+        "lesser": "8",
+        "equal": "8",
+        "greater": "1"
+      }
+    ] 
+  else:
+    node_label_size =  [
+      {
+        "value": "2",
+        "lesser": "1",
+        "equal": "14",
+        "greater": "14"
+      },
+      {
+        "value": "100",
+        "lesser": "8",
+        "equal": "8",
+        "greater": "1"
+      }
+    ]
   my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
@@ -3989,14 +4021,19 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   
   if max_FC_len == 0 and not category_present:
     color_kv_pair = {}
+    label_color_kv_pair = { }
     for each_val in query_val_noFC:
       if each_val == "NA":
         color_kv_pair.update({each_val:"#E2E2E2"})
+        label_color_kv_pair.update({each_val:"#000000"})
       elif each_val == "Function":
         color_kv_pair.update({each_val:"#333333"})
+        label_color_kv_pair.update({each_val:"#FFFFFF"})
       else:
         color_kv_pair.update({each_val:"#FFFFBF"})
-
+        label_color_kv_pair.update({each_val:"#000000"})
+    
+    my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
     my_style.create_discrete_mapping(column='pine_query_val', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if pval_sig == 1:
@@ -4395,7 +4432,7 @@ def main(argv):
         eprint("Error: Enzyme must be one of the following: " + ','.join(allowed_enzyme))
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
-  
+
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
@@ -4487,7 +4524,7 @@ def main(argv):
         sys.exit(1)
     
       if ver_cluego not in cy_map:
-        eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map)
+        eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map + ". Please ensure the correct version is chosen in setup page. If the version installed in Cytoscape is not available as an option in the Setup page, please reinstall ClueGO and try again.")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       
