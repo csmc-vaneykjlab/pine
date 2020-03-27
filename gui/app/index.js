@@ -39,7 +39,7 @@ const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
 const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
 
-const OUT_NAME_INVALID_REGEX = /[^a-zA-Z0-9-_]/g;
+const OUT_NAME_INVALID_REGEX = /[\/\\:\*\?"<>\|]/g;
 
 function is_dir(dirname) {
     return fs.existsSync(dirname) && fs.statSync(dirname).isDirectory();
