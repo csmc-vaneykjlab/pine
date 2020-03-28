@@ -14,15 +14,15 @@ Make sure PINE was able to find your Cytoscape.exe and ClueGO configuration fold
 - Set the enzyme to **Typsin**.
 - Set the modifications to **S,T,Y**.
 - Set fold change cutoff to **0**.
-- Set p-value cutoff to **1**.
+- Set p-value cutoff to **0.05**.
 - **Uncheck** outline significant.
 - **Uncheck** exclude ambiguity.
 - Set database to **both**.
-- Set confidence score to **0**.
+- Set confidence score to **0.15**.
 - Set # of interactors to **0**.
 - Set visualize to **all**.
 - Set ClueGO grouping to **medium**.
-- Set ClueGO p-value to **1**.
+- Set ClueGO p-value to **0.05**.
 - Do not add a reference file.
 - Name your analysis directory **single-fold-change-example**.
 
