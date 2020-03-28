@@ -4346,7 +4346,7 @@ def main(argv):
     cy_settings_file = None
   else:  
     if cy_out_name is not None:
-      cy_out_name = re.sub(r"[^a-zA-Z0-9-_]", "", cy_out_name) # remove any characters that are not alphanumeric underscore or dash
+      cy_out_name = re.sub(r"[\/\\:\*\?\"<>\|]", "", cy_out_name) # remove any characters that are not alphanumeric underscore or dash
     if cy_out_name:
       path_to_new_dir = os.path.join(os.path.abspath(cy_out_dir), cy_out_name)
     else:
