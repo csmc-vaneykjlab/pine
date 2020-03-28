@@ -1,5 +1,12 @@
-#Goal: Given list of protein IDs (optionally including their corresponding PTM modification,FC and pval or category), construct 1) an interaction network among all proteins in list 2) construct a pathway network of proteins in the list
-#python pine/pine.py -i C:\Users\SundararamN\Documents\PINE\PENN\PENN.csv -m "C:\Users\SundararamN\ClueGOConfiguration\v2.5.6\ClueGOSourceFiles\Organism_Homo Sapiens\Homo Sapiens.gene2accession_2020.02.17.txt.gz" -s human -t nofc -e "C:\Program Files\Cytoscape_v3.7.1\Cytoscape.exe" -o C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run -u string -r 0.9 -f 0.32 -p 0.05
+"""
+PINE - a tool for visualizing protein-protein interactions.
+
+Given a list of protein IDs, constructs in Cytoscape
+  1) an interaction network among all proteins in list
+  2) pathway network of proteins from the list
+optionally may include their corresponding PTM modifications, fold change and p-values or categories
+"""
+
 import sys
 def eprint(*args, **kwargs):
   ''' Print to stderr instead of stdout '''
@@ -35,6 +42,14 @@ import subprocess
 import warnings
 from collections import Counter
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+__author__ = "Niveda Sundararaman, James Go and Vidya Venkatraman"
+__credits__ = ["Niveda Sundararaman", "James Go", "Vidya Venkatraman"]
+__license__ = "Apache-2.0"
+__version__ = "0.1.2"
+__maintainer__ = "Niveda Sundararaman"
+__email__ = "GroupHeartBioinformaticsSupport@cshs.org"
+__status__ = "Production"
 
 CYREST_PORTS = [8012, 8013]
 CYREST_URL = None
