@@ -195,6 +195,43 @@ def find_mod(seq):
     index += 1
   return result_dict
 
+def latest_ontologies(all_ontologies):
+  """
+  Takes a dict of onotologies from ClueGO and only returns the ontologies from the latest dataset
+  """
+  latest_dates = {}
+  for ont_id in all_ontologies:
+    ont = all_ontologies[ont_id]
+    ont_type = None
+    ont_date = None
+    for key_val in ont.split(", "):
+      if key_val.count("=") != 1:
+        continue
+      key, val = key_val.split("=")
+      if key == "date":
+        try:
+          ont_date = datetime.strptime(val, "%d.%m.%Y")
+        except ValueError:
+          break
+      elif key == "type":
+        ont_type = val.lower()
+    if ont_type is None or ont_date is None:
+      continue
+    if ont_type not in latest_dates or ont_date > latest_dates[ont_type]["date"]:
+      latest_dates[ont_type] = {
+        "date": ont_date,
+        "ids": [ont_id],
+      }
+    elif latest_dates[ont_type]["date"] == ont_date:
+      latest_dates[ont_type]["ids"].append(ont_id)
+
+  final_onts = {}
+  for ld in latest_dates.values():
+    for idee in ld["ids"]:
+      final_onts[idee] = all_ontologies[idee]
+  return final_onts
+
+
 def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, include_list, db_file, enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, exclude_ambi, cy_settings_file):
   '''
   Reads input file and processes data based on type of analysis that will be performed
@@ -2766,7 +2803,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   
   ## 3.1 Get all available Ontologies
   response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"get-ontology-info", "GET", headers=HEADERS)
-  ontology_info = response.json()
+  ontology_info = latest_ontologies(response.json())
   
   i = 0
   list_ontology = []
@@ -2777,16 +2814,16 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       ontologies = m.group(1)
       if select_terms.lower() == "biological process" or select_terms.lower() == "all":
         if "BiologicalProcess" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "cellular component" or select_terms.lower() == "all":
         if "CellularComponent" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
         if "MolecularFunction" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "pathways" or select_terms.lower() == "all":
         if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies or "CORUM" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
     i+=1
 
   ####Select Ontologies
