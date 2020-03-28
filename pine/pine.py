@@ -2,9 +2,9 @@
 PINE - a tool for visualizing protein-protein interactions.
 
 Given a list of protein IDs, constructs in Cytoscape
-  1) an interaction network among all proteins in list
+  1) an interaction network among all proteins in the list
   2) pathway network of proteins from the list
-optionally may include their corresponding PTM modifications, fold change and p-values or categories
+optionally may include their corresponding PTM modifications, fold change, p-values or categories
 """
 
 import sys
