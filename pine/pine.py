@@ -56,6 +56,7 @@ CYREST_URL = None
 CYREST_PORT = None
 
 class CytoscapeError(Exception):
+  ''' Exception for errors when making requests to Cytoscape '''
   def __init__(self, message):
     super().__init__(message)
 
