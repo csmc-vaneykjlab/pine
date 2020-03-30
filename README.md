@@ -191,9 +191,8 @@ Uncheck and recheck the 'Automatic Range' option to reset minimum and maximum va
 Note: 
 1. Changing the minimum and maximum values too much from the minimum and maximum values of the dataset could impact the height of the bars and hamper your ability to differentite between values represented by the bar.
 2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
-## Using PINE command line
 
-### Handling Ambiguity and PTMs
+## Handling Ambiguity and PTMs
 | Case |	Category |	Step |	Level |	Description |	Resolution |
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
 | Ambiguous sites	| Ambiguity	| Preprocessing |	PTM Site |	Multiple peptides that represent same PTM type on the same site of a protein |	One representative peptide picked |
@@ -215,6 +214,7 @@ Note:
 | Gene Unmapped in ClueGO	| Drop	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
 | Invalid Mapping Category	| Drop	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
 
+## Using PINE command line
 ### Requirements
 - All the requirements listed [above](#requirements-and-setup)
 - Python3
