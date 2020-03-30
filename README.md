@@ -5,6 +5,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Using PINE GUI](#using-pine-gui)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
+- [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
@@ -57,9 +58,8 @@ If you've used Genemania before, then open the App within Cytoscape and click on
 
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
-By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
-
-![ClueGO species installation](Image/cluego-species-install.jpg)
+By default human and mouse datasets are installed; rat dataset must be installed manually:
+![ClueGO species installation](Image/cluego-species-install.png)
 
 ### Download PINE
 Download and run pine-setup.exe from the latest [release](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe).
@@ -184,8 +184,37 @@ Additionally, for bar charts, the option is provided to include:
 This labels bar charts appropriately as below:  
 ![Ex](Image/ExBarChart.png)  
 
-## Using PINE command line
+Further, the position of the horizontal axis of the bar charts can also be altered. By default, the lowest and highest points of the bar chart are determined by the minimum and maximum values of the input dataset. This can be modified to adjust the bar charts to the centre of the node in cases where minimum or maximum values are 0 indicating that the bar charts either start or end at the bottom of node respectively. Decreasing the minimum shifts the horizontal axis to the top and increasing the maximum moves the axis to the bottom:
+![min-and-max](Image/min-and-max-bar-chart.jpg)
+Uncheck and recheck the 'Automatic Range' option to reset minimum and maximum values
 
+Note: 
+1. Changing the minimum and maximum values too much from the minimum and maximum values of the dataset could impact the height of the bars and hamper your ability to differentite between values represented by the bar.
+2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
+
+## Handling Ambiguity and PTMs
+| Case |	Category |	Step |	Level |	Description |	Resolution |
+| ------ | ------ | ------ | ------ | ---------------- | ---------------- |
+| Ambiguous sites	| Ambiguity	| Preprocessing |	PTM Site |	Multiple peptides that represent same PTM type on the same site of a protein |	One representative peptide picked |
+| Peptide Mapping |	Ambiguity |	Preprocessing |	PTM Site |	Peptide maps to multiple regions in FASTA |	First mapping site picked |
+| Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked |
+| Protein Mapping |	Ambiguity |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	First mapping UniprotID picked |
+| Primary Gene Mapping |	Ambiguity |	Uniprot Mapping |	Protein	| Query ProteinID maps to multiple primary genes in Uniprot |	First mapping primary gene picked |
+| Peptide Unmapped |	Drop	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
+| Site Not Available |	Drop	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
+| Duplicate query	| Drop |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
+| Invalid FC/Pval	| Drop	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
+| FC/Pval cutoff |	Drop |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
+| ProteinID unmapped |	Drop	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
+|Primary Gene Not Available |	Drop |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
+| Duplicate Primary Gene	| Drop	| Uniprot Mapping	| Protein	| Query ProteinIDs mapping to same primary genes	| Drop all duplicate mapping to primary genes |
+| Gene Unmapped in Interaction Databases	| Drop	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
+| Interactions Not available	| Drop	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
+| Invalid Interaction Category	| Drop	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
+| Gene Unmapped in ClueGO	| Drop	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
+| Invalid Mapping Category	| Drop	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
+
+## Using PINE command line
 ### Requirements
 - All the requirements listed [above](#requirements-and-setup)
 - Python3
