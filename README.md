@@ -42,9 +42,8 @@ PINE currently supports human, mouse and rat analysis. These species datasets mu
 #### Genemania
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
-By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
-
-[ClueGO species installation](Image/cluego-species-install.jpg)
+By default human and mouse datasets are installed; rat dataset must be installed manually:
+![ClueGO species installation](Image/cluego-species-install.png)
 
 ### Download PINE
 Download and run pine-setup.exe from the latest [release](https://github.com/csmc-vaneykjlab/pine/releases/latest/download/pine-setup.exe).
