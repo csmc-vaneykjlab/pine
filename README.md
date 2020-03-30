@@ -177,7 +177,7 @@ Note:
 1. Changing the minimum and maximum values too much from the minimum and maximum values of the dataset could impact the height of the bars and hamper your ability to differentite between values represented by the bar.
 2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
 
-### Handling Ambiguity and PTMs
+## Handling Ambiguity and PTMs
 | Case |	Category |	Step |	Level |	Description |	Resolution |
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
 | Ambiguous sites	| Ambiguity	| Preprocessing |	PTM Site |	Multiple peptides that represent same PTM type on the same site of a protein |	One representative peptide picked |
