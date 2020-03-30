@@ -183,6 +183,13 @@ Additionally, for bar charts, the option is provided to include:
 This labels bar charts appropriately as below:  
 ![Ex](Image/ExBarChart.png)  
 
+The position of the horizontal axis of the bar charts can also be altered. By default, the lowest and highest points of the bar chart are determined by the minimum and maximum values of the input dataset. This can be modified to adjust the bar charts to the centre of the node in cases where minimum or maximum values are 0 indicating that the bar charts either start or end at the bottom of node respectively. Decreasing the minimum shifts the horizontal axis to the top and increasing the maximum moves the axis to the bottom:
+
+Uncheck and recheck the 'Automatic Range' option to reset minimum and maximum values
+
+Note: 
+1. Changing the minimum and maximum values too much from the minimum and maximum values of the dataset could impact the height of the bars and hamper your ability to differentite between values represented by the bar.
+2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
 ## Using PINE command line
 
 ### Requirements
