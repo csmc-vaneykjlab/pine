@@ -57,8 +57,7 @@ If you've used Genemania before, then open the App within Cytoscape and click on
 
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
-By default human and mouse datasets are installed; all other datasets for supported organisms must be installed manually.
-
+By default human and mouse datasets are installed; rat dataset must be installed manually:
 ![ClueGO species installation](Image/cluego-species-install.png)
 
 ### Download PINE
