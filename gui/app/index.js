@@ -39,7 +39,7 @@ const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
 const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
 
-const OUT_NAME_INVALID_REGEX = /[^a-zA-Z0-9-_]/g;
+const OUT_NAME_INVALID_REGEX = /[\/\\:\*\?"<>\|]/g;
 
 function is_dir(dirname) {
     return fs.existsSync(dirname) && fs.statSync(dirname).isDirectory();
@@ -740,7 +740,7 @@ let vm = new Vue({
             this.input.significant = false;
             this.input.run = "both";
             this.input.fccutoff = 0.0;
-            this.input.pvalcutoff = 1.0;
+            this.input.pvalcutoff = 0.05;
             this.input.visualize = "pathways";
             this.input.cluego_pval = 0.05;
             this.input.reference_path = "";
@@ -751,7 +751,7 @@ let vm = new Vue({
             this.input.in = "";
             this.input.output = "";
             this.input.output_name = "";
-            this.input.remove_ambiguous = false;
+            this.input.remove_ambiguous = true;
         },
         read_cluego_pathways: function() {
             var that = this;

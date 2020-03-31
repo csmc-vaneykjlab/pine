@@ -22,6 +22,7 @@ setup (
     "python-igraph==0.7.1.post6",
     "pytz==2019.3",
     "requests==2.22.0",
+    "setuptools==44.1.0",
     "six==1.12.0",
     "urllib3==1.25.6",
   ],

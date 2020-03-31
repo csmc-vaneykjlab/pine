@@ -1,5 +1,12 @@
-#Goal: Given list of protein IDs (optionally including their corresponding PTM modification,FC and pval or category), construct 1) an interaction network among all proteins in list 2) construct a pathway network of proteins in the list
-#python pine/pine.py -i C:\Users\SundararamN\Documents\PINE\PENN\PENN.csv -m "C:\Users\SundararamN\ClueGOConfiguration\v2.5.6\ClueGOSourceFiles\Organism_Homo Sapiens\Homo Sapiens.gene2accession_2020.02.17.txt.gz" -s human -t nofc -e "C:\Program Files\Cytoscape_v3.7.1\Cytoscape.exe" -o C:\Users\SundararamN\Documents\Cytoscape\Scripts\Datasets\Run -u string -r 0.9 -f 0.32 -p 0.05
+"""
+PINE - a tool for visualizing protein-protein interactions.
+
+Given a list of protein IDs, constructs in Cytoscape
+  1) an interaction network among all proteins in the list
+  2) pathway network of proteins from the list
+optionally may include their corresponding PTM modifications, fold change, p-values or categories
+"""
+
 import sys
 def eprint(*args, **kwargs):
   ''' Print to stderr instead of stdout '''
@@ -36,11 +43,20 @@ import warnings
 from collections import Counter
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+__author__ = "Niveda Sundararaman, James Go and Vidya Venkatraman"
+__credits__ = ["Niveda Sundararaman", "James Go", "Vidya Venkatraman"]
+__license__ = "Apache-2.0"
+__version__ = "0.1.2"
+__maintainer__ = "Niveda Sundararaman"
+__email__ = "GroupHeartBioinformaticsSupport@cshs.org"
+__status__ = "Production"
+
 CYREST_PORTS = [8012, 8013]
 CYREST_URL = None
 CYREST_PORT = None
 
 class CytoscapeError(Exception):
+  ''' Exception for errors when making requests to Cytoscape '''
   def __init__(self, message):
     super().__init__(message)
 
@@ -194,6 +210,43 @@ def find_mod(seq):
     i += 1
     index += 1
   return result_dict
+
+def latest_ontologies(all_ontologies):
+  """
+  Takes a dict of onotologies from ClueGO and only returns the ontologies from the latest dataset
+  """
+  latest_dates = {}
+  for ont_id in all_ontologies:
+    ont = all_ontologies[ont_id]
+    ont_type = None
+    ont_date = None
+    for key_val in ont.split(", "):
+      if key_val.count("=") != 1:
+        continue
+      key, val = key_val.split("=")
+      if key == "date":
+        try:
+          ont_date = datetime.strptime(val, "%d.%m.%Y")
+        except ValueError:
+          break
+      elif key == "type":
+        ont_type = val.lower()
+    if ont_type is None or ont_date is None:
+      continue
+    if ont_type not in latest_dates or ont_date > latest_dates[ont_type]["date"]:
+      latest_dates[ont_type] = {
+        "date": ont_date,
+        "ids": [ont_id],
+      }
+    elif latest_dates[ont_type]["date"] == ont_date:
+      latest_dates[ont_type]["ids"].append(ont_id)
+
+  final_onts = {}
+  for ld in latest_dates.values():
+    for idee in ld["ids"]:
+      final_onts[idee] = all_ontologies[idee]
+  return final_onts
+
 
 def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, include_list, db_file, enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, exclude_ambi, cy_settings_file):
   '''
@@ -2777,7 +2830,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   
   ## 3.1 Get all available Ontologies
   response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"ontologies"+SEP+"get-ontology-info", "GET", headers=HEADERS)
-  ontology_info = response.json()
+  ontology_info = latest_ontologies(response.json())
   
   i = 0
   list_ontology = []
@@ -2788,16 +2841,16 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       ontologies = m.group(1)
       if select_terms.lower() == "biological process" or select_terms.lower() == "all":
         if "BiologicalProcess" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "cellular component" or select_terms.lower() == "all":
         if "CellularComponent" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
         if "MolecularFunction" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "pathways" or select_terms.lower() == "all":
         if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies or "CORUM" in ontologies:
-          list_ontology.append(str(i)+";"+"Ellipse")
+          list_ontology.append(each_ontology+";"+"Ellipse")
     i+=1
 
   ####Select Ontologies
@@ -4338,7 +4391,7 @@ def main(argv):
     cy_settings_file = None
   else:  
     if cy_out_name is not None:
-      cy_out_name = re.sub(r"[^a-zA-Z0-9-_]", "", cy_out_name) # remove any characters that are not alphanumeric underscore or dash
+      cy_out_name = re.sub(r"[\/\\:\*\?\"<>\|]", "", cy_out_name) # remove any characters that are not alphanumeric underscore or dash
     if cy_out_name:
       path_to_new_dir = os.path.join(os.path.abspath(cy_out_dir), cy_out_name)
     else:
