@@ -804,7 +804,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         logging.debug("DISCARD WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
         
     else:
-      initial_query_prot_count = len(set(each_protein_list)) + len([x for x in dropped_invalid_fc_pval if x not in each_protein_list])
+      initial_query_prot_count = len(each_protein_list) + len([x for x in dropped_invalid_fc_pval if x not in each_protein_list])
       logging.debug("Initial query: " + str(initial_query_prot_count))
       
   initial_length = len(each_protein_list)
@@ -1518,7 +1518,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   if (len(unique_unimods)) > 1:
     mult_mods_of_int = True 
   
-  print(site_info_dict)
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -1820,7 +1819,22 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   unique_organisms = list(set(organisms))
   
   if len(unique_organisms) > 1:
-    eprint("Error: Protein list is of more than 1 organism: " + ','.join(unique_organisms))
+    count_each_organism = 0
+    organism_of_count = ""
+    list_of_prots = []
+    for count_org in unique_organisms:
+      val = [dict['Uniprot'] for dict in uniprot_query.values() if dict['Organism'] == count_org]
+      count_val = len([dict['Uniprot'] for dict in uniprot_query.values() if dict['Organism'] == count_org])
+      if count_each_organism == 0:
+        count_each_organism = count_val
+        organism_of_count = count_org
+        list_of_prots = val
+      else:
+        if count_val < count_each_organism:
+          count_each_organism = count_val
+          organism_of_count = count_org 
+          list_of_prots = val
+    eprint("Error: Protein list is of more than 1 organism: " + ','.join(unique_organisms) + ". Please check Uniprot IDs " + ",".join(list_of_prots) + " of species " + organism_of_count)
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
