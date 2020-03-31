@@ -740,7 +740,7 @@ let vm = new Vue({
             this.input.significant = false;
             this.input.run = "both";
             this.input.fccutoff = 0.0;
-            this.input.pvalcutoff = 1.0;
+            this.input.pvalcutoff = 0.05;
             this.input.visualize = "pathways";
             this.input.cluego_pval = 0.05;
             this.input.reference_path = "";
@@ -751,7 +751,7 @@ let vm = new Vue({
             this.input.in = "";
             this.input.output = "";
             this.input.output_name = "";
-            this.input.remove_ambiguous = false;
+            this.input.remove_ambiguous = true;
         },
         read_cluego_pathways: function() {
             var that = this;
