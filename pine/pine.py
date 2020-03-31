@@ -235,6 +235,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   initial_query_pep_count = 0
   unique_prot_pep = {}
   ctr = 0
+  mult_mods_of_int = False
+  unique_unimods = []
   with open(inp,'r') as csv_file:
     '''
     Read input and collect columns based on type of analysis chosen
@@ -473,18 +475,23 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   k_match = re.search(combined_pat,k)
                   if not (key_match and k_match):
                     key1 = re.sub(combined_pat, '', key)
-                    k1 = re.sub(combined_pat,'',k)               
+                    k1 = re.sub(combined_pat,'',k)
+                  else:
+                    key1 = key
+                    k1 = k                   
                   if k1.lower() in key1.lower(): 
                     for each_val in value:
                       val = int(each_val)+int(seqInDatabase)+1
                       match_unimod = re.findall(r"([0-9]+)", key)
-                      key_with_unimod = k1 + "{" + match_unimod[0] + "}" 
+                      key_with_unimod = re.sub(combined_pat,'',k1) + "{" + match_unimod[0] + "}"
+                      if match_unimod[0] not in unique_unimods:
+                        unique_unimods.append(match_unimod[0])                      
                       if key_with_unimod in modInSeq_dict:                      
                         modInSeq_dict[key_with_unimod].append(val)                          
                       else:
                         modInSeq_dict[key_with_unimod] = [val]
-                      all_mods_for_prot.append(key)
-            
+                      all_mods_for_prot.append(key)         
+                       
             # If a protein ID has multiple modification sites, separator "/" is used for representation 
             sites = ""
             sites_list = []
@@ -1454,8 +1461,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   elif type == "1" or type == "2":
     dup_prot_ids_to_return = list_of_duplicates # multifc, singlefc
     each_protein_list = list(prot_list.keys())
-
-  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return)
+  
+  if (len(unique_unimods)) > 1:
+    mult_mods_of_int = True 
+  
+  print(site_info_dict)
+  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int)
 
 def ptm_scoring(site_dict, enzyme, include_list):
   ''' PTM scoring algorithm for ambiguous sites: For proteins having different peptides for the same modification site, one representation of site is picked by choosing the peptide having no miscleavages or modifications other than the mod of interest '''
@@ -2923,7 +2934,7 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
       line_count+=1
   return(top_annotations, unique_gene)
 
-def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels):
+def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int):
   ''' Styling + visualization for the gene list interaction network & its modification sites '''
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   G = igraph.Graph()
@@ -2937,6 +2948,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   all_fcs = {}
   all_pval = {}
   all_names = []
+  all_names_without_unimod = []
   all_other_fcs = []
   all_other_pval = []
   all_length = []
@@ -2972,7 +2984,10 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
             all_pval[term_pval].append(uniprot_list[term_pval][indexOf])
           else:
             all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
-        all_names.append(each_ambi_site) 
+        all_names.append(each_ambi_site)
+        combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+        without_unimod = re.sub(combined_pat, '', each_ambi_site)
+        all_names_without_unimod.append(without_unimod)
         get_each_site_name.append(each_ambi_site)
         query_val.append("Site")
         G.add_vertex(each_site_gene)
@@ -2984,6 +2999,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     else:
       if each_name.lower() in merged_vertex:
         all_names.append(each_name)
+        all_names_without_unimod.append(each_name)
         query_val.append("EI")
         G.add_vertex(each_name)
         all_length.append(len(each_name))
@@ -3004,7 +3020,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   for each_vertex in merged_vertex:
     if each_vertex in uniprot_list['query']:
       indexOf = uniprot_list['query'].index(each_vertex)
-      all_names.append(uniprot_list['ambigious_genes'][indexOf])         
+      all_names.append(uniprot_list['ambigious_genes'][indexOf])
+      all_names_without_unimod.append(uniprot_list['ambigious_genes'][indexOf])      
       fc_na.append(-1.0)
       all_other_fcs.append(-100)
       all_other_pval.append(1.0)   
@@ -3026,6 +3043,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     
   G.vs
   G.vs["name"] = all_names
+  G.vs["substitute name"] = all_names_without_unimod
   #G.vs["SNP"] = is_snp
   domain_labels = [] 
   value_labels = []
@@ -3073,8 +3091,10 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
-  my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
-  #degree_to_label_size = StyleUtil.create_slope(min=min(degree),max=max(degree),values=(10, 20))
+  if not mult_mods_of_int:
+    my_style.create_passthrough_mapping(column='substitute name', vp='NODE_LABEL', col_type='String')
+  else:
+    my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
   node_label_size =  [
     {
       "value": "2",
@@ -3682,7 +3702,7 @@ def color(my_style, uniprot_list):
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
-def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels):
+def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int):
   ''' Based on top annotations picked, construct function interaction network + visualization and styling '''
   G = igraph.Graph()
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
@@ -3697,6 +3717,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
    
   merged_vertex = []
   merged_vertex_sites_only = []
+  merged_vertex_unimod_only = []
   query_val_noFC = []
   count_each = 0
   all_interactions = []
@@ -3718,6 +3739,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       G.add_vertex(each)
       merged_vertex.append(each)
       merged_vertex_sites_only.append(each)
+      merged_vertex_unimod_only.append(each)
       if each in function_only:
         calc_up = 0
         calc_down = 0
@@ -3751,6 +3773,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           else:
             query.append("EI")
           merged_vertex_sites_only.append(uniprot_list['ambigious_genes'][indexOf])
+          merged_vertex_unimod_only.append(uniprot_list['ambigious_genes'][indexOf])
           if max_FC_len == 0 and not category_present:
             index_noFC = uniprot_list["name"].index(each_gene.lower())
             query_val_noFC.append((uniprot_list["query"])[index_noFC])
@@ -3766,6 +3789,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
                 G.add_vertex(uniprot_list['site'][each_index])
                 merged_vertex.append(uniprot_list['site'][each_index])
                 merged_vertex_sites_only.append(uniprot_list['ambigious_site'][each_index])
+                combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+                without_unimod = re.sub(combined_pat, '', uniprot_list['ambigious_site'][each_index])
+                merged_vertex_unimod_only.append(without_unimod)
                 #get corresponding prot id and check for snps
                 get_corres_prot = get_query_from_list(uniprot_query, [each_gene])
                 if get_corres_prot:
@@ -3835,7 +3861,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   G.vs
   G.vs["name"] = merged_vertex
   G.vs["shared name"] = merged_vertex_sites_only
-
+  G.vs["substitute name"] = merged_vertex_unimod_only
   is_category_present = []
   first_cat_iteration = 0
   for each in each_category:
@@ -3978,7 +4004,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
-  my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
+  if not mult_mods_of_int:
+    my_style.create_passthrough_mapping(column='substitute name', vp='NODE_LABEL', col_type='String')
+  else:
+    my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
   if type == "5" or type == "6":
     shape_kv_pair = {
       "Function":"OCTAGON",
@@ -4515,7 +4544,7 @@ def main(argv):
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels, dup_prot_ids = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels, dup_prot_ids, mult_mods_of_int = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
     
     # FC and Pval cutoff
     if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
@@ -4744,7 +4773,7 @@ def main(argv):
         cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels)
         
       else:    
-        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels)
+        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
     
     #Category styling   
     if cy_type_num == "4":    
@@ -4774,7 +4803,7 @@ def main(argv):
       cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     
     if leading_term_cluster:
-      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels)
+      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
     
     if cy_debug:
       if not cy_cluego_inp_file:
@@ -4802,6 +4831,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
+      traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
