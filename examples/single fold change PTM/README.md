@@ -2,7 +2,7 @@
 This guide will walk you through an example PINE analysis using for single fold changes PTMs.
 
 ## Download the example files
-Download [example-mouse-single-fold-change.zip](https://raw.githubusercontent.com/csmc-vaneykjlab/pine/master/examples/single%20fold%20change%20PTM/files/example-mouse-single-fold-change.zip) and extract the contents.
+Download [example-mouse-single-FC.zip](https://raw.githubusercontent.com/csmc-vaneykjlab/pine/master/examples/single%20fold%20change%20PTM/files/example-mouse-single-FC.zip) and extract the contents.
 
 ## Open PINE and set the run parameters
 Make sure PINE was able to find your Cytoscape.exe and ClueGO configuration folder.  You'll need to provide the locations if it can't find them.
