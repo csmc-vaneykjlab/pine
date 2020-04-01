@@ -1087,8 +1087,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if not non_unique and each_site_info:
           skip_val = False
           i = 0
-          for each_fc,each_pval,each_label_for_pep in zip(list(each_site_info[0]),list(each_site_info[1]),list(each_site_info[3])):
-            i = each_site_info[3].index(each_label_for_pep)
+          for each_fc,each_pval in zip(list(each_site_info[0]),list(each_site_info[1])):
             try:
               float(each_fc)
               if math.isinf(float(each_fc)):
@@ -1121,6 +1120,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
               del each_site_info[0][i]
               del each_site_info[1][i]
+              i -=1
+            i+=1
 
           if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
             cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info)              
