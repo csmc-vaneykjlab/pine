@@ -744,14 +744,23 @@ let vm = new Vue({
             this.input.visualize = "pathways";
             this.input.cluego_pval = 0.05;
             this.input.reference_path = "";
+            this.reset_input_file("reference_path");
             this.input.grouping = "medium";
             this.input.enzyme = "trypsin";
-            this.input.fasta_file = "";
+            this.reset_input_file("fasta_file");
             this.input.mods = "S,T,Y";
-            this.input.in = "";
-            this.input.output = "";
+            this.reset_input_file("in");
+            this.reset_input_file("output");
             this.input.output_name = "";
             this.input.remove_ambiguous = true;
+        },
+        reset_input_file: function(name) {
+            const refs_name = "input_" + name;
+
+            this.input[name] = "";
+            if(this.$refs.hasOwnProperty(refs_name)) {
+                this.$refs[refs_name].value = "";
+            }
         },
         read_cluego_pathways: function() {
             var that = this;
