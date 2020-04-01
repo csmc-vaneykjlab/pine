@@ -128,7 +128,7 @@
               </div>
               <div>
                 <label class="button success-button" for="file-button-input">Select file</label>
-                <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" accept=".csv" />
+                <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" accept=".csv" ref="input_in" />
                 <span class="text-small" v-show="input.in" v-bind:title="input.in">{{ input.in | filename }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.in">
                   <i class="fas fa-exclamation-circle color-2"></i>
@@ -158,7 +158,7 @@
               </div>
               <div>
                 <label class="button success-button" for="file-button-output">Select directory</label>
-                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory />
+                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory ref="input_output" />
                 <span class="text-small" v-show="input.output" v-bind:title="input.output">{{ input.output | filename }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.output">
                   <i class="fas fa-exclamation-circle color-2"></i>
@@ -190,7 +190,7 @@
               </div>
               <div v-if="is_extra_options_required()">
                 <label class="button success-button" for="file-button-fasta">Select file</label>
-                <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" accept=".fasta" />
+                <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" accept=".fasta" ref="input_fasta" />
                 <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | filename }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.fasta_file">
                   <i class="fas fa-exclamation-circle color-2"></i>
@@ -384,10 +384,10 @@
               </div>
               <div>
                 <label class="button success-button" for="file-button-reference">Select file</label>
-                <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" accept=".txt" />
+                <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" accept=".txt" ref="input_reference_path" />
                 <span class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">
                   {{ input.reference_path | filename }}
-                  <i class="fas fa-times-circle color-2 clickable" v-on:click="set_input('reference_path', '')"></i>
+                  <i class="fas fa-times-circle color-2 clickable" v-on:click="reset_input_file('reference_path')"></i>
                 </span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.reference_path">
                   <i class="fas fa-exclamation-circle color-2"></i>
