@@ -288,7 +288,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   initial_query_pep_count = 0
   unique_prot_pep = {}
   ctr = 0
-  mult_mods_of_int = False
+  mult_mods_of_int = True  #False
   unique_unimods = []
   with open(inp,'r') as csv_file:
     '''
@@ -400,7 +400,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         
         # Check if column marked as peptide in the input has valid peptide terms. Must only include peptide sequences with modifications and its corresponding unimod number enclosed in brackets. Ex: SEDVLAQS[+80]PLPK
         if type == "5" or type == "6":
-          if not bool(re.match('^[A-Za-z]{1,}([\[\(\{]\+?[0-9][\]\}\)])?[A-Z]{0,}', row[peptide_col])):
+          if not bool(re.match('^[A-Za-z]{1,}([\[\(\{]\+?[A-Za-z0-9\.][\]\}\)])?[A-Z]{0,}', row[peptide_col])):
             eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
             sys.exit(1)
@@ -537,8 +537,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       val = int(each_val)+int(seqInDatabase)+1
                       match_unimod = re.findall(r"([0-9]+)", key)
                       key_with_unimod = re.sub(combined_pat,'',k1) + "{" + match_unimod[0] + "}"
-                      if match_unimod[0] not in unique_unimods:
-                        unique_unimods.append(match_unimod[0])                      
+                      #if match_unimod[0] not in unique_unimods:
+                        #unique_unimods.append(match_unimod[0])                      
                       if key_with_unimod in modInSeq_dict:                      
                         modInSeq_dict[key_with_unimod].append(val)                          
                       else:
@@ -1087,7 +1087,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         if not non_unique and each_site_info:
           skip_val = False
           i = 0
-          for each_fc,each_pval in zip(list(each_site_info[0]),list(each_site_info[1])):
+          for each_fc,each_pval,each_label_for_pep in zip(list(each_site_info[0]),list(each_site_info[1]),list(each_site_info[3])):
+            i = each_site_info[3].index(each_label_for_pep)
             try:
               float(each_fc)
               if math.isinf(float(each_fc)):
@@ -1120,7 +1121,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
               del each_site_info[0][i]
               del each_site_info[1][i]
-            i+=1
 
           if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
             cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info)              
@@ -1515,8 +1515,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     dup_prot_ids_to_return = list_of_duplicates # multifc, singlefc
     each_protein_list = list(prot_list.keys())
   
-  if (len(unique_unimods)) > 1:
-    mult_mods_of_int = True 
+  #if (len(unique_unimods)) > 1:
+    #mult_mods_of_int = True 
   
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int)
 
