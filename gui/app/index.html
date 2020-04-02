@@ -227,8 +227,8 @@
                 <span v-show="!validate_inputs_mods()" class="tooltip-parent">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-right">
-                    Modifications must be a comma separated list of amino acids with or without modifications.
-                    Example: S,T,Y or K(Unimod:1) or S[+80]
+                    Comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
+                    Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(phospho),T(phospho),Y(phospho)
                   </div>
                 </span>
               </div>
