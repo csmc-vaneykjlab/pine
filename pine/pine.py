@@ -4908,7 +4908,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      traceback.print_exc()
+      #traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
