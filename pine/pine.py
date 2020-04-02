@@ -1699,10 +1699,15 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       if len(split_prot_list) > 1:
         is_isoform_gene_bool = True
         if exclude_ambi:
-          duplicate_canonical.append(split_prot_list)
-          for spl in split_prot_list:
-            input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
-          remaining_isoforms = split_prot_list        
+          if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
+            duplicate_canonical.append(split_prot_list)
+            for spl in split_prot_list:
+              input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")            
+          else:
+            remaining_isoforms = split_prot_list
+            for spl in split_prot_list:
+              input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
+                        
           each_prot = ""
         else:
           if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
@@ -1713,6 +1718,8 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
           else:
             remaining_isoforms = split_prot_list[1:]
             each_prot = split_prot_list[0]
+            for spl in remaining_isoforms:
+              input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
             isoform_warning += "(" + ','.join(split_prot_list) + "),"
         all_isoforms.extend(remaining_isoforms)
       else:
@@ -1818,7 +1825,6 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     
   organisms = [dict['Organism'] for dict in uniprot_query.values() if dict['Organism'] != "NA" and dict['Organism'] != ""]
   unique_organisms = list(set(organisms))
-  
   if len(unique_organisms) > 1:
     count_each_organism = 0
     organism_of_count = ""
@@ -1838,17 +1844,18 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     eprint("Error: Protein list is of more than 1 organism: " + ','.join(unique_organisms) + ". Please check Uniprot IDs " + ",".join(list_of_prots) + " of species " + organism_of_count)
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-
-  if not species.lower() in unique_organisms[0].lower():
-    eprint("Error: Species mismatch. Species parameter provided is " + species + " and species of protein list is " + unique_organisms[0])
-    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-    sys.exit(1)
+    
+  if unique_organisms:
+    if not species.lower() in unique_organisms[0].lower():
+      eprint("Error: Species mismatch. Species parameter provided is " + species + " and species of protein list is " + unique_organisms[0])
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      sys.exit(1)
    
   if cy_debug:
-    if remaining_isoforms:
+    if all_isoforms:
       if exclude_ambi:
-        logging.warning("Isoforms in query: " + str(len(remaining_isoforms)))
-        logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(remaining_isoforms))
+        logging.warning("Isoforms in query: " + str(len(all_isoforms)))
+        logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(all_isoforms))
       else:
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
@@ -1892,7 +1899,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     for each_in_list in prot_list:
       if each_in_list in uniprot_query:
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})      
-
+  
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_dbsnp_classification(uniprot_query, primgene_list, prot_list, merged_out_dict):
@@ -2154,8 +2161,8 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
     for i in range(len(query)):
       if (query[i].replace("-","").lower() == preferred[i].replace("-","").lower()) and (query[i].lower() != preferred[i].lower()):
         overwrite_preferred.update({preferred[i].lower():query[i]})
-      string_mapping.update({query[i]:preferred[i]})
-    
+      string_mapping.update({query[i]:preferred[i]}) 
+
     data = {
     'identifiers': string_list_input,
     'species': species,
@@ -3231,6 +3238,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
 def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels):
   ''' Styling + visualization for the gene list interaction network '''
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+
   G = igraph.Graph()
   for each in merged_vertex:
     G.add_vertex(each)
@@ -3361,7 +3369,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     my_style = pval(my_style)
   
   cy.style.apply(my_style, g_cy)
-
+  
 def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_category):
   ''' Styling specific to category case '''
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
@@ -3459,23 +3467,23 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
     "Gene":"60",
   }
   label_color_kv_pair = {
-    "Function":"#FFFFFF",
+    "Function":"#000000",
     "Gene":"#000000",
   }
   node_label_size =  [
     {
-      "value": "2",
-      "lesser": "1",
-      "equal": "14",
-      "greater": "14"
+        "value": "2",
+        "lesser": "1",
+        "equal": "32",
+        "greater": "32"
     },
     {
-      "value": "100",
-      "lesser": "8",
-      "equal": "8",
-      "greater": "1"
+        "value": "100",
+        "lesser": "8",
+        "equal": "8",
+        "greater": "1"
     }
-  ]
+  ] 
   my_style.create_continuous_mapping(column='pine_length',vp='NODE_LABEL_FONT_SIZE',col_type='Double',points=node_label_size)
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_HEIGHT', mappings=height_kv_pair)
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
@@ -3495,7 +3503,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
 def singleFC(my_style, uniprot_list, type):
   ''' Styling specific to singleFC case '''
   basic_settings = {
-    'EDGE_TRANSPARENCY':"15",
+    'EDGE_TRANSPARENCY':"150",
     'NODE_BORDER_PAINT':"#999999",
     'NODE_FILL_COLOR':"#E2E2E2",
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
@@ -3670,8 +3678,9 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   
 def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   ''' Styling specific to category case '''
+  
   basic_settings = {
-    'EDGE_TRANSPARENCY':"15",
+    'EDGE_TRANSPARENCY':"150",
     'NODE_BORDER_PAINT':"#999999",
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
@@ -3690,6 +3699,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   
   kv_pair = {}
   value = "org.cytoscape.PieChart:{" + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]}"
+ 
   kv_pair = {
     "1.0":value
   }
@@ -3708,7 +3718,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_CUSTOMGRAPHICS_1',mappings=kv_pair)
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_LABEL_POSITION',mappings=kv_pair_node_position)
   my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='EDGE_WIDTH',mappings=kv_edge_width)
-  my_style.create_discrete_mapping(column='pine_category_true', col_type='String', vp='NODE_BORDER_WIDTH', mappings=kv_node_border_width)
+  my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_BORDER_WIDTH', mappings=kv_node_border_width)
   
   if cat_val == "2":
     kv_pair_color = {}
@@ -3735,6 +3745,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     my_style.create_discrete_mapping(column='name', col_type='String', vp='NODE_WIDTH', mappings=node_width)      
     my_style.create_discrete_mapping(column='name', col_type='String', vp='NODE_FILL_COLOR',mappings=kv_pair_color)
     my_style.create_discrete_mapping(column='name', col_type='String', vp='NODE_BORDER_WIDTH', mappings=width_kv_pair)
+  
   return(my_style)
   
 def pval(my_style):
