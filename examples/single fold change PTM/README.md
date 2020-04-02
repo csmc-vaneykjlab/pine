@@ -40,7 +40,7 @@ You can now refine your results by selecting different pathways or GO terms to r
 ## Reanalysis results
 After the PINE reanalysis completes, you will have two networks in your Cytoscape session.  The first is a new interaction network containing only genes from the terms you selected.  The second is an ontology network for associations between genes and the selected ontologies.
 
-**New interaction network:**
+**New interaction network:**  
 ![results 2](images/ReanalysisInteractionNetwork.png)
 
 **Ontology network:**
