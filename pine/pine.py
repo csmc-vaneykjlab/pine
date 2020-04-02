@@ -2907,6 +2907,15 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   analysis_name = "ClueGO Network"
   selection = "Continue analysis"                                                                         
   response = requests.get(CYREST_URL+CLUEGO_BASE_PATH+SEP+analysis_name+SEP+selection, headers=HEADERS)
+  try:
+    response.raise_for_status()
+  except:
+    try:
+      eprint(f"Error: ClueGO couldn't find any pathways and exited with the following message: {response.json()['message']}")
+    except:
+      eprint("Error: ClueGO couldn't find any pathways")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+    sys.exit(1)  
   
   # Get network id (SUID) (CyRest function from Cytoscape)
   response = request_retry(CYREST_URL+"/v1"+SEP+"networks"+SEP+"currentNetwork", "GET", headers=HEADERS)
@@ -4910,7 +4919,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      traceback.print_exc()
+      #traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
