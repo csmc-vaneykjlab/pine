@@ -141,7 +141,7 @@ While PINE is running, output is written to the log. A copy of the log will also
 ![PINE log example](Image/pine-usage-log-1.png)
 When the PINE analysis is complete, you can view the interaction network by going to the Network tab and selecting the Interaction Network.
 
-![Interaction network example](Image/pine-usage-log-2.png)
+![Interaction network example](Image/initial-network.png)
 
 ### Pathway selection
 After a PINE analysis successfully completes, the pathway selection tab will load which shows all the pathways and GO terms found from ClueGO analysis. Pathways and GO terms can be selected for reanalysis on the subset of genes found within these terms. The reanalysis can be given a custom name. If a name is not given, then it will automatically named based on the current time. After selecting one or more terms or pathways, click "Reanalyze" to begin the reanalysis.
@@ -152,7 +152,7 @@ From this tab, you can also open the results folder ([see here for results descr
 
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
 
-![Pathway analysis ontology network](Image/pine-usage-pathway-selection-2.png)
+![Pathway analysis ontology network](Image/pathway-selection-network.png)
 
 ## Customized Styling in Cytoscape
 
