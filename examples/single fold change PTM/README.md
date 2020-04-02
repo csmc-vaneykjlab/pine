@@ -31,7 +31,7 @@ Your settings should look like the following when you're done.  Click **Start** 
 
 ## Analysis results
 After PINE finishes running, you can go to the **Network** tab in the Cytoscape control panel and select the **Interaction Network**.  This is the single fold change interaction network.  Each yellow square is a gene and the circles represent fold changes for PTMS on the genes' proteins.  Your network should look similar to the image below.  We recommend installing the [yFiles Layout Algorithms plugin](http://apps.cytoscape.org/apps/yfileslayoutalgorithms) and using the yFiles Organic Layout to layout your networks.
-![results 1](images/results-1.png)
+![results 1](images/InteractionNetwork.png)
 
 ## Pathway selection
 You can now refine your results by selecting different pathways or GO terms to reanalyze with.  Go back to PINE and select a few terms, then click **Reanalyze**.  In the following example "Glycerophospholipid biosynthesis", "Regulation of mRNA stability by proteins that bind AU-rich elements", "Metabolism of RNA" and "Synthesis of bile acids and bile salts" were selected.
@@ -41,9 +41,9 @@ You can now refine your results by selecting different pathways or GO terms to r
 After the PINE reanalysis completes, you will have two networks in your Cytoscape session.  The first is a new interaction network containing only genes from the terms you selected.  The second is an ontology network for associations between genes and the selected ontologies.
 
 **New interaction network:**
-![results 2](images/results-2.png)
+![results 2](images/ReanalysisInteractionNetwork.png)
 
 **Ontology network:**
-![results 3](images/results-3.png)
+![results 3](images/OntologyNetwork.png)
 
 To create a similar network arrangement, install the [yFiles Layout Algorithms plugin](http://apps.cytoscape.org/apps/yfileslayoutalgorithms) then select **Layouts** -> **yFiles Hierarchic Layout**.
