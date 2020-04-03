@@ -807,7 +807,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       initial_query_prots = each_protein_list + [x for x in dropped_invalid_fc_pval if x not in each_protein_list]
       initial_query_prot_count = len(initial_query_prots)
       uniq_initial_query_prot_count = len(set(initial_query_prots))
-      logging.debug("Initial query: " + str(initial_query_prot_count) + " (" + str(uniq_initial_query_prot_count) + " unique IDs)")
+      #logging.debug("Initial query: " + str(initial_query_prot_count) + " (" + str(uniq_initial_query_prot_count) + " unique IDs)")
+      logging.debug("Initial query: " + str(initial_query_prot_count))
       
   initial_length = len(each_protein_list)
   to_return_unique_protids_length = len(set(each_protein_list))
