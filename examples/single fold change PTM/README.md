@@ -10,7 +10,7 @@ Make sure PINE was able to find your Cytoscape.exe and ClueGO configuration fold
 - Set type to **Single fold change PTM**.
 - Select an output directory to write your results.
 - Set the species to **mouse**.
-- Select the **example-mouse-uniprot.fasta** that saw downloaded as your fasta file.
+- Select the **example-mouse-uniprot.fasta** that was downloaded as your fasta file.
 - Set the enzyme to **Typsin**.
 - Set the modifications to **S,T,Y**.
 - Set fold change cutoff to **0**.
