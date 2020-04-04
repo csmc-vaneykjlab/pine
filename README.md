@@ -62,7 +62,7 @@ If you've used Genemania before, then open the App within Cytoscape and click on
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
 By default human and mouse datasets are installed; rat dataset must be installed manually.
-If you installed rat dataset in ClueGO, but you still cannot use it in PINE, then there may have been a problem when installing the dataset.
+If you installed the rat dataset in ClueGO, but it still cannot used in PINE, then there may have been a problem during installation of the dataset.
 Try reinstalling the rat dataset to fix the issue.
 
 ![ClueGO species installation](Image/cluego-species-install.png)
