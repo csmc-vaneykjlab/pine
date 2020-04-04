@@ -1703,7 +1703,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         is_isoform_gene_bool = True
         if exclude_ambi:
           if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
-            duplicate_canonical.append(split_prot_list)
+            duplicate_canonical.append((uniprot_protid, split_prot_list))
             for spl in split_prot_list:
               input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")            
           else:
@@ -1714,7 +1714,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
           each_prot = ""
         else:
           if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
-            duplicate_canonical.append(split_prot_list)
+            duplicate_canonical.append((uniprot_protid, split_prot_list))
             each_prot = ""
             for spl in split_prot_list:
               input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
@@ -1863,7 +1863,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
     if duplicate_canonical:
-      duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x) + ")" for x in duplicate_canonical])
+      duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x[1]) + ")" for x in duplicate_canonical])
       logging.warning("DROP WARNING - Dropping queries that had multiple IDs map to single ID: " + duplicate_canonical_str)
 
     if len(seen_duplicate_mapping_ids) > 0:
