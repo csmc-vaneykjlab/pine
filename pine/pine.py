@@ -3004,8 +3004,7 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
         if row:  
           if "[" in row[genes] and "]" in row[genes]:
             each_gene_list = (row[genes])[1:-1]
-          if ", " in row[genes]:
-            each_gene_list = each_gene_list.split(', ')
+          each_gene_list = each_gene_list.split(', ')
         
           for each in each_gene_list:
             if each not in unique_gene:
