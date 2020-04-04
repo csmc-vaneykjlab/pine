@@ -3,6 +3,7 @@
 ## Table of Contents
 - [What is PINE](#what-is-pine)
 - [Requirements and Setup](#requirements-and-setup)
+- [Example usage](#example-usage)
 - [Using PINE GUI](#using-pine-gui)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
@@ -60,7 +61,10 @@ If you've used Genemania before, then open the App within Cytoscape and click on
 
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
-By default human and mouse datasets are installed; rat dataset must be installed manually:
+By default human and mouse datasets are installed; rat dataset must be installed manually.
+If you installed rat dataset in ClueGO, but you still cannot use it in PINE, then there may have been a problem when installing the dataset.
+Try reinstalling the rat dataset to fix the issue.
+
 ![ClueGO species installation](Image/cluego-species-install.png)
 
 ### Download PINE
@@ -96,7 +100,7 @@ After installation completes you can run PINE:
 
 ![Installation](Image/install-3.png)
 
-### Example usage
+## Example usage
 Please refer to our single fold change [example](examples/single%20fold%20change%20PTM) for a walkthrough on how to use PINE.
 
 ## Using PINE GUI
