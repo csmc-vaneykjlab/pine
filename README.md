@@ -199,6 +199,7 @@ Note:
 2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
 
 ## Handling Ambiguity and PTMs
+### Ambiguity Resolution
 | Case |	Category |	Step |	Level |	Description |	Resolution |
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
 | Ambiguous sites	| Ambiguity	| Preprocessing |	PTM Site |	Multiple peptides that represent same PTM type on the same site of a protein |	One representative peptide picked |
@@ -219,6 +220,20 @@ Note:
 | Invalid Interaction Category	| Drop	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
 | Gene Unmapped in ClueGO	| Drop	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
 | Invalid Mapping Category	| Drop	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
+
+### PTM Handling
+For ambiguous sites, scoring is performed for representative site selection by excluding sites with oxidized methionines, missed cleavages, and ragged ends.
+- Missed Cleavages
+![Missed-Cleavage](Image/Missed-Cleavage.JPG)
+Number of missed cleavages are calculated for all peptides of a single site, with the peptide having the least number of missed cleavages showing higher score.
+
+- Other Modifications
+![Other-Mods](Image/Other-Mods.JPG)
+Number of modifications other than the modification of interest are calculated for all peptides of a single site, with the peptide having the least number of other modifications showing higher score.
+
+- Missed Cleavage + Other Modifications
+![Both](Image/Both.JPG)
+Number of both missed cleavage and other modifications are calculated for all prptides of a single site, with the peptide having a lower combination of the two showing higher score. In case of two peptides having the same high score, that peptide having higher absolute fold change is selected.
 
 ## Using PINE command line
 ### Requirements
