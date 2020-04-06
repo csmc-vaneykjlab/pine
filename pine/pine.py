@@ -747,6 +747,17 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Number of categories should not exceed 6")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
+
+  if type == "4" and len(each_category) < 2:
+    eprint("Error: There must be at least 2 categories")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+    sys.exit(1)
+
+  if (type == "2" or type == "6") and len(unique_labels) < 2:
+    eprint("Error: There must be at least 2 unique labels")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+    sys.exit(1)
+
   merged_out_dict_2 = {}
   if cy_debug:
     if type == "5" or type == "6":
