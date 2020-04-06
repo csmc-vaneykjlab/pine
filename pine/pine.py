@@ -2923,7 +2923,10 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     response.raise_for_status()
   except:
     try:
-      eprint(f"Error: ClueGO couldn't find any pathways and exited with the following message: {response.json()['message']}")
+      cluego_msg = response.json()['message']
+      if "IOException: Unexpected end of ZLIB input stream" in cluego_msg:
+        cluego_msg = "Unexpected end of ZLIB input stream! Please check in the 'ClueGOFiles' directory or delete them and reload ClueGO."
+      eprint(f"Error: ClueGO couldn't find any pathways and exited with the following message: {cluego_msg}")
     except:
       eprint("Error: ClueGO couldn't find any pathways")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
