@@ -1670,11 +1670,9 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,feature(NATURAL VARIANT),last-modified'
   }
   try:
-    data = urllib.parse.urlencode(params).encode("utf-8")
-    request = urllib2.Request(url, data)
-    response = urllib2.urlopen(request)
-    page = response.read()
-    decode = page.decode("utf-8")
+    response = requests.post(url, data=params)
+    response.raise_for_status()
+    decode = response.text
     list1=decode.split('\n')
     list1 = list1[1:]
     req_ids = []
