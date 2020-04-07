@@ -747,6 +747,17 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Number of categories should not exceed 6")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
+
+  if type == "4" and len(each_category) < 2:
+    eprint("Error: There must be at least 2 categories")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+    sys.exit(1)
+
+  if (type == "2" or type == "6") and len(unique_labels) < 2:
+    eprint("Error: There must be at least 2 unique labels")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+    sys.exit(1)
+
   merged_out_dict_2 = {}
   if cy_debug:
     if type == "5" or type == "6":
@@ -1670,11 +1681,9 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,feature(NATURAL VARIANT),last-modified'
   }
   try:
-    data = urllib.parse.urlencode(params).encode("utf-8")
-    request = urllib2.Request(url, data)
-    response = urllib2.urlopen(request)
-    page = response.read()
-    decode = page.decode("utf-8")
+    response = requests.post(url, data=params)
+    response.raise_for_status()
+    decode = response.text
     list1=decode.split('\n')
     list1 = list1[1:]
     req_ids = []
@@ -2914,7 +2923,10 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     response.raise_for_status()
   except:
     try:
-      eprint(f"Error: ClueGO couldn't find any pathways and exited with the following message: {response.json()['message']}")
+      cluego_msg = response.json()['message']
+      if "IOException: Unexpected end of ZLIB input stream" in cluego_msg:
+        cluego_msg = "Unexpected end of ZLIB input stream! Please check in the 'ClueGOFiles' directory or delete them and reload ClueGO."
+      eprint(f"Error: ClueGO couldn't find any pathways and exited with the following message: {cluego_msg}")
     except:
       eprint("Error: ClueGO couldn't find any pathways")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
