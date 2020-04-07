@@ -1632,9 +1632,9 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
       if 'Primary' not in merged_out_dict[each_prot]:
         merged_out_dict[each_prot].update({'Primary':'' , 'String':'', 'Genemania':'', 'ClueGO':''})
       if 'CommentGene' in merged_out_dict[each_prot]:
-        merged_out_dict[each_prot]['CommentGene'] += 'FC/Pval cutoff not met'
+        merged_out_dict[each_prot]['CommentGene'] += 'FC/Pval cutoff not met;'
       else:
-        merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met'})
+        merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met;'})
       
   if cy_debug:
     logging.debug("DISCARD WARNING - FC and PVal cutoff not met: " + str(len(queries_dropped)))
@@ -1718,7 +1718,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
           else:
             remaining_isoforms = split_prot_list
             for spl in split_prot_list:
-              input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
+              input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
                         
           each_prot = ""
         else:
@@ -2770,9 +2770,9 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
   warning = []
   for each_in_list in get_drop_query_proids:
     if 'CommentGene' in merged_out_dict[each_in_list]:
-      merged_out_dict[each_in_list]['CommentGene'] += "ClueGO non-primary query"
+      merged_out_dict[each_in_list]['CommentGene'] += "ClueGO non-primary query;"
     else:
-      merged_out_dict[each_in_list].update({'CommentGene':"ClueGO non-primary query"})
+      merged_out_dict[each_in_list].update({'CommentGene':"ClueGO non-primary query;"})
     warning.append(each_in_list + "(" + get_drop_query_proids[each_in_list] + "->" + drop_non_primary[get_drop_query_proids[each_in_list]] + ") ")
     
   if cy_debug:
@@ -2971,7 +2971,18 @@ def write_into_out(merged_out_dict, out, dup_prot_ids):
       if 'PickedPeptide' in merged_out_dict[each_prot] or 'DroppedPeptide' in merged_out_dict[each_prot]:
         if i == 0:
           csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,Reason for Dropped Site, \n")
-        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "," + ";".join(merged_out_dict[each_prot].get("PickedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("PickedSite",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","")  + "\n"
+        if "PickedPeptide" in merged_out_dict[each_prot]:
+          ambi_picked_pep = [i for i in merged_out_dict[each_prot]["PickedPeptide"] if "**" in i]
+          ambi_picked_site = [i for i in merged_out_dict[each_prot]["PickedSite"] if "**" in i]
+          other_picked_pep = [i for i in merged_out_dict[each_prot]["PickedPeptide"] if "**" not in i]
+          other_picked_site = [i for i in merged_out_dict[each_prot]["PickedSite"] if "**" not in i]
+          picked_pep_list = ambi_picked_pep + other_picked_pep
+          picked_site_list = ambi_picked_site + other_picked_site
+          
+        else: 
+          picked_pep_list = [""]
+          picked_site_list = [""]
+        line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "," + ";".join(picked_pep_list) + ", " + ";".join(picked_site_list) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","")  + "\n"
       else:
         if i == 0:
           csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,\n")
@@ -4784,7 +4795,7 @@ def main(argv):
         if 'CommentGene' in merged_out_dict:
           merged_out_dict[each_dropped_prot]['CommentGene'] += "Duplicate primary gene;"
         else:
-          merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene'})
+          merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene;'})
         warning.append(each_dropped_prot + "(" + drop_dupeprimgene_prot[each_dropped_prot] + ")")
       if cy_debug:
         logging.debug("DISCARD WARNING - Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
@@ -4851,9 +4862,9 @@ def main(argv):
       if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
         if merged_out_dict[each_merged_dict_node]['Primary'].lower() not in unique_nodes:
           if 'CommentGene' in merged_out_dict[each_merged_dict_node]:
-            merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found'
+            merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found;'
           else:
-            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found'})
+            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
           
     if cy_debug:
       logging.debug("Total merged query nodes: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])))
