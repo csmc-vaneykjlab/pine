@@ -1871,20 +1871,30 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       else:
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
+    duplicate_canonical_set = set()
+    for dc in duplicate_canonical:
+      for dc1 in dc[1]:
+        duplicate_canonical_set.add(dc1)
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x[1]) + ")" for x in duplicate_canonical])
-      logging.warning("DROP WARNING - Dropping queries that had multiple IDs map to single ID: " + duplicate_canonical_str)
+      logging.warning(f"DISCARD WARNING - Multiple query IDs mapping to single ID: {len(duplicate_canonical_set)}")
+      logging.warning(f"Dropping queries: {duplicate_canonical_str}")
 
     if len(seen_duplicate_mapping_ids) > 0:
       sdmi_list = []
       for sdmi in seen_duplicate_mapping_ids:
+        if sdmi in duplicate_canonical_set:
+          continue # skip ids that were dropped from duplicate_canonical
         sdmi_val = seen_duplicate_mapping_ids[sdmi]
-        sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] + "[" + x["gene"] + "]" for x in sdmi_val]) + ")")
+        sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] for x in sdmi_val]) + ")")
       duplicate_mapping_str = ", ".join(sdmi_list)
-      if exclude_ambi:
-        logging.warning("DROP WARNING - Dropping queries that map to multiple IDs: " + duplicate_mapping_str)
-      else:
-        logging.warning("AMBIGUITY WARNING - Queries that mapped to multiple IDs.  First picked: " + duplicate_mapping_str)
+      if len(sdmi_list) > 0:
+        if exclude_ambi:
+          logging.warning(f"DISCARD WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
+          logging.warning(f"Dropping queries: {duplicate_mapping_str}")
+        else:
+          logging.warning(f"AMBIGUITY WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
+          logging.warning(f"Ambiguous queries (first picked): {duplicate_mapping_str}")
         
     if prot_with_mult_primgene:
       if exclude_ambi:
