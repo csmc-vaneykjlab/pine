@@ -23,9 +23,7 @@ The following tools and dependencies are required to run PINE:
 - [Genemania](http://apps.cytoscape.org/apps/genemania) (version 3.5 and above)
 - [ClueGO](http://apps.cytoscape.org/apps/cluego) (version 2.5 and above)
 
-PINE has been tested on Windows 10 and will only work on Windows OS.  We recommend at least 8GB of memory to run PINE with Cytoscape.
-
-The PINE graphical user interface is only available for Windows.
+PINE has been tested on Windows 10 and is only available for Windows OS.  We recommend at least 8GB of memory to run PINE with Cytoscape.
 
 ### Install [Cytoscape](https://cytoscape.org/download.html)
 ![Cytoscape](Image/cytoscape.jpg)
