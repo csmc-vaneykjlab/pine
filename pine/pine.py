@@ -404,16 +404,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
             sys.exit(1)
-          if type == "6":
-            if row[protein] not in unique_prot_pep:
-              unique_prot_pep.update({row[protein]:[row[peptide_col]]})
-              initial_query_pep_count += 1
-            else:
-              if row[peptide_col] not in unique_prot_pep[row[protein]]:
-                unique_prot_pep[row[protein]].append(row[peptide_col])
-                initial_query_pep_count += 1
-          else:         
+          if row[protein] not in unique_prot_pep:
+            unique_prot_pep.update({row[protein]:[row[peptide_col]]})
             initial_query_pep_count += 1
+          else:
+            if row[peptide_col] not in unique_prot_pep[row[protein]]:
+              unique_prot_pep[row[protein]].append(row[peptide_col])
+              initial_query_pep_count += 1
           if not is_pval:
             get_pval = 1.0 # If pvalue is not provided, default set to 1.0
           else:
@@ -749,12 +746,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     sys.exit(1)
 
   if type == "4" and len(each_category) < 2:
-    eprint("Error: There must be at least 2 categories")
+    eprint("Error: Input must contain at least 2 unique categories")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
   if (type == "2" or type == "6") and len(unique_labels) < 2:
-    eprint("Error: There must be at least 2 unique labels")
+    eprint("Error: Input must contain at least 2 unique labels")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
@@ -768,7 +765,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict]) + ctr
       if exclude_ambi:
         initial_query_prot_count += len(mapping_multiple_regions)
-      logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides")
+      unique_peptides = set()
+      for peps in unique_prot_pep.values():
+        for pep in peps:
+          unique_peptides.add(pep)
+      logging.debug(f"Initial query: {len(unique_prot_pep)} unique protein IDs, {len(unique_peptides)} unique peptides")
       if dropped_invalid_site:
         site_len = 0
         pep_len = 0
@@ -818,8 +819,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       initial_query_prots = each_protein_list + [x for x in dropped_invalid_fc_pval if x not in each_protein_list]
       initial_query_prot_count = len(initial_query_prots)
       uniq_initial_query_prot_count = len(set(initial_query_prots))
-      #logging.debug("Initial query: " + str(initial_query_prot_count) + " (" + str(uniq_initial_query_prot_count) + " unique IDs)")
-      logging.debug("Initial query: " + str(initial_query_prot_count))
+      logging.debug(f"Initial query: {uniq_initial_query_prot_count} unique protein IDs")
       
   initial_length = len(each_protein_list)
   to_return_unique_protids_length = len(set(each_protein_list))
@@ -1525,8 +1525,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       countpep = 0
       for getprot,getsite in site_info_dict.items():
         countpep += len(list(getsite.keys()))
-      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
+      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins IDs, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
+    else:
+      logging.debug(f"Remaining query: {len(each_protein_list)} unique protein IDs")
   dup_prot_ids_to_return = []
   if type == "3":
     dup_prot_ids_to_return = repeat_prot_ids # nofc
