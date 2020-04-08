@@ -205,19 +205,20 @@ Note:
 | Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked |
 | Protein Mapping |	Ambiguity |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	First mapping UniprotID picked |
 | Primary Gene Mapping |	Ambiguity |	Uniprot Mapping |	Protein	| Query ProteinID maps to multiple primary genes in Uniprot |	First mapping primary gene picked |
-| Peptide Unmapped |	Drop	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
-| Site Not Available |	Drop	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
-| Duplicate query	| Drop |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
-| Invalid FC/Pval	| Drop	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
-| FC/Pval cutoff |	Drop |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
-| ProteinID unmapped |	Drop	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
-|Primary Gene Not Available |	Drop |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
-| Duplicate Primary Gene	| Drop	| Uniprot Mapping	| Protein	| Query ProteinIDs mapping to same primary genes	| Drop all duplicate mapping to primary genes |
-| Gene Unmapped in Interaction Databases	| Drop	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
-| Interactions Not available	| Drop	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
-| Invalid Interaction Category	| Drop	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
-| Gene Unmapped in ClueGO	| Drop	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
-| Invalid Mapping Category	| Drop	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
+| Peptide Unmapped |	Discard	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
+| Site Not Available |	Discard	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
+| Duplicate query	| Discard |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
+| Invalid FC/Pval	| Discard	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
+| FC/Pval cutoff |	Discard |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
+| ProteinID unmapped |	Discard	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
+|Primary Gene Not Available |	Discard |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
+| Duplicate Primary Gene	| Discard	| Uniprot Mapping	| Protein	| Query ProteinIDs mapping to same primary genes	| Drop all duplicate mapping to primary genes |
+| Duplicate Protein Mapping | Discard | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all duplicate mapping IDs |
+| Gene Unmapped in Interaction Databases	| Discard	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
+| Interactions Not available	| Discard	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
+| Invalid Interaction Category	| Discard	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
+| Gene Unmapped in ClueGO	| Discard	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
+| Invalid Mapping Category	| Discard	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
 
 ### PTM Handling  
 For ambiguous sites, scoring is performed for representative site selection by excluding sites with oxidized methionines, missed cleavages, and ragged ends.  
