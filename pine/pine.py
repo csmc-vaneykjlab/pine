@@ -404,16 +404,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
             sys.exit(1)
-          if type == "6":
-            if row[protein] not in unique_prot_pep:
-              unique_prot_pep.update({row[protein]:[row[peptide_col]]})
-              initial_query_pep_count += 1
-            else:
-              if row[peptide_col] not in unique_prot_pep[row[protein]]:
-                unique_prot_pep[row[protein]].append(row[peptide_col])
-                initial_query_pep_count += 1
-          else:         
+          if row[protein] not in unique_prot_pep:
+            unique_prot_pep.update({row[protein]:[row[peptide_col]]})
             initial_query_pep_count += 1
+          else:
+            if row[peptide_col] not in unique_prot_pep[row[protein]]:
+              unique_prot_pep[row[protein]].append(row[peptide_col])
+              initial_query_pep_count += 1
           if not is_pval:
             get_pval = 1.0 # If pvalue is not provided, default set to 1.0
           else:
@@ -744,12 +741,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     sys.exit(1)
 
   if type == "4" and len(each_category) < 2:
-    eprint("Error: There must be at least 2 categories")
+    eprint("Error: Input must contain at least 2 unique categories")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
   if (type == "2" or type == "6") and len(unique_labels) < 2:
-    eprint("Error: There must be at least 2 unique labels")
+    eprint("Error: Input must contain at least 2 unique labels")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
@@ -763,7 +760,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       initial_query_prot_count = len(list(site_info_dict.keys())) + len([x for x in dropped_invalid_fc_pval if x not in site_info_dict]) + len([x for x in dropped_invalid_site if x not in site_info_dict]) + ctr
       if exclude_ambi:
         initial_query_prot_count += len(mapping_multiple_regions)
-      logging.debug("Initial query: " + str(initial_query_prot_count) + " proteins, " + str(initial_query_pep_count) + " peptides")
+      unique_peptides = set()
+      for peps in unique_prot_pep.values():
+        for pep in peps:
+          unique_peptides.add(pep)
+      logging.debug(f"Initial query: {len(unique_prot_pep)} unique protein IDs, {len(unique_peptides)} unique peptides")
       if dropped_invalid_site:
         site_len = 0
         pep_len = 0
@@ -813,8 +814,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       initial_query_prots = each_protein_list + [x for x in dropped_invalid_fc_pval if x not in each_protein_list]
       initial_query_prot_count = len(initial_query_prots)
       uniq_initial_query_prot_count = len(set(initial_query_prots))
-      #logging.debug("Initial query: " + str(initial_query_prot_count) + " (" + str(uniq_initial_query_prot_count) + " unique IDs)")
-      logging.debug("Initial query: " + str(initial_query_prot_count))
+      logging.debug(f"Initial query: {uniq_initial_query_prot_count} unique protein IDs")
       
   initial_length = len(each_protein_list)
   to_return_unique_protids_length = len(set(each_protein_list))
@@ -1294,18 +1294,24 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       else:
         logging.warning("AMBIGUITY WARNING - Dropping all but one representation of ambigious sites: " + str(ambi_pep_count-ambi_site_len) + " peptides")
 
-    if cy_debug and len(duplicate_ptm_proteins) > 0:
-      if type == "5":
-        msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
-      else:
-        msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
-      logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
-    if len(duplicate_inc_ptm_proteins) > 0:
-      if type == "5":
-        msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_inc_ptm_proteins])
-      else:
-        msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_inc_ptm_proteins])
-      logging.warning("WARNING - Dropping queries due to inconsistent fold changes or p-values between duplicates: " + msg_inc)
+    # confirm that this shouldn't be logged
+    #if cy_debug and len(duplicate_ptm_proteins) > 0:
+    #  if type == "5":
+    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
+    #  else:
+    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
+    #  logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
+    if cy_debug and len(duplicate_inc_ptm_proteins) > 0:
+      duplicate_inc_full_dropped = set()
+      for d in duplicate_inc_ptm_proteins:
+        prot_pep = (d[0], d[2])
+        if d[0] not in site_info_dict or d[1] not in site_info_dict[d[0]]:
+          duplicate_inc_full_dropped.add(prot_pep)
+      if len(duplicate_inc_full_dropped) > 0:
+        msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[1]})" for d in duplicate_inc_full_dropped])
+        len_inc = len(duplicate_inc_full_dropped)
+        logging.warning(f"DISCARD WARNING - Dropping peptides due to inconsistent fold changes or p-values between duplicates: {len_inc}")
+        logging.warning(f"Dropped peptides: {msg_inc}")
  
   if type == "6":
     site_info_dict_rearrange = {}
@@ -1512,8 +1518,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       countpep = 0
       for getprot,getsite in site_info_dict.items():
         countpep += len(list(getsite.keys()))
-      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins, " + str(countpep) + " peptides")
+      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins IDs, " + str(countpep) + " peptides")
       each_protein_list = list(site_info_dict.keys())
+    else:
+      logging.debug(f"Remaining query: {len(each_protein_list)} unique protein IDs")
   dup_prot_ids_to_return = []
   if type == "3":
     dup_prot_ids_to_return = repeat_prot_ids # nofc
@@ -1864,20 +1872,30 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       else:
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
+    duplicate_canonical_set = set()
+    for dc in duplicate_canonical:
+      for dc1 in dc[1]:
+        duplicate_canonical_set.add(dc1)
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x[1]) + ")" for x in duplicate_canonical])
-      logging.warning("DROP WARNING - Dropping queries that had multiple IDs map to single ID: " + duplicate_canonical_str)
+      logging.warning(f"DISCARD WARNING - Multiple query IDs mapping to single ID: {len(duplicate_canonical_set)}")
+      logging.warning(f"Dropping queries: {duplicate_canonical_str}")
 
     if len(seen_duplicate_mapping_ids) > 0:
       sdmi_list = []
       for sdmi in seen_duplicate_mapping_ids:
+        if sdmi in duplicate_canonical_set:
+          continue # skip ids that were dropped from duplicate_canonical
         sdmi_val = seen_duplicate_mapping_ids[sdmi]
-        sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] + "[" + x["gene"] + "]" for x in sdmi_val]) + ")")
+        sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] for x in sdmi_val]) + ")")
       duplicate_mapping_str = ", ".join(sdmi_list)
-      if exclude_ambi:
-        logging.warning("DROP WARNING - Dropping queries that map to multiple IDs: " + duplicate_mapping_str)
-      else:
-        logging.warning("AMBIGUITY WARNING - Queries that mapped to multiple IDs.  First picked: " + duplicate_mapping_str)
+      if len(sdmi_list) > 0:
+        if exclude_ambi:
+          logging.warning(f"DISCARD WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
+          logging.warning(f"Dropping queries: {duplicate_mapping_str}")
+        else:
+          logging.warning(f"AMBIGUITY WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
+          logging.warning(f"Ambiguous queries (first picked): {duplicate_mapping_str}")
         
     if prot_with_mult_primgene:
       if exclude_ambi:
