@@ -1308,18 +1308,24 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         
       logging.warning("AMBIGUITY WARNING - Ambigious sites: " + str(len(ambigious_sites_ptms)) + " proteins , " + str(ambi_site_len) + " sites and " + str(ambi_pep_count) + " peptides")
 
-    if cy_debug and len(duplicate_ptm_proteins) > 0:
-      if type == "5":
-        msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
-      else:
-        msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
-      logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
-    if len(duplicate_inc_ptm_proteins) > 0:
-      if type == "5":
-        msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_inc_ptm_proteins])
-      else:
-        msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_inc_ptm_proteins])
-      logging.warning("WARNING - Dropping queries due to inconsistent fold changes or p-values between duplicates: " + msg_inc)
+    # confirm that this shouldn't be logged
+    #if cy_debug and len(duplicate_ptm_proteins) > 0:
+    #  if type == "5":
+    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
+    #  else:
+    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
+    #  logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
+    if cy_debug and len(duplicate_inc_ptm_proteins) > 0:
+      duplicate_inc_full_dropped = set()
+      for d in duplicate_inc_ptm_proteins:
+        prot_pep = (d[0], d[2])
+        if d[0] not in site_info_dict or d[1] not in site_info_dict[d[0]]:
+          duplicate_inc_full_dropped.add(prot_pep)
+      if len(duplicate_inc_full_dropped) > 0:
+        msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[1]})" for d in duplicate_inc_full_dropped])
+        len_inc = len(duplicate_inc_full_dropped)
+        logging.warning(f"DISCARD WARNING - Dropping peptides due to inconsistent fold changes or p-values between duplicates: {len_inc}")
+        logging.warning(f"Dropped peptides: {msg_inc}")
  
   if type == "6":
     site_info_dict_rearrange = {}
