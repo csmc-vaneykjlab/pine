@@ -1518,10 +1518,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       countpep = 0
       for getprot,getsite in site_info_dict.items():
         countpep += len(list(getsite.keys()))
-      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " proteins IDs, " + str(countpep) + " peptides")
+      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(countpep) + " unique peptides")
       each_protein_list = list(site_info_dict.keys())
-    else:
-      logging.debug(f"Remaining query: {len(each_protein_list)} unique protein IDs")
+    
   dup_prot_ids_to_return = []
   if type == "3":
     dup_prot_ids_to_return = repeat_prot_ids # nofc
@@ -1638,7 +1637,7 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
         merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met;'})
       
   if cy_debug:
-    logging.debug("DISCARD WARNING - FC and PVal cutoff not met: " + str(len(queries_dropped)))
+    logging.debug("DISCARD WARNING - Fold Change and P-Value cutoff not met: " + str(len(queries_dropped)))
     
   return(unique_each_protein_list, prot_list, merged_out_dict)
 
@@ -4686,6 +4685,8 @@ def main(argv):
             merged_out_dict[each_prot_id]['CommentGene'] += 'All peptides dropped;'
           else:
             merged_out_dict[each_prot_id].update({'CommentGene':'All peptides dropped;'})
+    else:
+      logging.debug(f"Remaining query: {len(unique_each_protein_list)} unique protein IDs")
             
     # Limit query inpt number = 1500
     if len(unique_each_protein_list) > 1500:
