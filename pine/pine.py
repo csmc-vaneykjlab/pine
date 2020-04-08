@@ -422,7 +422,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       
         if type == "1" or type == "2":
           initial_query_pep_count += 1
-          skip = False
+          skip_val = False
           if not is_pval:
             get_pval = 1.0
           else:
@@ -446,18 +446,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             except ValueError:
               skip_val = True
               
-          if skip_val:      
-            if not is_pep_col:
-              if is_label_col:
-                if row[protein] not in dropped_invalid_fc_pval: # Track invalid fold changes and pvalues for logging
-                  dropped_invalid_fc_pval[row[protein]] = {}
-                  dropped_invalid_fc_pval[row[protein]].update({"PeptideandLabel":[row[label]]})
-                else:
-                  dropped_invalid_fc_pval[row[protein]]["PeptideandLabel"].append(row[label])
-              else:
-                dropped_invalid_fc_pval.update({row[protein]:None}) 
+          if skip_val:
+            if row[protein] not in each_protein_list:          
+              dropped_invalid_fc_pval.update({row[protein]:None})
             continue
-        
+          elif not skip_val and row[protein] in dropped_invalid_fc_pval:
+            del dropped_invalid_fc_pval[row[protein]]           
+                  
         if type == "5" or type == "6":        
           all_mods_for_prot = []
           if include_list:
@@ -727,7 +722,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               prot_list[row[protein]].update({row[label]:[float(get_fc_val),get_pval]})
       line_count+=1 
-
+  
   if type == "6":
     # need to calculate unique labels outside loop since inconsistent labels are deleted
     unique_labels = set()
@@ -961,23 +956,18 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               
                 if skip_val:
                   if type == "6":
-                    if each_protid not in dropped_invalid_fc_pval:
-                      dropped_invalid_fc_pval[each_protid] = {}
-                      dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep + "-" + new_each_site_info[3][i]], "Site":[each_site]})
-                      del new_each_site_info[3][i]
-                    else:
-                      dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep + "-" + new_each_site_info[3][i])
-                      dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
-                  else:
+                    del new_each_site_info[3][i]
+                  del new_each_site_info[0][i]
+                  del new_each_site_info[1][i]
+                  i-=1
+                  
+                  if not each_site_info[0]:
                     if each_protid not in dropped_invalid_fc_pval:
                       dropped_invalid_fc_pval[each_protid] = {}
                       dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[each_key_pep], "Site":[each_site]})
                     else:
                       dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep)
                       dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
-                      
-                  del new_each_site_info[0][i]
-                  del new_each_site_info[1][i]
                 i += 1
 
               if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
@@ -1115,29 +1105,23 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 skip_val = True
             except ValueError:
               skip_val = True
-              
+           
             if skip_val:
               if type == "6":
-                if each_protid not in dropped_invalid_fc_pval:
-                  dropped_invalid_fc_pval[each_protid] = {}
-                  dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site + "-" + each_site_info[3][i]], "Site":[each_site]})
-                else:
-                  dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site + "-" + each_site_info[3][i])
-                  dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
                 del each_site_info[3][i]
-              else:
+              del each_site_info[0][i]
+              del each_site_info[1][i]
+              i -=1
+              if not each_site_info[0]: 
                 if each_protid not in dropped_invalid_fc_pval:
                   dropped_invalid_fc_pval[each_protid] = {}
                   dropped_invalid_fc_pval[each_protid].update({"PeptideandLabel":[pep_for_prot_site], "Site":[each_site]})
                 else:
                   dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(pep_for_prot_site)
-                  dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
-              del each_site_info[0][i]
-              del each_site_info[1][i]
-              i -=1
+                  dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)             
             i+=1
 
-          if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
+          if each_site_info[0] and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
             cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info)              
             if cutoff_drop:
               if each_protid not in dropped_cutoff_fc_pval:
@@ -1305,8 +1289,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       for each_prot in ambigious_sites_ptms:
         warn.append(each_prot + "(" + ",".join(ambigious_sites_ptms[each_prot]) + ")")
         ambi_site_len += len(ambigious_sites_ptms[each_prot])
-        
-      logging.warning("AMBIGUITY WARNING - Ambigious sites: " + str(len(ambigious_sites_ptms)) + " proteins , " + str(ambi_site_len) + " sites and " + str(ambi_pep_count) + " peptides")
+      if exclude_ambi:
+        logging.warning("AMBIGUITY WARNING - Dropping all ambigious sites: " + str(ambi_pep_count) + " peptides")
+      else:
+        logging.warning("AMBIGUITY WARNING - Dropping all but one representation of ambigious sites: " + str(ambi_pep_count-ambi_site_len) + " peptides")
 
     if cy_debug and len(duplicate_ptm_proteins) > 0:
       if type == "5":
@@ -1384,10 +1370,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       
       if warning:
         if exclude_ambi:
-          logging.warning("Protein ID mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)))
-          logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(warning))
+          logging.warning("AMBIGUITY WARNING - Peptides mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)) + " peptides")
+          logging.warning("Dropping queries: " + ','.join(warning))
         else:        
-          logging.warning("AMBIGUITY WARNING: Protein ID mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
+          logging.warning("AMBIGUITY WARNING - Peptides mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
           
     if dropped_invalid_fc_pval:
       site_len = 0
@@ -1398,6 +1384,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       for each_key in dropped_invalid_fc_pval:
         warning_str = each_key
         if dropped_invalid_fc_pval[each_key] == None:
+          if each_key not in merged_out_dict:
+            merged_out_dict[each_key] = {} 
+          if 'CommentGene' not in merged_out_dict[each_key]:
+            merged_out_dict[each_key].update({'CommentGene':"Invalid FC/PVal;"})
+          else:
+            merged_out_dict[each_key]['CommentGene'] += "Invalid FC/PVal;"
           continue
         if "PeptideandLabel" in dropped_invalid_fc_pval[each_key]:
           if "Site" in dropped_invalid_fc_pval[each_key]:
@@ -1447,9 +1439,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           es+=1
           
       if site_len > 0:
-        logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")
+        logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(pep_len) + " peptides")
       else:
-        logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)) + " proteins ")
+        excluded_from_count = list(prot_list.keys())
+        logging.debug("DISCARD WARNING - Invalid Fold Change and P-Value terms: " + str(len(dropped_invalid_fc_pval)))
     
     if dropped_cutoff_fc_pval:
       site_len = 0
@@ -1502,7 +1495,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
            merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
           es+=1 
       if site_len > 0:
-        logging.debug("DISCARD WARNING - Fold Change and P-Value cutoff not met: " + str(len(dropped_cutoff_fc_pval)) + " proteins, " + str(site_len) + " sites and " + str(pep_len) + " peptides")  
+        logging.debug("DISCARD WARNING - Fold Change and P-Value cutoff not met: " + str(pep_len) + " peptides")  
                       
     if pep_not_in_fasta:
       warning = []
@@ -1866,8 +1859,8 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   if cy_debug:
     if all_isoforms:
       if exclude_ambi:
-        logging.warning("Isoforms in query: " + str(len(all_isoforms)))
-        logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(all_isoforms))
+        logging.warning("AMBIGUITY WARNING - Isoforms in query: " + str(len(all_isoforms)))
+        logging.warning("Dropping queries: " + ','.join(all_isoforms))
       else:
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
@@ -1888,18 +1881,18 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         
     if prot_with_mult_primgene:
       if exclude_ambi:
-        logging.warning("Uniprot Multiple primary genes in query: " + str(len(prot_with_mult_primgene)))
-        logging.warning("AMBIGUITY WARNING - Dropping queries: " + ','.join(prot_with_mult_primgene))
+        logging.warning("AMBIGUITY WARNING - Uniprot Multiple primary genes in query: " + str(len(prot_with_mult_primgene)))
+        logging.warning("Dropping queries: " + ','.join(prot_with_mult_primgene))
       else:
         logging.warning("AMBIGUITY WARNING - Uniprot Multiple primary genes, first picked: " + ','.join(prot_with_mult_primgene))
   
     if no_uniprot_val:
-      logging.debug("Uniprot query not mapped: " + str(len(no_uniprot_val)))
-      logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(no_uniprot_val))
+      logging.debug("DISCARD WARNING - Uniprot query not mapped: " + str(len(no_uniprot_val)))
+      logging.warning("Dropping queries: " + ','.join(no_uniprot_val))
 
     if no_primgene_val:
-      logging.debug("Uniprot Primary gene unavailable: " + str(len(no_primgene_val)))
-      logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(no_primgene_val))
+      logging.debug("DISCARD WARNING - Uniprot Primary gene unavailable: " + str(len(no_primgene_val)))
+      logging.warning("Dropping queries: " + ','.join(no_primgene_val))
   
   if type == "1" or type == "2":
     for each_in_list in prot_list:
@@ -2205,21 +2198,21 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
     
     if cy_debug: 
       if len(no_mapping) != 0:
-        logging.debug("String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
+        logging.debug("DISCARD WARNING - String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
         warning = []
         for each in no_mapping_prots:
           warning.append(each + "(" + no_mapping_prots[each] + ") ")
         if dup_pref_warning:
-          logging.debug("WARNING - Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
+          logging.debug("Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
         else:
-          logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+          logging.debug("Dropping queries: " + ','.join(warning))
     
       if len(no_interactions) != 0:
-        logging.debug("String queries with no interactions: " + str(len(no_interactions)))
+        logging.debug("DISCARD WARNING - String queries with no interactions: " + str(len(no_interactions)))
         warning = []
         for each in no_interactions_prots:
           warning.append(each + "(" + no_interactions_prots[each] + ") ")
-        logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("Dropping queries: " + ','.join(warning))
   except requests.exceptions.HTTPError:
     eprint("Error: String is not responding. Please try again later")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -2319,18 +2312,18 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
     
   if cy_debug:
     if len(no_mapping) != 0:  
-      logging.debug("Genemania queries not mapped: " + str(len(no_mapping)))
+      logging.debug("DISCARD WARNING - Genemania queries not mapped: " + str(len(no_mapping)))
       warning = []
       for each in no_mapping_prots:
         warning.append(each + "(" + no_mapping_prots[each] + ") ")
-      logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+      logging.debug("Dropping queries: " + ','.join(warning))
     
     if len(no_interactions) != 0:
-      logging.debug("Genemania queries with no interactions: " + str(len(no_interactions)))
+      logging.debug("DISCARD WARNING - Genemania queries with no interactions: " + str(len(no_interactions)))
       warning = []
       for each in no_interactions_prots:
         warning.append(each + "(" + no_interactions_prots[each] + ") ")
-      logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+      logging.debug("Dropping queries: " + ','.join(warning))
   
   return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
 
@@ -2440,11 +2433,11 @@ def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, 
       logging.debug(str(each_categorical_interaction) + " interactions: " + str(len(categorized_interactions[each_categorical_interaction])))
     if len(filtered_dropped_nodes) !=0:
       logging.debug("Only retaining interactions of category: Primary gene-Primary gene, Primary gene-External Interactor, External Interactor-External Interactor")
-      logging.debug(str(search) + " dropped interaction category query nodes: " + str(len(filtered_dropped_nodes)))
+      logging.debug("DISCARD WARNING -" + str(search) + " dropped interaction category query nodes: " + str(len(filtered_dropped_nodes)))
       warning = []
       for each in filtered_dropped_nodes_prot:
         warning.append(each + "(" + filtered_dropped_nodes_prot[each] + "->" + get_dropped_query_primgenes[filtered_dropped_nodes_prot[each]] + ") ")
-      logging.debug("WARNING - Dropping queries: " + ','.join(warning))
+      logging.debug("Dropping queries: " + ','.join(warning))
     logging.debug(str(search) + " Total query nodes: " + str(len(primary_nodes)))
     logging.debug(str(search) + " Total interactions: " + str(count_retained_interactions))
     
@@ -2745,11 +2738,11 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
       else:
         merged_out_dict[each].update({'CommentGene':"Cluego- not found;"})
     if cy_debug and (warning1 or warning2):
-      logging.debug("ClueGO query + External Interactor unavailable: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
+      logging.debug("DISCARD WARNING - ClueGO query + External Interactor unavailable: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning1:
-        logging.warning("DISCARD WARNING - Dropped queries: " + ','.join(warning1))
+        logging.warning("Dropped queries: " + ','.join(warning1))
       if warning2:
-        logging.warning("WARNING - Dropped External Interactor: " + ','.join(warning2))
+        logging.warning("Dropped External Interactor: " + ','.join(warning2))
  
   # Drop queries with duplicate preferred gene list
   for each_acceptable in acceptable_genes_list:
@@ -2777,11 +2770,11 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     
   if cy_debug:
     if len(not_found_query) != 0 or len(not_found_ei) != 0:
-      logging.debug("ClueGO non-primary query + External Interactor genes: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
+      logging.debug("DISCARD WARNING - ClueGO non-primary query + External Interactor genes: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning:
-        logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(warning))
+        logging.warning("Dropping queries: " + ','.join(warning))
       if not_found_ei:
-        logging.warning("WARNING - Dropping External Interactor: " + ','.join(not_found_ei))  
+        logging.warning("Dropping External Interactor: " + ','.join(not_found_ei))  
   
   filtered_preferred_unique_list = [acceptable_genes_list[i]['GenePreferredName'] for i in filtered_unique_list if i.lower() not in [x.lower() for x in drop_non_primary]]
   
