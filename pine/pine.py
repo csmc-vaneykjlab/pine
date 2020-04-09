@@ -290,7 +290,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ctr = 0
   mult_mods_of_int = True  #False
   unique_unimods = []
-<<<<<<< HEAD
   try:
     with open(inp,'r') as csv_file:
       '''
@@ -367,150 +366,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               eprint("Error: Category run chosen but other headers found. Please check that the run selected is correct")
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
               sys.exit(1)
-=======
-  with open(inp,'r') as csv_file:
-    '''
-    Read input and collect columns based on type of analysis chosen
-    Types:1 = SingleFC; 2 = MultiFC; 3 = List only; 4 = Category; 5 = Singlefc-ptm; 6 = Multifc-ptm
-    '''
-    input_file = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in input_file:
-      skip_val = False    
-      if line_count == 0:
-        header = row
-        # Get input headers
-        for i in range(len(row)):                                                                               
-          if "proteinid" in row[i].lower():
-            protein = i
-            is_prot_col = True
-          elif "fc" in row[i].lower():
-            FC=i
-            is_FC = True  
-          elif "adj.pval" in row[i].lower():
-            pval = i
-            is_pval = True
-          elif "pval" in row[i].lower() and not is_pval:
-            pval=i
-            is_pval = True  
-          elif "category" in row[i].lower():
-            cat = i
-            is_cat = True
-          elif "label" in row[i].lower():
-            label = i  
-            is_label_col = True
-          elif "peptide" in row[i].lower():
-            peptide_col = i
-            is_pep_col = True         
-        
-        # If required columns are missing from input type, print appropriate error messages
-        if type == "1":
-          if not (is_prot_col and is_FC): 
-            eprint("Error: Columns 'ProteinID' and 'FC' required for singleFC run type")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if (is_cat or is_label_col or is_pep_col):
-            eprint("Error: SingleFC run chosen but other headers found. Please check that the run selected is correct")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-        
-        elif type == "2":
-          if not (is_prot_col and is_FC and is_label_col):
-            eprint("Error: Columns 'ProteinID', 'FC' and 'Label' required for multiFC run type")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if (is_cat or is_pep_col):
-            eprint("Error: MultiFC run chosen but other headers found. Please check that the run selected is correct")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-        
-        elif type == "3":
-          if not (is_prot_col):
-            eprint("Error: Columns 'ProteinID' required for list only run type")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if (is_cat or is_pep_col or is_FC or is_label_col or is_pval):
-            eprint("Error: List Only run chosen but other headers found. Please check that the run selected is correct")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-        
-        elif type == "4":
-          if not (is_prot_col and is_cat):
-            eprint("Error: Columns 'ProteinID' and 'Category' required for category run type")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if (is_pep_col or is_FC or is_label_col or is_pval):
-            eprint("Error: Category run chosen but other headers found. Please check that the run selected is correct")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-            
-        elif type == "5":
-          if not (is_prot_col and is_pep_col and is_FC):
-            eprint("Error: Columns 'ProteinID', 'Peptide' and 'FC' required for singlefc-ptm")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if (is_cat or is_label_col):
-            eprint("Error: Singlefc-ptm run chosen but other headers found. Please check that the run selected is correct")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-            
-        elif type == "6":
-          if not (is_prot_col and is_pep_col and is_FC and is_label_col):
-            eprint("Error: Columns 'ProteinID', 'Peptide', 'FC' and 'Label' required for multifc-ptm")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if (is_cat):
-            eprint("Error: Multifc-ptm run chosen but other headers found. Please check that the run selected is correct")
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-            
-      else: 
-        str_each_row = ",".join(row)      
-        str_each_row = str_each_row.replace(",","")
-        if not str_each_row:
-          continue
-        
-        # Check if column marked as proteinID in the input has valid Uniprot IDs
-        if not bool(re.match('^[A-Za-z0-9\-]+$', row[protein])):
-          eprint("Error: Invalid proteinID: " + row[protein] + " in line " + str(line_count+1))
-          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-          sys.exit(1) 
-        
-        # Check if column marked as peptide in the input has valid peptide terms. Must only include peptide sequences with modifications and its corresponding unimod number enclosed in brackets. Ex: SEDVLAQS[+80]PLPK
-        if type == "5" or type == "6":
-          if not bool(re.match('^[A-Za-z]{1,}([\[\(\{]\+?[A-Za-z0-9\.][\]\}\)])?[A-Z]{0,}', row[peptide_col])):
-            eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
-            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-            sys.exit(1)
-          if row[protein] not in unique_prot_pep:
-            unique_prot_pep.update({row[protein]:[row[peptide_col]]})
-            initial_query_pep_count += 1
-          else:
-            if row[peptide_col] not in unique_prot_pep[row[protein]]:
-              unique_prot_pep[row[protein]].append(row[peptide_col])
-              initial_query_pep_count += 1
-          if not is_pval:
-            get_pval = 1.0 # If pvalue is not provided, default set to 1.0
-          else:
-            get_pval = row[pval]
-          get_fc_val = row[FC]
-                      
-        if type == "1" or type == "2":
-          initial_query_pep_count += 1
-          skip_val = False
-          if not is_pval:
-            get_pval = 1.0
-          else:
-            # Discard all non-numeric fold changes and pvalues
-            try:
-              float(row[pval])
-              if math.isinf(float(row[pval])):
-                skip_val = True 
-              else:
-                get_pval = float(row[pval])
-            except ValueError:
-              skip_val = True
->>>>>>> 634dfe5c806c2f5dbdb23a6edab68e7bd9d5e745
               
           elif type == "5":
             if not (is_prot_col and is_pep_col and is_FC):
@@ -522,7 +377,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
               sys.exit(1)
               
-<<<<<<< HEAD
           elif type == "6":
             if not (is_prot_col and is_pep_col and is_FC and is_label_col):
               eprint("Error: Columns 'ProteinID', 'Peptide', 'FC' and 'Label' required for multifc-ptm")
@@ -575,62 +429,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 float(row[pval])
                 if math.isinf(float(row[pval])):
                   skip_val = True 
-=======
-          if skip_val:
-            if row[protein] not in each_protein_list:          
-              dropped_invalid_fc_pval.update({row[protein]:None})
-            continue
-          elif not skip_val and row[protein] in dropped_invalid_fc_pval:
-            del dropped_invalid_fc_pval[row[protein]]           
-                  
-        if type == "5" or type == "6":        
-          all_mods_for_prot = []
-          if include_list:
-            modInSeq_dict = {}
-            peptide = row[peptide_col]
-            protein_list_id = row[protein]
-            modInSeq_all_dict = find_mod(peptide)
-            combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-            peptide_sub = re.sub(combined_pat, '', peptide)
-            peptide_sub = peptide_sub.strip('"')		           
-            if protein_list_id in database_dict:
-              for each_seq_in_db_dict in database_dict[protein_list_id]:
-                # Check for position of peptide in FASTA sequence
-                seqInDatabase_list = find(peptide_sub,each_seq_in_db_dict)
-                if len(seqInDatabase_list) > 1:
-                  # If peptide maps to multiple regions in FASTA, then either pick first option or drop peptide based on user's choice to retain or drop ambiguity
-                  if protein_list_id not in mapping_multiple_regions:   
-                    key_val = protein_list_id + "-" + peptide
-                    each_pos_store_as_mult = []
-                    for each_pos in seqInDatabase_list:
-                      store_as_mult = []
-                      for each_mod in modInSeq_all_dict:
-                        for each_include_list in include_list:
-                          combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-                          each_mod_key = re.sub(combined_pat, '', each_mod) 
-                          each_include_list = re.sub(combined_pat, '', each_include_list)
-                          if each_include_list == each_mod_key:
-                            for each_pos_in_list in modInSeq_all_dict[each_mod]:
-                              store_as_mult.append(each_include_list + str(each_pos_in_list+each_pos+1))
-                      if store_as_mult:
-                        each_pos_store_as_mult.append('/'.join(store_as_mult))
-                    if key_val not in mapping_multiple_regions and each_pos_store_as_mult:
-                      mapping_multiple_regions.update({key_val:each_pos_store_as_mult})
-                      if protein_list_id not in ambigious_sites:
-                        ambigious_sites.update({protein_list_id:[each_pos_store_as_mult[0]]})
-                      else:
-                        ambigious_sites[protein_list_id].append(each_pos_store_as_mult[0])
-                # Track peptides not in FASTA sequence for later logging
-                if len(seqInDatabase_list) == 0:
-                  seqInDatabase = -1
-                  if protein_list_id not in pep_not_in_fasta:   
-                    pep_not_in_fasta.update({protein_list_id:[peptide_sub]})
-                  else:
-                    if peptide_sub not in pep_not_in_fasta[protein_list_id]:
-                      pep_not_in_fasta[protein_list_id].append(peptide_sub)
-                elif len(seqInDatabase_list) == 1:                        
-                  seqInDatabase = seqInDatabase_list[0]
->>>>>>> 634dfe5c806c2f5dbdb23a6edab68e7bd9d5e745
                 else:
                   get_pval = float(row[pval])
               except ValueError:
@@ -915,7 +713,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 if prot_list[row[protein]][row[label]][0] == float(get_fc_val) and prot_list[row[protein]][row[label]][1] == float(get_pval):
                   retain_prot_ids.append(row[protein])
                 else:
-<<<<<<< HEAD
                   if row[protein] not in repeat_prot_ids_2:
                     repeat_prot_ids_2.update({row[protein]:[row[label]]})
                   else:
@@ -932,13 +729,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
-=======
-                  repeat_prot_ids_2[row[protein]].append(row[label])
-            else:
-              prot_list[row[protein]].update({row[label]:[float(get_fc_val),get_pval]})
-      line_count+=1 
-  
->>>>>>> 634dfe5c806c2f5dbdb23a6edab68e7bd9d5e745
   if type == "6":
     # need to calculate unique labels outside loop since inconsistent labels are deleted
     unique_labels = set()
