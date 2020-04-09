@@ -111,7 +111,7 @@ let vm = new Vue({
         missing_files: {
             in: false,
             output: false,
-            fast_file: false,
+            fasta_file: false,
             reference_path: false,
         },
         stdout: "",
@@ -336,11 +336,8 @@ let vm = new Vue({
         },
         run_full: function() {
             /* if genemania can't be found, show popup confirming they want to continue */
-            if(!this.genemania_check()) {
-                let gm_message = 
-                    "The required GeneMANIA dataset cannot be found on your system. " + 
-                    "It is recommended that you open Cytoscape to install the plugin and the required species datasets before continuing. " +
-                    "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
+            const gm_check = this.genemania_check();
+            if(gm_check != null) {
                 const res = remote.dialog.showMessageBoxSync({
                     "type": "warning",
                     "buttons": [
@@ -348,8 +345,8 @@ let vm = new Vue({
                         "Cancel (recommended)",
                     ],
                     "defaultId": 1,
-                    "title": "GeneMANIA missing",
-                    "message": gm_message,
+                    "title": "GeneMANIA error",
+                    "message": gm_check,
                 });
                 if(res !== 0) {
                     return;
@@ -409,13 +406,17 @@ let vm = new Vue({
         },
         genemania_check: function() {
             if(this.input.run !== "both" && this.input.run !== "genemania") {
-                return true; // check passed because genemania is not needed
+                return null; // check passed because genemania is not needed
             }
+
+            const msg_genemania = "Please install Genemania plugin. If it is already installed, ignore this message and continue.";
+            const msg_invalid_species = "Unsupported species chosen";
+            const msg_missing_species = `Please install '${this.input.species}' dataset for Genemania plugin within Cytoscape. If it is already installed, ignore this message and continue.`;
 
             /* check for genemania configuration directory - only should need to be checked on first run */
             let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
             if(!is_dir(gm_config_dir)) {
-                return false;
+                return msg_genemania;
             }
 
             const files = fs.readdirSync(gm_config_dir);
@@ -430,11 +431,11 @@ let vm = new Vue({
                 }
             }
             if(subdirs.length === 0) {
-                return false;
+                return msg_genemania;
             }
 
             if(!(this.input.species in GENEMANIA_SPECIES_TO_NUMBER)) {
-                return false;
+                return msg_invalid_species;
             }
             const species_number = GENEMANIA_SPECIES_TO_NUMBER[this.input.species];
 
@@ -444,13 +445,13 @@ let vm = new Vue({
                     if(!is_dir(path.join(sd, sdf))) {
                         continue;
                     }
-                    if(sdf === species_number) {
-                        return true;
+                    if(sdf === species_number && is_file(path.join(sd, sdf, "metadata.xml"))) {
+                        return null;
                     }
                 }
             }
 
-            return false;
+            return msg_missing_species;
         },
         cancel_pine: function() {
             if(this.pine === null || !this.running) {
@@ -678,6 +679,9 @@ let vm = new Vue({
             if(this.is_extra_options_required() && !this.validate_inputs_mods()) {
                 return false;
             } else if(
+                !this.validate_inputs_in() ||
+                !this.validate_inputs_fasta_file() ||
+                !this.validate_inputs_reference_path() ||
                 !this.validate_inputs_fccutoff() ||
                 !this.validate_inputs_pvalcutoff() ||
                 !this.validate_inputs_score() ||
@@ -687,6 +691,24 @@ let vm = new Vue({
                 return false;
             }
             return true;
+        },
+        validate_inputs_in: function() {
+            if(!this.input.in) {
+                return true;
+            }
+            return this.input.in.endsWith(".csv");
+        },
+        validate_inputs_fasta_file: function() {
+            if(!this.input.fasta_file) {
+                return true;
+            }
+            return this.input.fasta_file.endsWith(".fasta");
+        },
+        validate_inputs_reference_path: function() {
+            if(!this.input.reference_path) {
+                return true;
+            }
+            return this.input.reference_path.endsWith(".txt");
         },
         validate_inputs_mods: function() {
             /* allow for a comma separated list of amino acids with modifications */
@@ -830,9 +852,9 @@ let vm = new Vue({
                 this.setCytoscapePath(path, true);
             } else if(name === "cluego_base_path") {
                 this.setCluegoBasePath(path, true);
-            } else {
-                this.input[name] = path;
             }
+
+            this.input[name] = path;
 
             this.runnable_file_check(false);
         },

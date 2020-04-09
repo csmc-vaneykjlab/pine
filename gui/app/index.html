@@ -134,6 +134,10 @@
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-wide">Input file is missing:<br/>{{ input.in }}</div>
                 </span>
+                <span class="tooltip-parent" v-show="!validate_inputs_in()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-wide">Input file must have .csv extension</div>
+                </span>
               </div>
 
               <div></div>
@@ -195,6 +199,10 @@
                 <span class="tooltip-parent lock-error" v-show="missing_files.fasta_file">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-wide">Fasta file is missing: {{ input.fasta_file }}</div>
+                </span>
+                <span class="tooltip-parent" v-show="!validate_inputs_fasta_file()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-wide">Fasta file must have .fasta extension</div>
                 </span>
               </div>
 
@@ -392,6 +400,10 @@
                 <span class="tooltip-parent lock-error" v-show="missing_files.reference_path">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-right tooltip-wide">Reference file is missing:<br/>{{ input.reference_path }}</div>
+                </span>
+                <span class="tooltip-parent" v-show="!validate_inputs_reference_path()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-right tooltip-wide">Reference file must have .txt extension</div>
                 </span>
               </div>
 
