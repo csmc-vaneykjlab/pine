@@ -4757,7 +4757,7 @@ def main(argv):
         sys.exit(1)
     
       if ver_cluego not in cy_map:
-        eprint("Error: ClueGO version mismatch. Version installed in Cytoscape is " + ver_cluego + " which does not match version contained in path to ClueGO mapping file " + cy_map + ". Please ensure the correct version is chosen in setup page. If the version installed in Cytoscape is not available as an option in the Setup page, please reinstall ClueGO and try again.")
+        eprint("Error: ClueGO version installed in Cytoscape is " + ver_cluego + " but ClueGO version selected in Setup page is " + cy_map + ". Please select ClueGO version " + ver_cluego + " in Setup page or reinstall ClueGO version " + cy_map + " in Cytoscape.")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       
