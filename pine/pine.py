@@ -724,7 +724,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Input file is missing")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-  except UnicodeDecodeError:
+  except (UnicodeDecodeError, IndexError):
     eprint("Error: Input file must be in CSV (comma separated value) format")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
@@ -4974,7 +4974,7 @@ def main(argv):
       eprint("Error: Cytoscape not responding. Please start the run again")
       sys.exit(1)
     else:
-      #traceback.print_exc()
+      traceback.print_exc()
       eprint("Fatal error")
       sys.exit(1)
       
