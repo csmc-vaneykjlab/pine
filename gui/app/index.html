@@ -227,7 +227,10 @@
               <div class="align-right" v-if="is_extra_options_required()">
                 <span class="tooltip-parent">
                   Modifications <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Comma separated list of modifications of interest.</div>
+                  <div class="tooltip">
+                    Comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
+                    Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(phospho),T(phospho),Y(phospho)
+                  </div>
                 </span>
               </div>
               <div v-if="is_extra_options_required()">
@@ -235,7 +238,7 @@
                 <span v-show="!validate_inputs_mods()" class="tooltip-parent">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-right">
-                    Comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
+                    Must be a comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
                     Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(phospho),T(phospho),Y(phospho)
                   </div>
                 </span>
