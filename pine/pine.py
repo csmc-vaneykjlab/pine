@@ -1303,13 +1303,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       else:
         logging.warning("AMBIGUITY WARNING - Dropping all but one representation of ambigious sites: " + str(ambi_pep_count-ambi_site_len) + " peptides")
 
-    # confirm that this shouldn't be logged
-    #if cy_debug and len(duplicate_ptm_proteins) > 0:
-    #  if type == "5":
-    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
-    #  else:
-    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
-    #  logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
     if cy_debug and len(duplicate_inc_ptm_proteins) > 0:
       duplicate_inc_full_dropped = set()
       for d in duplicate_inc_ptm_proteins:
