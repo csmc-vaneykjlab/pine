@@ -2857,6 +2857,10 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   
   ## Use custom reference file
   if reference_file:
+    if not path.exists(reference_file):
+      eprint("Error: Path to ClueGO Reference file " + reference_file + " does not exist")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      sys.exit(1)
     response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+reference_file, "PUT")
   
   # Set the number of Clusters
@@ -4446,9 +4450,23 @@ def main(argv):
     eprint("Error: Path to ClueGO Input file " + cy_cluego_inp_file + " does not exist")
     sys.exit(1)
     
-  if cluego_reference_file and not path.exists(cluego_reference_file):
-    eprint("Error: Path to ClueGO Reference file " + cluego_reference_file + " does not exist")
-    sys.exit(1)
+  if cluego_reference_file:
+    if not path.exists(cluego_reference_file):
+      eprint("Error: Path to ClueGO Reference file " + cluego_reference_file + " does not exist")
+      sys.exit(1)
+
+    try:
+      with open(cluego_reference_file) as f:
+        for line in f:
+          if " " in line.strip():
+            eprint("Error: Reference file must be a text file with one gene per line")
+            sys.exit(1)
+    except FileNotFoundError:
+      eprint("Error: Reference file is missing")
+      sys.exit(1)
+    except UnicodeDecodeError:
+      eprint("Error: Reference file must be a text file with one gene per line")
+      sys.exit(1)
     
   timestamp = datetime.utcnow().replace(tzinfo=dt.timezone.utc).astimezone().replace(microsecond=0).isoformat()
   hr_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -4666,12 +4684,16 @@ def main(argv):
         sys.exit(1)        
       try:
         database_dict = db_handling(cy_fasta_file)
+        if len(database_dict) == 0:
+          eprint("Error: Fasta file is empty or not in fasta format")
+          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+          sys.exit(1)
       except FileNotFoundError:
         eprint("Error: Fasta file is missing")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       except UnicodeDecodeError:
-        eprint("Error: Input file must be in CSV (comma separated value) format")
+        eprint("Error: Fasta file must be in fasta format")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       mods_list = cy_mods.split(",") 
