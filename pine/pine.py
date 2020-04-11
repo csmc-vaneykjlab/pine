@@ -290,6 +290,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ctr = 0
   mult_mods_of_int = True  #False
   unique_unimods = []
+  raw_category_set = set()
+  raw_label_set = set()
   try:
     with open(inp,'r') as csv_file:
       '''
@@ -392,6 +394,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           str_each_row = str_each_row.replace(",","")
           if not str_each_row:
             continue
+          if is_cat:
+            raw_category_set.add(row[cat])
+          if is_label_col:
+            raw_label_set.add(row[label])
           
           # Check if column marked as proteinID in the input has valid Uniprot IDs
           if not bool(re.match('^[A-Za-z0-9\-]+$', row[protein])):
@@ -749,12 +755,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
-  if type == "4" and len(each_category) < 2:
+  if type == "4" and len(raw_category_set) < 2:
     eprint("Error: Input must contain at least 2 unique categories")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
-  if (type == "2" or type == "6") and len(unique_labels) < 2:
+  if (type == "2" or type == "6") and len(raw_label_set) < 2:
     eprint("Error: Input must contain at least 2 unique labels")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
