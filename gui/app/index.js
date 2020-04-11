@@ -1368,7 +1368,7 @@ let vm = new Vue({
                     continue;
                 }
                 selectable.push({
-                    "name": species + " (not installed)",
+                    "name": species + " (not installed in ClueGO)",
                     "selectable": false,
                 });
                 seen.add(species);
