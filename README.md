@@ -230,10 +230,6 @@ Number of missed cleavages are calculated for all peptides of a single site, wit
 ![Other-Mods](Image/Other-Mods.JPG)  
 Number of modifications other than the modification of interest are calculated for all peptides of a single site, with the peptide having the least number of other modifications showing higher score.  
 
-- Missed Cleavage + Other Modifications  
-![Both](Image/Both.JPG)  
-Number of both missed cleavage and other modifications are calculated for all peptides of a single site, with the peptide having a lower combination of the two showing higher score. In case of two peptides having the same high score, that peptide having higher absolute fold change is selected.  
-
 ### PTM Naming Convention
 PTM sites are represented in the interaction and ontology network by residue, PTM information in brackets and site position as shown in the figures above. 
 The PTM information proves to be useful in case of occurrence of multiple PTMs on a single amino acid in order to differentiate between PTMs using the PTM information. But, in other cases, this can be optionally turned off by the user by switching node label to column 'substitute name'  
