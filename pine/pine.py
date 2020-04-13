@@ -290,13 +290,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ctr = 0
   mult_mods_of_int = True  #False
   unique_unimods = []
-<<<<<<< HEAD
   pep_to_prot_dict = {}
   dup_pep_list = []
-=======
   raw_category_set = set()
   raw_label_set = set()
->>>>>>> 450cbf1cdf82bd6a2980590cce4fdf018e0c6670
+
   try:
     with open(inp,'r') as csv_file:
       '''
