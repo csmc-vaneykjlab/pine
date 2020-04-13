@@ -712,7 +712,7 @@ let vm = new Vue({
         },
         validate_inputs_mods: function() {
             /* allow for a comma separated list of amino acids with modifications */
-            const allowed_chars = "[a-zA-Z0-9.+:]+";
+            const allowed_chars = "[^[\\](){}]+";
             const single_element = `[A-Z](?:\\(${allowed_chars}\\)|\\[${allowed_chars}\\]|\\{${allowed_chars}\\})?`;
             const regex = RegExp(`^${single_element}(?:, ?${single_element})*$`)
             return regex.test(this.input.mods);
@@ -1368,7 +1368,7 @@ let vm = new Vue({
                     continue;
                 }
                 selectable.push({
-                    "name": species + " (not installed)",
+                    "name": species + " (not installed in ClueGO)",
                     "selectable": false,
                 });
                 seen.add(species);

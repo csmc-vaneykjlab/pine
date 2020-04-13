@@ -290,8 +290,13 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ctr = 0
   mult_mods_of_int = True  #False
   unique_unimods = []
+<<<<<<< HEAD
   pep_to_prot_dict = {}
   dup_pep_list = []
+=======
+  raw_category_set = set()
+  raw_label_set = set()
+>>>>>>> 450cbf1cdf82bd6a2980590cce4fdf018e0c6670
   try:
     with open(inp,'r') as csv_file:
       '''
@@ -394,6 +399,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           str_each_row = str_each_row.replace(",","")
           if not str_each_row:
             continue
+          if is_cat:
+            raw_category_set.add(row[cat])
+          if is_label_col:
+            raw_label_set.add(row[label])
           
           # Check if column marked as proteinID in the input has valid Uniprot IDs
           check_match = re.match('^[A-Za-z0-9\-]+$', row[protein])
@@ -728,7 +737,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Input file is missing")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-  except UnicodeDecodeError:
+  except (UnicodeDecodeError, IndexError):
     eprint("Error: Input file must be in CSV (comma separated value) format")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
@@ -778,12 +787,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
-  if type == "4" and len(each_category) < 2:
+  if type == "4" and len(raw_category_set) < 2:
     eprint("Error: Input must contain at least 2 unique categories")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
-  if (type == "2" or type == "6") and len(unique_labels) < 2:
+  if (type == "2" or type == "6") and len(raw_label_set) < 2:
     eprint("Error: Input must contain at least 2 unique labels")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
@@ -1328,13 +1337,6 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       else:
         logging.warning("AMBIGUITY WARNING - Dropping all but one representation of ambigious sites: " + str(ambi_pep_count-ambi_site_len) + " peptides")
 
-    # confirm that this shouldn't be logged
-    #if cy_debug and len(duplicate_ptm_proteins) > 0:
-    #  if type == "5":
-    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Fold change: {d[3]}, P-value: {d[4]})" for d in duplicate_ptm_proteins])
-    #  else:
-    #    msg_dup = "; ".join([f"(Protein: {d[0]}, Peptide: {d[2]}, Label: {d[3]}, Fold change: {d[4]}, P-value: {d[5]})" for d in duplicate_ptm_proteins])
-    #  logging.warning("WARNING - Dropping duplicate queries: " + msg_dup)
     if cy_debug and len(duplicate_inc_ptm_proteins) > 0:
       duplicate_inc_full_dropped = set()
       for d in duplicate_inc_ptm_proteins:
@@ -2883,6 +2885,10 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   
   ## Use custom reference file
   if reference_file:
+    if not path.exists(reference_file):
+      eprint("Error: Path to ClueGO Reference file " + reference_file + " does not exist")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      sys.exit(1)
     response = request_retry(CYREST_URL+CLUEGO_BASE_PATH+SEP+"stats/Enrichment%2FDepletion%20(Two-sided%20hypergeometric%20test)/Bonferroni%20step%20down/false/false/true/"+reference_file, "PUT")
   
   # Set the number of Clusters
@@ -4472,9 +4478,23 @@ def main(argv):
     eprint("Error: Path to ClueGO Input file " + cy_cluego_inp_file + " does not exist")
     sys.exit(1)
     
-  if cluego_reference_file and not path.exists(cluego_reference_file):
-    eprint("Error: Path to ClueGO Reference file " + cluego_reference_file + " does not exist")
-    sys.exit(1)
+  if cluego_reference_file:
+    if not path.exists(cluego_reference_file):
+      eprint("Error: Path to ClueGO Reference file " + cluego_reference_file + " does not exist")
+      sys.exit(1)
+
+    try:
+      with open(cluego_reference_file) as f:
+        for line in f:
+          if " " in line.strip():
+            eprint("Error: Reference file must be a text file with one gene per line")
+            sys.exit(1)
+    except FileNotFoundError:
+      eprint("Error: Reference file is missing")
+      sys.exit(1)
+    except UnicodeDecodeError:
+      eprint("Error: Reference file must be a text file with one gene per line")
+      sys.exit(1)
     
   timestamp = datetime.utcnow().replace(tzinfo=dt.timezone.utc).astimezone().replace(microsecond=0).isoformat()
   hr_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -4692,12 +4712,16 @@ def main(argv):
         sys.exit(1)        
       try:
         database_dict = db_handling(cy_fasta_file)
+        if len(database_dict) == 0:
+          eprint("Error: Fasta file is empty or not in fasta format")
+          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+          sys.exit(1)
       except FileNotFoundError:
         eprint("Error: Fasta file is missing")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       except UnicodeDecodeError:
-        eprint("Error: Input file must be in CSV (comma separated value) format")
+        eprint("Error: Fasta file must be in fasta format")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       mods_list = cy_mods.split(",") 
