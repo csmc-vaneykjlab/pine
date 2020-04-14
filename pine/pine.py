@@ -290,8 +290,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ctr = 0
   mult_mods_of_int = True  #False
   unique_unimods = []
+  pep_to_prot_dict = {}
+  dup_pep_list = []
   raw_category_set = set()
   raw_label_set = set()
+
   try:
     with open(inp,'r') as csv_file:
       '''
@@ -400,14 +403,16 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             raw_label_set.add(row[label])
           
           # Check if column marked as proteinID in the input has valid Uniprot IDs
-          if not bool(re.match('^[A-Za-z0-9\-]+$', row[protein])):
+          check_match = re.match('^[A-Za-z0-9\-]+$', row[protein])
+          if not check_match:
             eprint("Error: Invalid proteinID: " + row[protein] + " in line " + str(line_count+1))
             remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
             sys.exit(1) 
           
           # Check if column marked as peptide in the input has valid peptide terms. Must only include peptide sequences with modifications and its corresponding unimod number enclosed in brackets. Ex: SEDVLAQS[+80]PLPK
           if type == "5" or type == "6":
-            if not bool(re.match('^[A-Za-z]{1,}([\[\(\{]\+?[A-Za-z0-9\.][\]\}\)])?[A-Z]{0,}', row[peptide_col])):
+            check_match = re.match('^[A-Za-z]{1,}([\[\(\{]\+?[A-Za-z0-9\.][\]\}\)])?[A-Z]{0,}', row[peptide_col])
+            if not check_match:
               eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
               sys.exit(1)
@@ -521,8 +526,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 for k in include_list:
                   for key,value in modInSeq_all_dict.items():                   
                     combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-                    key = re.sub('\+','',key)                               
-                    k = re.sub('\+','',k)
+                    #key = re.sub('\+','',key)                               
+                    #k = re.sub('\+','',k)
                     key_match = re.search(combined_pat,key)
                     k_match = re.search(combined_pat,k)
                     if not (key_match and k_match):
@@ -534,8 +539,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     if k1.lower() in key1.lower(): 
                       for each_val in value:
                         val = int(each_val)+int(seqInDatabase)+1
-                        match_unimod = re.findall(r"([0-9]+)", key)
-                        key_with_unimod = re.sub(combined_pat,'',k1) + "{" + match_unimod[0] + "}"
+                        match_unimod = re.findall(combined_pat, key)
+                        key_with_unimod = re.sub(combined_pat,'',k1)  + match_unimod[0] 
                         #if match_unimod[0] not in unique_unimods:
                           #unique_unimods.append(match_unimod[0])                      
                         if key_with_unimod in modInSeq_dict:                      
@@ -734,7 +739,32 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     eprint("Error: Input file must be in CSV (comma separated value) format")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-
+  
+  # Remove duplicate peptides across proteinIDs within the input
+  if type == "5" or type == "6":
+    for prot_id in site_info_dict:
+      bool = 0
+      for site in site_info_dict[prot_id]:
+        for peptide in site_info_dict[prot_id][site]:
+          combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+          pep_seq_only = re.sub(combined_pat,'',peptide)
+          if pep_seq_only in pep_to_prot_dict:
+            pep_to_prot_dict[pep_seq_only]["Protein"].append(prot_id)
+            pep_to_prot_dict[pep_seq_only]["Site"].append(site)
+            pep_to_prot_dict[pep_seq_only]["Peptide"].append(peptide)           
+          else:
+            pep_to_prot_dict[pep_seq_only] = {}
+            pep_to_prot_dict[pep_seq_only].update({"Protein":[prot_id], "Site":[site], "Peptide":[peptide]})
+    
+    for each_pep in pep_to_prot_dict:
+      if len(list(set(pep_to_prot_dict[each_pep]["Protein"]))) > 1:
+        for each_prot, each_peptide, each_site in zip(pep_to_prot_dict[each_pep]["Protein"], pep_to_prot_dict[each_pep]["Peptide"], pep_to_prot_dict[each_pep]["Site"]):
+          del site_info_dict[each_prot][each_site][each_peptide]
+          if len(site_info_dict[each_prot][each_site]) == 0:
+            del site_info_dict[each_prot][each_site]
+            if len(site_info_dict[each_prot]) == 0:
+              del site_info_dict[each_prot]
+  
   if type == "6":
     # need to calculate unique labels outside loop since inconsistent labels are deleted
     unique_labels = set()
@@ -858,21 +888,17 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     all_dropped = dropping_repeats + retain_prot_ids
     all_dropped = sorted(all_dropped)
     if cy_debug:
-      if all_dropped:       
-        logging.debug("DISCARD WARNING - Duplicate query: " + str((initial_length)-len(each_protein_list)))
-        list_of_duplicates = [i for i in initial_each_protein_list if i not in each_protein_list or each_protein_list.remove(i)]
+      if dropping_repeats:       
+        logging.debug("DISCARD WARNING - Dropping proteins due to inconsistent fold changes or p-values between duplicates: " + str(len(list(set(dropping_repeats)))))
+        list_of_duplicates = list(set(dropping_repeats))
+        
   elif type == "3":
     if repeat_prot_ids:
-      unique_each_protein_list = list(set(each_protein_list))    
-      if cy_debug:
-        logging.debug("DISCARD WARNING - Duplicate query: " + str(len(each_protein_list)-len(unique_each_protein_list)))           
+      unique_each_protein_list = list(set(each_protein_list))            
       each_protein_list = unique_each_protein_list      
 
   elif type == "4":
-    unique_each_protein_list = list(set(each_protein_list))
-    if retain_prot_ids:
-      if cy_debug:
-        logging.debug("DISCARD WARNING - Duplicate query: " + str(len(retain_prot_ids)))          
+    unique_each_protein_list = list(set(each_protein_list))          
     each_protein_list = unique_each_protein_list
 
   elif type == "2":
@@ -899,9 +925,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           for value_of_key in repeat_prot_ids_2[list_each_dropped_protid]:
             repeat_prot_ids_key_append.append(list_each_dropped_protid)           
         list_of_duplicates = additional_dropped + repeat_prot_ids_key_append + retain_prot_ids
-        list_of_duplicates = sorted(list_of_duplicates)
+        list_of_duplicates = list(set(repeat_prot_ids_2))
         if list_of_duplicates:
-          logging.debug("DISCARD WARNING - Duplicate query: " + str(len(list_of_duplicates))) 
+          logging.debug("DISCARD WARNING - Dropping proteins due to inconsistent fold changes or p-values between duplicates: " + str(len(list(set(unique_each_protein_list))))) 
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
@@ -1319,7 +1345,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[1]})" for d in duplicate_inc_full_dropped])
         len_inc = len(duplicate_inc_full_dropped)
         logging.warning(f"DISCARD WARNING - Dropping peptides due to inconsistent fold changes or p-values between duplicates: {len_inc}")
-        logging.warning(f"Dropped peptides: {msg_inc}")
+        #logging.warning(f"Dropped peptides: {msg_inc}")
  
   if type == "6":
     site_info_dict_rearrange = {}
