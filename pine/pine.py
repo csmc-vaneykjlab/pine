@@ -294,7 +294,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   dup_pep_list = []
   raw_category_set = set()
   raw_label_set = set()
-  
+
   try:
     with open(inp,'r') as csv_file:
       '''
