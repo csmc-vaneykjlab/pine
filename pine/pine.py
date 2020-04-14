@@ -60,6 +60,10 @@ class CytoscapeError(Exception):
   def __init__(self, message):
     super().__init__(message)
 
+class PineError(Exception):
+  def __init__(self, message):
+    super().__init__(message)
+
 def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   ''' Define logging criteria to generate logs to include warnings or reasons for dropping protein from analysis '''
   handler = logging.FileHandler(log_file,mode='w')
@@ -163,6 +167,8 @@ def db_handling(db_file):
         
         else:           
           seq += line.strip("\n\r")
+          if " " in seq:
+            raise PineError("Fasta file sequences should not have spaces")
             
       if proteinID:
         if '|' in proteinID:
@@ -397,9 +403,21 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           str_each_row = str_each_row.replace(",","")
           if not str_each_row:
             continue
+          if len(header) != len(row):
+            eprint("Error: Number of columns does not match number of header columns at line " + str(line_count + 1))
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+            sys.exit(1) 
           if is_cat:
+            if row[cat].strip() == "":
+              eprint("Error: Blank category in line " + str(line_count+1))
+              remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+              sys.exit(1) 
             raw_category_set.add(row[cat])
           if is_label_col:
+            if row[label].strip() == "":
+              eprint("Error: Blank label in line " + str(line_count+1))
+              remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+              sys.exit(1) 
             raw_label_set.add(row[label])
           
           # Check if column marked as proteinID in the input has valid Uniprot IDs
@@ -4484,14 +4502,12 @@ def main(argv):
     try:
       with open(cluego_reference_file) as f:
         for line in f:
-          if " " in line.strip():
-            eprint("Error: Reference file must be a text file with one gene per line")
-            sys.exit(1)
+          pass # just check if file can be read, not a binary file
     except FileNotFoundError:
       eprint("Error: Reference file is missing")
       sys.exit(1)
     except UnicodeDecodeError:
-      eprint("Error: Reference file must be a text file with one gene per line")
+      eprint("Error: Reference file must be a text file")
       sys.exit(1)
     
   timestamp = datetime.utcnow().replace(tzinfo=dt.timezone.utc).astimezone().replace(microsecond=0).isoformat()
@@ -4720,6 +4736,10 @@ def main(argv):
         sys.exit(1)
       except UnicodeDecodeError:
         eprint("Error: Fasta file must be in fasta format")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
+      except PineError as e:
+        eprint(f"Error: {e}")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       mods_list = cy_mods.split(",") 
