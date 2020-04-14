@@ -290,13 +290,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   ctr = 0
   mult_mods_of_int = True  #False
   unique_unimods = []
-<<<<<<< HEAD
   pep_to_prot_dict = {}
   dup_pep_list = []
-=======
   raw_category_set = set()
   raw_label_set = set()
->>>>>>> 450cbf1cdf82bd6a2980590cce4fdf018e0c6670
+  
   try:
     with open(inp,'r') as csv_file:
       '''
@@ -528,8 +526,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 for k in include_list:
                   for key,value in modInSeq_all_dict.items():                   
                     combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
-                    key = re.sub('\+','',key)                               
-                    k = re.sub('\+','',k)
+                    #key = re.sub('\+','',key)                               
+                    #k = re.sub('\+','',k)
                     key_match = re.search(combined_pat,key)
                     k_match = re.search(combined_pat,k)
                     if not (key_match and k_match):
@@ -541,8 +539,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     if k1.lower() in key1.lower(): 
                       for each_val in value:
                         val = int(each_val)+int(seqInDatabase)+1
-                        match_unimod = re.findall(r"([0-9]+)", key)
-                        key_with_unimod = re.sub(combined_pat,'',k1) + "{" + match_unimod[0] + "}"
+                        match_unimod = re.findall(combined_pat, key)
+                        key_with_unimod = re.sub(combined_pat,'',k1)  + match_unimod[0] 
                         #if match_unimod[0] not in unique_unimods:
                           #unique_unimods.append(match_unimod[0])                      
                         if key_with_unimod in modInSeq_dict:                      
