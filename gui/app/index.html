@@ -228,8 +228,7 @@
                 <span class="tooltip-parent">
                   Modifications <i class="far fa-question-circle"></i>
                   <div class="tooltip">
-                    Comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
-                    Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(phospho),T(phospho),Y(phospho)
+                    Comma separated list of modifications of interest specified by their residue or residue with PTM information in brackets (),[] or {} as denoted in input. For example S,T,Y or S[+80],T[+80],Y[+80] or S(Unimod:21),T(Unimod:21),Y(Unimod:21)
                   </div>
                 </span>
               </div>
@@ -238,8 +237,7 @@
                 <span v-show="!validate_inputs_mods()" class="tooltip-parent">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-right">
-                    Must be a comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
-                    Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(phospho),T(phospho),Y(phospho)
+                    Must be a comma separated list of modifications of interest specified by their residue or residue with PTM information in brackets (),[] or {} as denoted in input. For example S,T,Y or S[+80],T[+80],Y[+80] or S(Unimod:21),T(Unimod:21),Y(Unimod:21)
                   </div>
                 </span>
               </div>
