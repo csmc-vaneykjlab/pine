@@ -294,7 +294,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   dup_pep_list = []
   raw_category_set = set()
   raw_label_set = set()
-
+  count_dup_pep = []
+  collect_dup_pep = {}
+  
   try:
     with open(inp,'r') as csv_file:
       '''
@@ -410,8 +412,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             sys.exit(1) 
           
           # Check if column marked as peptide in the input has valid peptide terms. Must only include peptide sequences with modifications and its corresponding unimod number enclosed in brackets. Ex: SEDVLAQS[+80]PLPK
-          if type == "5" or type == "6":
-            check_match = re.match('^[A-Za-z]{1,}([\[\(\{]\+?[A-Za-z0-9\.][\]\}\)])?[A-Z]{0,}', row[peptide_col])
+          if type == "5" or type == "6":            
+            check_match = re.match('^[A-Za-z]{1,}([\[\(\{]{1}[^\[\(\{\)\]\}]{1,}[\]\}\)]{1})+[A-Z]{0,}', row[peptide_col])
             if not check_match:
               eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -731,6 +733,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               else:
                 prot_list[row[protein]].update({row[label]:[float(get_fc_val),get_pval]})
         line_count+=1 
+        
   except FileNotFoundError:
     eprint("Error: Input file is missing")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -742,11 +745,28 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   
   # Remove duplicate peptides across proteinIDs within the input
   if type == "5" or type == "6":
+    mult_pep_to_prot_dict = {}
+    combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+    
+    if exclude_ambi:
+      for each_key in mapping_multiple_regions:
+        each_prot = each_key.split("-")[0]
+        each_pep = each_key.split("-")[1]
+        each_site =  '|'.join(mapping_multiple_regions[each_key])
+        each_pep_seq_only = re.sub(combined_pat,'',each_pep)      
+        if each_pep_seq_only in mult_pep_to_prot_dict:
+          mult_pep_to_prot_dict[each_pep_seq_only]["Protein"].append(each_prot)
+          mult_pep_to_prot_dict[each_pep_seq_only]["Site"].append(each_site)
+          mult_pep_to_prot_dict[each_pep_seq_only]["Peptide"].append(each_pep)
+        else:
+          mult_pep_to_prot_dict[each_pep_seq_only] = {}
+          mult_pep_to_prot_dict[each_pep_seq_only].update({"Protein":[each_prot], "Site":[each_site], "Peptide":[each_pep]})
+      
     for prot_id in site_info_dict:
       bool = 0
       for site in site_info_dict[prot_id]:
         for peptide in site_info_dict[prot_id][site]:
-          combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+          
           pep_seq_only = re.sub(combined_pat,'',peptide)
           if pep_seq_only in pep_to_prot_dict:
             pep_to_prot_dict[pep_seq_only]["Protein"].append(prot_id)
@@ -758,13 +778,51 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     
     for each_pep in pep_to_prot_dict:
       if len(list(set(pep_to_prot_dict[each_pep]["Protein"]))) > 1:
+        count_dup_pep.append(each_pep)
         for each_prot, each_peptide, each_site in zip(pep_to_prot_dict[each_pep]["Protein"], pep_to_prot_dict[each_pep]["Peptide"], pep_to_prot_dict[each_pep]["Site"]):
+          if each_prot not in collect_dup_pep:
+            collect_dup_pep[each_prot] = {}
+            collect_dup_pep[each_prot].update({"Peptide":[each_peptide], "Site":[each_site]})
+          else:
+            if each_peptide not in collect_dup_pep[each_prot]["Peptide"]:
+              collect_dup_pep[each_prot]["Peptide"].append(each_peptide)
+              collect_dup_pep[each_prot]["Site"].append(each_site)              
           del site_info_dict[each_prot][each_site][each_peptide]
           if len(site_info_dict[each_prot][each_site]) == 0:
             del site_info_dict[each_prot][each_site]
             if len(site_info_dict[each_prot]) == 0:
               del site_info_dict[each_prot]
-  
+              
+      if each_pep in mult_pep_to_prot_dict:
+        count_dup_pep.append(each_pep)
+        for each_prot, each_peptide, each_site in zip(pep_to_prot_dict[each_pep]["Protein"], pep_to_prot_dict[each_pep]["Peptide"], pep_to_prot_dict[each_pep]["Site"]):
+          if each_prot in site_info_dict:
+            if each_site in site_info_dict[each_prot]:
+              if each_peptide in site_info_dict[each_prot][each_site]:
+                if each_prot not in collect_dup_pep:
+                  collect_dup_pep[each_prot] = {}
+                  collect_dup_pep[each_prot].update({"Peptide":[each_peptide], "Site":[each_site]})
+                else:
+                  if each_peptide not in collect_dup_pep[each_prot]["Peptide"]:
+                    collect_dup_pep[each_prot]["Peptide"].append(each_peptide)
+                    collect_dup_pep[each_prot]["Site"].append(each_site) 
+                del site_info_dict[each_prot][each_site][each_peptide]
+                if len(site_info_dict[each_prot][each_site]) == 0:
+                  del site_info_dict[each_prot][each_site]
+                  if len(site_info_dict[each_prot]) == 0:
+                    del site_info_dict[each_prot]
+                    
+        for each_prot, each_peptide in zip(mult_pep_to_prot_dict[each_pep]["Protein"], mult_pep_to_prot_dict[each_pep]["Peptide"]):
+          each_site = '|'.join(mapping_multiple_regions[each_prot+"-"+each_peptide])
+          if each_prot not in collect_dup_pep:
+            collect_dup_pep[each_prot] = {}
+            collect_dup_pep[each_prot].update({"Peptide":[each_peptide], "Site":[each_site]})
+          else:
+            if each_peptide not in collect_dup_pep[each_prot]["Peptide"]:
+              collect_dup_pep[each_prot]["Peptide"].append(each_peptide)
+              collect_dup_pep[each_prot]["Site"].append(each_site) 
+          del mapping_multiple_regions[each_prot+"-"+each_peptide]        
+
   if type == "6":
     # need to calculate unique labels outside loop since inconsistent labels are deleted
     unique_labels = set()
@@ -1402,6 +1460,17 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             if pep_only and pep_only in merged_out_dict[prot_only]['DroppedPeptide']:         
               indexOf = merged_out_dict[prot_only]['DroppedPeptide'].index(pep_only)
               merged_out_dict[prot_only]['DroppedPeptide'][indexOf] = merged_out_dict[prot_only]['DroppedPeptide'][indexOf] + "**"
+              
+          if exclude_ambi:
+            if 'DroppedPeptide' not in merged_out_dict[prot_only]:
+              if pep_only:
+                merged_out_dict[prot_only].update({'DroppedPeptide':[pep_only+"**"],'DroppedSite':[site_only],'Comment':"Map to multiple FASTA regions;"})
+            else:
+              if pep_only and pep_only not in merged_out_dict[prot_only]['DroppedPeptide']:
+                merged_out_dict[prot_only]["DroppedPeptide"].append(pep_only+"**")
+                merged_out_dict[prot_only]["DroppedSite"].append(site_only)
+                merged_out_dict[prot_only]['Comment'] += "Map to multiple FASTA regions;"
+                                        
         else:
           if exclude_ambi:
             if pep_only:
@@ -1411,10 +1480,25 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       if warning:
         if exclude_ambi:
           logging.warning("AMBIGUITY WARNING - Peptides mapped to multiple regions in FASTA: " + str(len(mapping_multiple_regions)) + " peptides")
-          logging.warning("Dropping queries: " + ','.join(warning))
+          #logging.warning("Dropping queries: " + ','.join(warning))
         else:        
           logging.warning("AMBIGUITY WARNING - Peptides mapped to multiple regions in FASTA, first picked: " + ','.join(warning))
           
+    if count_dup_pep and collect_dup_pep:
+      logging.debug("DISCARD WARNING - Duplicate peptides across protein ids: " + str(len(list(set(count_dup_pep)))) + " peptides")
+      for each_prot in collect_dup_pep:
+        coll_pep = collect_dup_pep[each_prot]["Peptide"]
+        coll_site = collect_dup_pep[each_prot]["Site"]
+        if each_prot in merged_out_dict:
+          if 'DroppedPeptide' not in merged_out_dict[each_prot]:
+            if coll_pep:
+              merged_out_dict[each_prot].update({'DroppedPeptide':coll_pep,'DroppedSite':coll_site,'Comment':"Duplicate peptide across protein IDs;"})
+          else:
+            if coll_pep and coll_pep not in merged_out_dict[each_prot]['DroppedPeptide']:
+              merged_out_dict[each_prot]["DroppedPeptide"].extend(coll_pep)
+              merged_out_dict[each_prot]["DroppedSite"].extend(coll_site)
+              merged_out_dict[each_prot]['Comment'] += "Duplicate peptide across protein IDs;"
+                  
     if dropped_invalid_fc_pval:
       site_len = 0
       pep_len = 0
@@ -1549,10 +1633,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   
   if cy_debug:
     if type == "5" or type == "6":
-      countpep = 0
+      countpep = []
       for getprot,getsite in site_info_dict.items():
-        countpep += len(list(getsite.keys()))
-      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(countpep) + " unique peptides")
+        countpep.extend(list(getsite.keys()))
+      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(len(list(set(countpep)))) + " unique peptides")
       each_protein_list = list(site_info_dict.keys())
     
   dup_prot_ids_to_return = []
@@ -1901,7 +1985,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if all_isoforms:
       if exclude_ambi:
         logging.warning("AMBIGUITY WARNING - Isoforms in query: " + str(len(all_isoforms)))
-        logging.warning("Dropping queries: " + ','.join(all_isoforms))
+        #logging.warning("Dropping queries: " + ','.join(all_isoforms))
       else:
         logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
 
@@ -1912,7 +1996,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x[1]) + ")" for x in duplicate_canonical])
       logging.warning(f"DISCARD WARNING - Multiple query IDs mapping to single ID: {len(duplicate_canonical_set)}")
-      logging.warning(f"Dropping queries: {duplicate_canonical_str}")
+      #logging.warning(f"Dropping queries: {duplicate_canonical_str}")
 
     if len(seen_duplicate_mapping_ids) > 0:
       sdmi_list = []
@@ -1925,7 +2009,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       if len(sdmi_list) > 0:
         if exclude_ambi:
           logging.warning(f"DISCARD WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
-          logging.warning(f"Dropping queries: {duplicate_mapping_str}")
+          #logging.warning(f"Dropping queries: {duplicate_mapping_str}")
         else:
           logging.warning(f"AMBIGUITY WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
           logging.warning(f"Ambiguous queries (first picked): {duplicate_mapping_str}")
@@ -1933,17 +2017,17 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if prot_with_mult_primgene:
       if exclude_ambi:
         logging.warning("AMBIGUITY WARNING - Uniprot Multiple primary genes in query: " + str(len(prot_with_mult_primgene)))
-        logging.warning("Dropping queries: " + ','.join(prot_with_mult_primgene))
+        #logging.warning("Dropping queries: " + ','.join(prot_with_mult_primgene))
       else:
         logging.warning("AMBIGUITY WARNING - Uniprot Multiple primary genes, first picked: " + ','.join(prot_with_mult_primgene))
   
     if no_uniprot_val:
       logging.debug("DISCARD WARNING - Uniprot query not mapped: " + str(len(no_uniprot_val)))
-      logging.warning("Dropping queries: " + ','.join(no_uniprot_val))
+      #logging.warning("Dropping queries: " + ','.join(no_uniprot_val))
 
     if no_primgene_val:
       logging.debug("DISCARD WARNING - Uniprot Primary gene unavailable: " + str(len(no_primgene_val)))
-      logging.warning("Dropping queries: " + ','.join(no_primgene_val))
+      #logging.warning("Dropping queries: " + ','.join(no_primgene_val))
   
   if type == "1" or type == "2":
     for each_in_list in prot_list:
@@ -2823,9 +2907,9 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
     if len(not_found_query) != 0 or len(not_found_ei) != 0:
       logging.debug("DISCARD WARNING - ClueGO non-primary query + External Interactor genes: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
       if warning:
-        logging.warning("Dropping queries: " + ','.join(warning))
+        #logging.warning("Dropping queries: " + ','.join(warning))
       if not_found_ei:
-        logging.warning("Dropping External Interactor: " + ','.join(not_found_ei))  
+        #logging.warning("Dropping External Interactor: " + ','.join(not_found_ei))  
   
   filtered_preferred_unique_list = [acceptable_genes_list[i]['GenePreferredName'] for i in filtered_unique_list if i.lower() not in [x.lower() for x in drop_non_primary]]
   
