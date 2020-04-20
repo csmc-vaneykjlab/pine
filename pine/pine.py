@@ -431,7 +431,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           
           # Check if column marked as peptide in the input has valid peptide terms. Must only include peptide sequences with modifications and its corresponding unimod number enclosed in brackets. Ex: SEDVLAQS[+80]PLPK
           if type == "5" or type == "6":            
-            check_match = re.match('^[A-Za-z]{1,}([\[\(\{]{1}[^\[\(\{\)\]\}]{1,}[\]\}\)]{1})+[A-Z]{0,}', row[peptide_col])
+            check_match = re.match('^[A-Za-z]{1,}([\[\(\{]{1}[^\[\(\{\)\]\}]{1,}[\]\}\)]{1}){0,}[A-Z]{0,}', row[peptide_col])
             if not check_match:
               eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -560,7 +560,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       for each_val in value:
                         val = int(each_val)+int(seqInDatabase)+1
                         match_unimod = re.findall(combined_pat, key)
-                        key_with_unimod = re.sub(combined_pat,'',k1)  + match_unimod[0] 
+                        remove_brackets = r'|'.join(('\[', '\{', '\(', '\]', '\}', '\)'))
+                        key_with_unimod = re.sub(combined_pat,'',k1) + "{" + re.sub(remove_brackets, '', match_unimod[0]) + "}" 
                         #if match_unimod[0] not in unique_unimods:
                           #unique_unimods.append(match_unimod[0])                      
                         if key_with_unimod in modInSeq_dict:                      
@@ -929,7 +930,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               else:
                 merged_out_dict_2[each_key]['Comment'] += "No site;"            
             
-        logging.debug("DISCARD WARNING - No sites available: " + str(len(dropped_invalid_site)) + " proteins and " + str(pep_len) + " peptides")       
+        logging.debug("DISCARD WARNING - No sites available: " + str(pep_len) + " peptides")       
         
     else:
       initial_query_prots = each_protein_list + [x for x in dropped_invalid_fc_pval if x not in each_protein_list]
@@ -2924,9 +2925,9 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
   if cy_debug:
     if len(not_found_query) != 0 or len(not_found_ei) != 0:
       logging.debug("DISCARD WARNING - ClueGO non-primary query + External Interactor genes: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
-      if warning:
+      #if warning:
         #logging.warning("Dropping queries: " + ','.join(warning))
-      if not_found_ei:
+      #if not_found_ei:
         #logging.warning("Dropping External Interactor: " + ','.join(not_found_ei))  
   
   filtered_preferred_unique_list = [acceptable_genes_list[i]['GenePreferredName'] for i in filtered_unique_list if i.lower() not in [x.lower() for x in drop_non_primary]]
@@ -2949,8 +2950,14 @@ def writeBin(raw,out_file):
   file = open(out_file,'wb')
   file.write(raw)
   file.close()
+  
+def writeLog(lines,out_file):
+    file = open(out_file,'w')
+    for line in lines:
+        file.write(line)
+    file.close()
     
-def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file):
+def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out):
   '''
   Obtain ClueGO annotations based on user settings for the list of genes via a Cytoscape App request call. Output is a list of annotation terms along with associated genes and corresponding term p-value
   ''' 
@@ -3069,6 +3076,9 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   analysis_name = "ClueGO Network"
   selection = "Continue analysis"                                                                         
   response = requests.get(CYREST_URL+CLUEGO_BASE_PATH+SEP+analysis_name+SEP+selection, headers=HEADERS)
+  # Log File
+  # log_file_name = cy_cluego_log_out
+  # writeLog(response.text,log_file_name)
   try:
     response.raise_for_status()
   except:
@@ -3081,6 +3091,8 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       eprint("Error: ClueGO couldn't find any pathways")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)  
+  
+
   
   # Get network id (SUID) (CyRest function from Cytoscape)
   response = request_retry(CYREST_URL+"/v1"+SEP+"networks"+SEP+"currentNetwork", "GET", headers=HEADERS)
@@ -4624,6 +4636,7 @@ def main(argv):
     os.mkdir(path_to_new_dir) 
     cy_out = os.path.join(path_to_new_dir, "Interactions.csv")
     cy_cluego_out = os.path.join(path_to_new_dir, "PINE.cluego.txt")
+    cy_cluego_log_out = os.path.join(path_to_new_dir, "PINE-cluego-log.txt")
     cy_session = os.path.join(path_to_new_dir, "PINE.cys")
     cy_settings_file = os.path.join(path_to_new_dir, "timestamp.json")
     logging_file = os.path.join(path_to_new_dir, "PINE.log")
@@ -5095,7 +5108,7 @@ def main(argv):
     
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
-      cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out)
     
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
