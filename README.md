@@ -152,6 +152,13 @@ From this tab, you can also open the results folder ([see here for results descr
 
 ![Pathway analysis](Image/pine-usage-pathway-selection-1.png)
 
+The columns in the pathway selection page are:
+- **GO term**: Annotation or pathway term for a query
+- **P-value**: Significance of the GO term
+- **Adj.p-value**: Corrected significance of the GO term
+- **% genes**: Percent of genes in a ClueGO cluster associated with the GO term
+- **# of genes**: Number of genes associated with the GO term
+
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
 
 ![Pathway analysis ontology network](Image/pathway-selection-network.png)
