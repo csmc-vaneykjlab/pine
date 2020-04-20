@@ -156,6 +156,10 @@ After reanalysis is complete, there will be a new interaction network which cont
 
 ![Pathway analysis ontology network](Image/pathway-selection-network.png)
 
+### Legend  
+Shown below is the legend for interpreting visualizations through PINE:
+![Legend](Image/legend.png)
+
 ## Customized Styling in Cytoscape
 
 ### Layout
