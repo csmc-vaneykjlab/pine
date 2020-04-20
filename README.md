@@ -140,7 +140,7 @@ The following are the options that can be set to run an analysis.
 ### Log
 While PINE is running, output is written to the log. A copy of the log will also be saved to PINE.log within the output subdirectory. The analysis can be cancelled at anytime from this tab.
 
-![PINE log example](Image/pine-usage-log-1.png)
+![PINE log example](Image/pine-usage-log-1.png)  
 When the PINE analysis is complete, you can view the interaction network by going to the Network tab and selecting the Interaction Network.
 
 ![Interaction network example](Image/initial-network.png)
