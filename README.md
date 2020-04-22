@@ -213,17 +213,18 @@ Note:
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
 | Ambiguous sites	| Ambiguity	| Preprocessing |	PTM Site |	Multiple peptides that represent same PTM type on the same site of a protein |	One representative peptide picked |
 | Peptide Mapping |	Ambiguity |	Preprocessing |	PTM Site |	Peptide maps to multiple regions in FASTA |	First mapping site picked |
-| Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked |
-| Protein Mapping |	Ambiguity |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	First mapping UniprotID picked |
+| Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked, canonical protein, if it exists gets preference |
 | Primary Gene Mapping |	Ambiguity |	Uniprot Mapping |	Protein	| Query ProteinID maps to multiple primary genes in Uniprot |	First mapping primary gene picked |
+| Duplicate Primary Gene	| Ambiguity	| Uniprot Mapping	| Protein	| Query ProteinIDs map to same primary gene	| First query proteinID picked |
 | Peptide Unmapped |	Discard	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
+| Duplicate Peptide | Discard | Preprocessing | Peptide | Duplicate query peptides across multiple UniprotIDs |
 | Site Not Available |	Discard	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
 | Duplicate query	| Discard |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
 | Invalid FC/Pval	| Discard	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
 | FC/Pval cutoff |	Discard |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
 | ProteinID unmapped |	Discard	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
+| Protein Mapping |	Discard |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	Drop all queries because ID is obsolete |
 |Primary Gene Not Available |	Discard |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
-| Duplicate Primary Gene	| Discard	| Uniprot Mapping	| Protein	| Query ProteinIDs mapping to same primary genes	| Drop all duplicate mapping to primary genes |
 | Duplicate Protein Mapping | Discard | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all duplicate mapping IDs |
 | Gene Unmapped in Interaction Databases	| Discard	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
 | Interactions Not available	| Discard	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
