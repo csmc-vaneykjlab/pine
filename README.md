@@ -218,14 +218,14 @@ Note:
 | Duplicate Primary Gene	| Ambiguity	| Uniprot Mapping	| Protein	| Query ProteinIDs map to same primary gene	| First query proteinID picked |
 | Duplicate Protein Mapping | Ambiguity | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all obsolete IDs, retain active IDs |
 | Peptide Unmapped |	Discard	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
-| Duplicate Peptide | Discard | Preprocessing | Peptide | Duplicate query peptides across multiple UniprotIDs |
+| Duplicate Peptide | Discard | Preprocessing | Peptide | Duplicate query peptides across multiple UniprotIDs | Drop duplicate peptides |
 | Site Not Available |	Discard	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
 | Duplicate query	| Discard |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
 | Invalid FC/Pval	| Discard	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
 | FC/Pval cutoff |	Discard |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
 | ProteinID unmapped |	Discard	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
 | Protein Mapping |	Discard |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	Drop all queries because ID is obsolete |
-|Primary Gene Not Available |	Discard |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
+| Primary Gene Not Available |	Discard |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
 | Gene Unmapped in Interaction Databases	| Discard	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
 | Interactions Not available	| Discard	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
 | Invalid Interaction Category	| Discard	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
