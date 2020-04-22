@@ -5,6 +5,7 @@ Given a list of protein IDs, constructs in Cytoscape
   1) an interaction network among all proteins in the list
   2) pathway network of proteins from the list
 optionally may include their corresponding PTM modifications, fold change, p-values or categories
+
 """
 
 import sys
@@ -1422,7 +1423,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         msg_inc = "; ".join([f"(Protein: {d[0]}, Peptide: {d[1]})" for d in duplicate_inc_full_dropped])
         len_inc = len(duplicate_inc_full_dropped)
         logging.warning(f"DISCARD WARNING - Dropping peptides due to inconsistent fold changes or p-values between duplicates: {len_inc}")
-        #logging.warning(f"Dropped peptides: {msg_inc}")
+        logging.warning(f"Dropped peptides: {msg_inc}")
  
   if type == "6":
     site_info_dict_rearrange = {}
@@ -1713,10 +1714,13 @@ def ptm_scoring(site_dict, enzyme, include_list):
     exception = 0
     for each_cleave in enzyme_info[enzyme.lower()]['cleave']:
       miscleave += each_peptide_without_mods.count(each_cleave)
+    if miscleave > 0:
+      miscleave -=1
+      
     # Exclude exceptions
     for each_except in enzyme_info[enzyme.lower()]['exceptions']:
       exception += each_peptide_without_mods.count(each_except)
-
+    
     top_score[index] += miscleave - exception + om
     index += 1  
   # Pick lowest score
@@ -1809,7 +1813,9 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   url = 'https://www.uniprot.org/uploadlists/'
   ambigious_gene = []
   all_isoforms = []
+  count_iso = 0
   duplicate_canonical = []
+  retain_dup_can = []
   params = {
   'from':'ACC+ID',
   'to':'ACC',
@@ -1856,21 +1862,39 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
             remaining_isoforms = split_prot_list
             for spl in split_prot_list:
               input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
-                        
+            all_isoforms.extend(remaining_isoforms)            
           each_prot = ""
         else:
           if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
-            duplicate_canonical.append((uniprot_protid, split_prot_list))
-            each_prot = ""
-            for spl in split_prot_list:
-              input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")
+            get_list_dup_can = []
+            is_retained_dup_can = ""
+            for each_dup_can in split_prot_list:
+              if each_dup_can == uniprot_protid:
+                is_retained_dup_can = each_dup_can
+                retain_dup_can.append(each_dup_can)
+              else:
+                get_list_dup_can.append(each_dup_can)
+                input_failure_comment(uniprot_query, merged_out_dict, each_dup_can, "Multiple input IDs map to a single Uniprot ID")
+            each_prot = is_retained_dup_can
+            duplicate_canonical.append((uniprot_protid, get_list_dup_can))
           else:
-            remaining_isoforms = split_prot_list[1:]
-            each_prot = split_prot_list[0]
+            remaining_isoforms = []
+            get_each_picked = ""
+            for each_iso in split_prot_list:
+              if "-" not in each_iso:
+                get_each_picked = each_iso
+              else:
+                remaining_isoforms.append(each_iso)
+
+            if not get_each_picked:
+              remaining_isoforms = split_prot_list[1:]
+              get_each_picked = split_prot_list[0]
+            each_prot = get_each_picked
+            count_iso += len(remaining_isoforms)
             for spl in remaining_isoforms:
               input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
-            isoform_warning += "(" + ','.join(split_prot_list) + "),"
-        all_isoforms.extend(remaining_isoforms)
+            isoform_warning += "(" + ','.join([each_prot] + remaining_isoforms) + "),"
+            all_isoforms.extend(remaining_isoforms)
       else:
         each_prot = split_prot_list[0]      
 
@@ -1880,9 +1904,8 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
           each_prot = ""
         else:
           seen_duplicate_mapping_ids[each_prot] = [{"protein": uniprot_protid, "gene": uniprot_list[1]}]
-          if exclude_ambi:
-            input_failure_comment(uniprot_query, merged_out_dict, each_prot, "Input ID maps to multiple Uniprot IDs")
-            each_prot = ""
+          input_failure_comment(uniprot_query, merged_out_dict, each_prot, "Input ID maps to multiple Uniprot IDs")
+          each_prot = ""
 
       if each_prot == "":
         continue
@@ -2004,9 +2027,10 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if all_isoforms:
       if exclude_ambi:
         logging.warning("AMBIGUITY WARNING - Isoforms in query: " + str(len(all_isoforms)))
-        #logging.warning("Dropping queries: " + ','.join(all_isoforms))
+        logging.warning("Dropping queries: " + ','.join(all_isoforms))
       else:
-        logging.warning("AMBIGUITY WARNING - Isoforms in query, first picked: " + isoform_warning.rstrip(","))
+        logging.warning("AMBIGUITY WARNING - Isoforms in query: " + str(count_iso))
+        logging.warning("Dropping all but first query: " + isoform_warning.rstrip(","))
 
     duplicate_canonical_set = set()
     for dc in duplicate_canonical:
@@ -2014,8 +2038,10 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         duplicate_canonical_set.add(dc1)
     if duplicate_canonical:
       duplicate_canonical_str = ", ".join([ x[0] + " (" + ", ".join(x[1]) + ")" for x in duplicate_canonical])
-      logging.warning(f"DISCARD WARNING - Multiple query IDs mapping to single ID: {len(duplicate_canonical_set)}")
-      #logging.warning(f"Dropping queries: {duplicate_canonical_str}")
+      logging.warning(f"AMBIGUITY WARNING - Multiple query IDs mapping to single ID: {len(duplicate_canonical_set)}")
+      logging.warning(f"Dropping queries: {duplicate_canonical_str}")
+      if retain_dup_can:
+        logging.warning("Retaining active queries: " + ",".join(retain_dup_can))
 
     if len(seen_duplicate_mapping_ids) > 0:
       sdmi_list = []
@@ -2026,12 +2052,8 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         sdmi_list.append(sdmi + "(" + ", ".join([x["protein"] for x in sdmi_val]) + ")")
       duplicate_mapping_str = ", ".join(sdmi_list)
       if len(sdmi_list) > 0:
-        if exclude_ambi:
-          logging.warning(f"DISCARD WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
-          #logging.warning(f"Dropping queries: {duplicate_mapping_str}")
-        else:
-          logging.warning(f"AMBIGUITY WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
-          logging.warning(f"Ambiguous queries (first picked): {duplicate_mapping_str}")
+        logging.warning(f"AMBIGUITY WARNING - Single query IDs mapping to multiple IDs: {len(sdmi_list)}")
+        logging.warning(f"Dropping queries: {duplicate_mapping_str}")
         
     if prot_with_mult_primgene:
       if exclude_ambi:
@@ -3116,10 +3138,15 @@ def get_interactions_dict(filtered_dict, search, merged_out_dict):
   for each_uniprot_query in merged_out_dict:    
     for name in filtered_dict:
       if 'Primary' in merged_out_dict[each_uniprot_query]:
-        if name.lower() == ((merged_out_dict[each_uniprot_query]['Primary'].lower()).replace("**","")):      
-          interaction_list = filtered_dict[name]
-          merged_out_dict[each_uniprot_query][search] += ';'.join(interaction_list)
-          break      
+        if name.lower() == ((merged_out_dict[each_uniprot_query]['Primary'].lower()).replace("**","")):
+          if 'CommentGene' not in merged_out_dict[each_uniprot_query]:        
+            interaction_list = filtered_dict[name]
+            merged_out_dict[each_uniprot_query][search] += ';'.join(interaction_list)
+            break
+          elif not merged_out_dict[each_uniprot_query]['CommentGene']:
+            interaction_list = filtered_dict[name]
+            merged_out_dict[each_uniprot_query][search] += ';'.join(interaction_list)
+            break            
   return(merged_out_dict)
 
 def write_into_out(merged_out_dict, out, dup_prot_ids):
@@ -4969,32 +4996,58 @@ def main(argv):
     uniprot_query,each_primgene_list,merged_out_dict,ambigious_genes = uniprot_api_call(unique_each_protein_list, prot_list, cy_type_num, cy_debug, logging, merged_out_dict, organism_name, cy_session, cy_out, cy_cluego_out, cy_cluego_inp_file, path_to_new_dir, logging_file, site_info_dict, cy_ambi, cy_settings_file)
     
     all_prot_site_snps = {}
- 
-    if cy_cluego_inp_file:
-      leading_term_cluster, each_primgene_list = cluego_input_file(cy_cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-      cy_lim = 0
-      if cy_debug:
-        logging.debug("Limiting query to re-analyze terms: " + str(len(each_primgene_list)) )
-        
+         
     drop_dupeprimgene_prot = {}
     unique_each_primgene_list = each_primgene_list
     genes_before_initial_drop = unique_each_primgene_list
     if len(each_primgene_list) != len(set(each_primgene_list)):
-      dupe_gene_list = remove_list_duplicates(each_primgene_list)
-      unique_each_primgene_list = [x for x in each_primgene_list if x.lower() not in [name.lower() for name in dupe_gene_list]]
-      drop_dupeprimgene_prot = get_query_from_list(uniprot_query, dupe_gene_list)
-      warning = []
-      sorted_x = sorted(drop_dupeprimgene_prot.items(), key=lambda kv: kv[1])
-      drop_dupeprimgene_prot = collections.OrderedDict(sorted_x)
-      for each_dropped_prot in drop_dupeprimgene_prot:
-        if 'CommentGene' in merged_out_dict:
-          merged_out_dict[each_dropped_prot]['CommentGene'] += "Duplicate primary gene;"
-        else:
-          merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene;'})
-        warning.append(each_dropped_prot + "(" + drop_dupeprimgene_prot[each_dropped_prot] + ")")
+      if cy_ambi:
+        warning = []
+        count_dup_drops = 0
+        dupe_gene_list = [item for item, count in collections.Counter(each_primgene_list).items() if count > 1]
+        unique_each_primgene_list = [x for x in each_primgene_list if x.lower() not in [name.lower() for name in dupe_gene_list]]
+        for each_dup_gene in dupe_gene_list:
+          drop_dupeprimgene_prot_dict = get_query_from_list(uniprot_query, [each_dup_gene])
+          drop_dupeprimgene_prot = list(drop_dupeprimgene_prot_dict.keys())
+          count_dup_drops += len(drop_dupeprimgene_prot)
+          for each_dropped_prot in drop_dupeprimgene_prot:
+            if 'CommentGene' in merged_out_dict:
+              merged_out_dict[each_dropped_prot]['CommentGene'] += "Duplicate primary gene;"
+            else:
+              merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene;'})
+          warning.append(each_dup_gene + "(" + ",".join(drop_dupeprimgene_prot) + ")")
+        if cy_debug:
+          logging.debug("AMBIGUITY WARNING - Uniprot duplicate primary gene mapping: " + str(count_dup_drops))
+          logging.warning("Dropping queries: " + ','.join(warning))
+      else:
+        unique_each_primgene_list = list(set(each_primgene_list))
+        warning = []
+        count_dup_drops = 0
+        all_dup_genes = [item for item, count in collections.Counter(each_primgene_list).items() if count > 1]
+        for each_dup_gene in all_dup_genes:
+          ambigious_genes.append(each_dup_gene)
+          each_dup_prot_dict = get_query_from_list(uniprot_query, [each_dup_gene])
+          each_dup_prot = list(each_dup_prot_dict.keys())
+          all_dropped_prot = each_dup_prot[1:]
+          count_dup_drops += len(all_dropped_prot)
+          retained_prot = each_dup_prot[0]
+          merged_out_dict[retained_prot]['Primary'] = merged_out_dict[retained_prot]['Primary'] + "**"
+          for each_dropped_prot in all_dropped_prot:
+            del uniprot_query[each_dropped_prot]
+            if 'CommentGene' in merged_out_dict:
+              merged_out_dict[each_dropped_prot]['CommentGene'] += "Duplicate primary gene;"
+            else:
+              merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene;'})
+          warning.append(each_dup_gene + "(" + ",".join(each_dup_prot) + ")")
+        if cy_debug:
+          logging.debug("AMBIGUITY WARNING - Uniprot duplicate primary gene mapping: " + str(count_dup_drops))
+          logging.warning("Dropping all but first query: " + ','.join(warning))            
+        
+    if cy_cluego_inp_file:
+      leading_term_cluster, unique_each_primgene_list = cluego_input_file(cy_cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      cy_lim = 0
       if cy_debug:
-        logging.debug("DISCARD WARNING - Uniprot duplicate primary gene: " + str(len(drop_dupeprimgene_prot)))
-        #logging.warning("DISCARD WARNING - Dropping queries: " + ','.join(warning))
+        logging.debug("Limiting query to re-analyze terms: " + str(len(each_primgene_list)) )
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5055,11 +5108,11 @@ def main(argv):
     
     for each_merged_dict_node in merged_out_dict:
       if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
-        if merged_out_dict[each_merged_dict_node]['Primary'].lower() not in unique_nodes:
+        if ((merged_out_dict[each_merged_dict_node]['Primary'].lower()).replace("**","")) not in unique_nodes:
           if 'CommentGene' in merged_out_dict[each_merged_dict_node]:
             merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found;'
-          else:
-            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
+          #else:
+            #merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
           
     if cy_debug:
       logging.debug("Total merged query nodes: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])))
@@ -5067,6 +5120,7 @@ def main(argv):
     
     #Get uniprot query, primary gene and FC values together
     uniprot_list = {}
+
     if not cy_cluego_inp_file:
       for each_node in unique_nodes:
         uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)    
