@@ -216,6 +216,7 @@ Note:
 | Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked, canonical protein, if it exists gets preference |
 | Primary Gene Mapping |	Ambiguity |	Uniprot Mapping |	Protein	| Query ProteinID maps to multiple primary genes in Uniprot |	First mapping primary gene picked |
 | Duplicate Primary Gene	| Ambiguity	| Uniprot Mapping	| Protein	| Query ProteinIDs map to same primary gene	| First query proteinID picked |
+| Duplicate Protein Mapping | Ambiguity | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all obsolete IDs, retain active IDs |
 | Peptide Unmapped |	Discard	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
 | Duplicate Peptide | Discard | Preprocessing | Peptide | Duplicate query peptides across multiple UniprotIDs |
 | Site Not Available |	Discard	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
@@ -225,7 +226,6 @@ Note:
 | ProteinID unmapped |	Discard	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
 | Protein Mapping |	Discard |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	Drop all queries because ID is obsolete |
 |Primary Gene Not Available |	Discard |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
-| Duplicate Protein Mapping | Discard | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all duplicate mapping IDs |
 | Gene Unmapped in Interaction Databases	| Discard	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
 | Interactions Not available	| Discard	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
 | Invalid Interaction Category	| Discard	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
