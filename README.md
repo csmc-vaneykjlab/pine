@@ -215,7 +215,7 @@ Note:
 | Peptide Mapping |	Ambiguity |	Preprocessing |	PTM Site |	Peptide maps to multiple regions in FASTA |	First mapping site picked |
 | Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked, canonical protein, if it exists gets preference |
 | Primary Gene Mapping |	Ambiguity |	Uniprot Mapping |	Protein	| Query ProteinID maps to multiple primary genes in Uniprot |	First mapping primary gene picked |
-| Duplicate Primary Gene	| Ambiguity	| Uniprot Mapping	| Protein	| Query ProteinIDs map to same primary gene	| First query proteinID picked |
+| Duplicate Primary Gene	| Ambiguity	| Uniprot Mapping	| Protein	| Query ProteinIDs map to same primary gene	| One representative protein ID picked, reviewed protein, if it exists gets preference |
 | Duplicate Protein Mapping | Ambiguity | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all obsolete IDs, retain active IDs |
 | Peptide Unmapped |	Discard	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
 | Duplicate Peptide | Discard | Preprocessing | Peptide | Duplicate query peptides across multiple UniprotIDs | Drop duplicate peptides |
