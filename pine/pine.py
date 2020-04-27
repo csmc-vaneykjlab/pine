@@ -1920,7 +1920,8 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
         is_mult_prim_gene_bool = True
         if not exclude_ambi:
           primary_gene = primary_gene.split(";")[0]
-        if primary_gene not in ambigious_gene:
+         
+        if primary_gene and primary_gene not in ambigious_gene:
           ambigious_gene.append(primary_gene)
           
       if remaining_isoforms:
@@ -1938,17 +1939,18 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       elif not primary_gene:
         no_primgene_val.append(each_prot)
         comment_merged = "Primary gene unavailable;"
-          
+      elif ";" in primary_gene and exclude_ambi:
+        comment_merged = "Multiple primary genes;"
       if uniprot_protid:
         each_protid_list.append(uniprot_protid)
       
-      if is_isoform_gene_bool and primary_gene:
+      if not exclude_ambi and is_isoform_gene_bool and primary_gene:
         store_prim_gene = primary_gene + "**"       
-      elif is_mult_prim_gene_bool:
+      elif not exclude_ambi and is_mult_prim_gene_bool:
         store_prim_gene = primary_gene + "**"
       else:
         store_prim_gene = primary_gene
-                    
+                 
       merged_out_dict[each_prot].update({'Primary':store_prim_gene, 'String':'', 'Genemania':'', 'ClueGO':''})
       if 'CommentGene' in merged_out_dict[each_prot]:
         merged_out_dict[each_prot]['CommentGene'] += comment_merged
@@ -2080,7 +2082,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     for each_in_list in prot_list:
       if each_in_list in uniprot_query:
         uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})      
-  
+
   return(uniprot_query,each_primgene_list,merged_out_dict,ambigious_gene)
 
 def get_dbsnp_classification(uniprot_query, primgene_list, prot_list, merged_out_dict):
@@ -2361,11 +2363,11 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
     no_mapping = [i for i in each_inp_list if i.lower() not in [x.lower() for x in string_mapping]]
     no_mapping_prots =  get_query_from_list(uniprot_query, no_mapping)
 
-    no_interactions = [i for i in list(string_mapping.keys()) if string_mapping[i].lower() not in [x.lower() for x in string_unique_vertex] ]
-    no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
-
     string_interaction,string_unique_vertex,string_dupe_preferred,merged_out_dict,dup_pref_warning = check_dup_preferred_gene(string_mapping,string_interaction,string_unique_vertex,"String", uniprot_query, cy_debug, logging, merged_out_dict)
-  
+    
+    no_interactions = [i for i in list(string_mapping.keys()) if string_mapping[i].lower() not in [x.lower() for x in string_unique_vertex] and string_mapping[i].lower() not in [y.lower() for y in string_dupe_preferred]]
+    no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
+    
     if overwrite_preferred:
       string_interaction,string_unique_vertex,string_mapping,merged_out_dict = overwrite_values(overwrite_preferred, string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
   
@@ -2915,10 +2917,10 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
         merged_out_dict[each].update({'CommentGene':"Cluego- not found;"})
     if cy_debug and (warning1 or warning2):
       logging.debug("DISCARD WARNING - ClueGO query + External Interactor unavailable: " + str(len(not_found_query)) + " + " + str(len(not_found_ei)))
-      if warning1:
-        logging.warning("Dropped queries: " + ','.join(warning1))
-      if warning2:
-        logging.warning("Dropped External Interactor: " + ','.join(warning2))
+      #if warning1:
+        #logging.warning("Dropped queries: " + ','.join(warning1))
+      #if warning2:
+        #logging.warning("Dropped External Interactor: " + ','.join(warning2))
  
   # Drop queries with duplicate preferred gene list
   for each_acceptable in acceptable_genes_list:
@@ -5058,7 +5060,7 @@ def main(argv):
       leading_term_cluster, unique_each_primgene_list = cluego_input_file(cy_cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       cy_lim = 0
       if cy_debug:
-        logging.debug("Limiting query to re-analyze terms: " + str(len(each_primgene_list)) )
+        logging.debug("Limiting query to re-analyze terms: " + str(len(unique_each_primgene_list)) )
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5121,9 +5123,10 @@ def main(argv):
       if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
         if ((merged_out_dict[each_merged_dict_node]['Primary'].lower()).replace("**","")) not in unique_nodes:
           if 'CommentGene' in merged_out_dict[each_merged_dict_node]:
-            merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found;'
-          #else:
-            #merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
+            if not merged_out_dict[each_merged_dict_node]['CommentGene']:
+              merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found;'
+          else:
+            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
           
     if cy_debug:
       logging.debug("Total merged query nodes: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])))
