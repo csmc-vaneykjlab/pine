@@ -220,6 +220,16 @@ Note:
 | Gene Unmapped in ClueGO	| Discard	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
 | Invalid Mapping Category	| Discard	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
 
+### PTM Handling  
+For ambiguous sites, scoring is performed for representative site selection by excluding sites with oxidized methionines, missed cleavages, and ragged ends.  
+- Missed Cleavages  
+![Missed-Cleavage](Image/Missed-Cleavage.JPG)  
+Number of missed cleavages are calculated for all peptides of a single site, with the peptide having the least number of missed cleavages showing higher score.  
+
+- Other Modifications  
+![Other-Mods](Image/Other-Mods.JPG)  
+Number of modifications other than the modification of interest are calculated for all peptides of a single site, with the peptide having the least number of other modifications showing higher score.  
+
 ### PTM Naming Convention
 PTM sites are represented in the interaction and ontology network by residue, PTM information in brackets and site position as shown in the figures above. 
 The PTM information proves to be useful in case of occurrence of multiple PTMs on a single amino acid in order to differentiate between PTMs using the PTM information. But, in other cases, this can be optionally turned off by the user by switching node label to column 'substitute name'  
