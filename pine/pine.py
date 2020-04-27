@@ -121,7 +121,7 @@ def input_failure_comment(uniprot_query, merged_out_dict, input_id, comment):
     'Primary': "NA",
     'Synonym': "NA",
     'Organism': "NA",
-    'Natural_variant': "NA",
+    'Reviewed': "NA",
     'Date_modified': "NA"
   }
 
@@ -1821,7 +1821,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   'to':'ACC',
   'format':'tab',
   'query':query_term,
-  'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,feature(NATURAL VARIANT),last-modified'
+  'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,reviewed,last-modified'
   }
   try:
     response = requests.post(url, data=params)
@@ -1931,7 +1931,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       synonym_gene = synonym_gene.split(" ")
       organism_name = uniprot_list[3]
       uniprot_query[each_prot] = {}
-      uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name,'Natural_variant':uniprot_list[4],'Date_modified':uniprot_list[5]})
+      uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name,'Reviewed':uniprot_list[4],'Date_modified':uniprot_list[5]})
       # Do not add empty primary gene to list
       if primary_gene and ";" not in primary_gene:
         each_primgene_list.append(primary_gene)
@@ -1960,7 +1960,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     if each_prot_in_input not in uniprot_query:
       no_uniprot_val.append(each_prot_in_input)
       uniprot_query[each_prot_in_input] = {}
-      uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA",'Natural_variant':"NA",'Date_modified':"NA"})
+      uniprot_query[each_prot_in_input].update({'Uniprot':"NA",'Primary':"NA",'Synonym':"NA",'Organism':"NA",'Reviewed':"NA",'Date_modified':"NA"})
       merged_out_dict[each_prot_in_input] = {}
       comment_merged = "Uniprot query not mapped;" 
       merged_out_dict[each_prot_in_input].update({'Primary':'', 'CommentGene':comment_merged, 'String':'', 'Genemania':'', 'ClueGO':''})
@@ -4573,7 +4573,7 @@ def main(argv):
   if help:
     print("PINE")
     print("---------------------------------------------------------------------------------------------")
-    print("Usage:         cytoscape_api.py -i input.csv -o output_dir -c cluego_out.txt -t input_type -s species -m cluego_map_file.gz")
+    print("Usage:         pine.py -i input.csv -o output_dir -t input_type -s species -m cluego_map_file.gz")
     print("Argument:      -i [--in]: input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide")
     print("Argument:      -o [--output]: path to output directory")     
     print("Argument:      -t [--type]: analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm]")   
@@ -5028,9 +5028,20 @@ def main(argv):
           ambigious_genes.append(each_dup_gene)
           each_dup_prot_dict = get_query_from_list(uniprot_query, [each_dup_gene])
           each_dup_prot = list(each_dup_prot_dict.keys())
-          all_dropped_prot = each_dup_prot[1:]
+          retained_prot = ""
+          all_dropped_prot = []
+          bool1 = 0
+          for get_each_dup_prot in each_dup_prot:
+            if uniprot_query[get_each_dup_prot]['Reviewed'].lower() == "reviewed" and bool1 == 0:
+              retained_prot = get_each_dup_prot
+              bool1 = 1
+            else:
+             all_dropped_prot.append(get_each_dup_prot)
+          if not retained_prot:          
+            all_dropped_prot = each_dup_prot[1:]
+            retained_prot = each_dup_prot[0]
+            
           count_dup_drops += len(all_dropped_prot)
-          retained_prot = each_dup_prot[0]
           merged_out_dict[retained_prot]['Primary'] = merged_out_dict[retained_prot]['Primary'] + "**"
           for each_dropped_prot in all_dropped_prot:
             del uniprot_query[each_dropped_prot]
@@ -5038,7 +5049,7 @@ def main(argv):
               merged_out_dict[each_dropped_prot]['CommentGene'] += "Duplicate primary gene;"
             else:
               merged_out_dict[each_dropped_prot].update({'CommentGene':'Duplicate primary gene;'})
-          warning.append(each_dup_gene + "(" + ",".join(each_dup_prot) + ")")
+          warning.append(each_dup_gene + "(" + ",".join([retained_prot]+all_dropped_prot) + ")")
         if cy_debug:
           logging.debug("AMBIGUITY WARNING - Uniprot duplicate primary gene mapping: " + str(count_dup_drops))
           logging.warning("Dropping all but first query: " + ','.join(warning))            
