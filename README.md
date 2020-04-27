@@ -163,6 +163,13 @@ After reanalysis is complete, there will be a new interaction network which cont
 
 ![Pathway analysis ontology network](Image/pathway-selection-network.png)
 
+Colors on the annotation node indicate the following:
+- **Dark blue annotation nodes**: Nodes connected to 60% or more up-regulated sites
+- **Orange annotation nodes**: Nodes connected to 60% or more down-regulated sites
+- **Grey annotation nodes**: Nodes connected to approximately the same number of up-regulated and down-regulated sites  
+
+**NOTE**: Annotation nodes are fixed colors and do not indicate the degree of connectivity to up-regulated or down-regulated sites  
+
 ### Legend  
 Shown below is the legend for interpreting visualizations through PINE:
 ![Legend](Image/legend.png)
