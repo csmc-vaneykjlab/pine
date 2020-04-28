@@ -4517,10 +4517,12 @@ def main(argv):
   cy_out_name = None
   cy_exe = None
   cy_ambi = False
+  count_args = 0
   
   try:
     opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:j:ng:f:p:z:h:a:y:u:d:b:x:e:c:k",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file=","exclude-ambiguity", "output-name="])
     for opt, arg in opts:
+      count_args += 1
       if opt in ("-i","--in"):
         cy_in = arg
       elif opt in ("-s","--species"):
@@ -4570,6 +4572,9 @@ def main(argv):
       else:
         help = True      
   except getopt.GetoptError as e:
+    help = True
+  
+  if not count_args:
     help = True
     
   if help:
