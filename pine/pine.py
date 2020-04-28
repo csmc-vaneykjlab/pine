@@ -4924,11 +4924,12 @@ def main(argv):
     # Check Cytoscape version
     request = request_retry(f'{CYREST_URL}/v1/version', 'GET')
     cy_version = request.json()
-    if not bool(re.match('^3.7', cy_version['cytoscapeVersion'])):
+    check_cy_ver = re.match('^([0-9]{1,}\.[0-9]{1,})', cy_version['cytoscapeVersion'])
+    if float(check_cy_ver.group(1)) < 3.7:
       eprint("Error: Cytoscape version must be 3.7.0 and above")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
-    
+
     # Start a new session 
     request_retry(f'{CYREST_URL}/v1/commands/session/new', 'GET')
     
@@ -4956,17 +4957,19 @@ def main(argv):
         ver_reactome = app_version
     
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
-      if not app_genemania or not bool(re.match('^3.5', ver_genemania)):
+      check_genemania_ver = re.match('^([0-9]{1,}\.[0-9]{1,})', ver_genemania)
+      if float(check_genemania_ver.group(1)) < 3.5:
         eprint("Error: Cytoscape app GeneMANIA v3.5.0 or above not installed or not responding properly")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
         
     if not cy_cluego_inp_file:  
-      if not app_cluego or not bool(re.match('^2.5', ver_cluego)):
+      check_cluego_ver = re.match('^([0-9]{1,}\.[0-9]{1,})', ver_cluego)
+      if float(check_cluego_ver.group(1)) < 2.5:
         eprint("Error: Cytoscape app ClueGO v2.5.0 or above not installed or not responding properly")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
-    
+
       if ver_cluego not in cy_map:
         match = re.search(r"v(\d{1}\.\d{1}\.\d{1})", cy_map)
         eprint("Error: ClueGO version installed in Cytoscape is " + ver_cluego + " but ClueGO version selected in Setup page is " + match.group(1) + ". Please select ClueGO version " + ver_cluego + " in Setup page or reinstall ClueGO version " + match.group(1) + " in Cytoscape.")
