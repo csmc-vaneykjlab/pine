@@ -2958,15 +2958,67 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
   
   return(filtered_preferred_unique_list,merged_out_dict)
 
+def calc_protein_change(df, uniprot_list, type):
+  cluego_dict = df.to_dict()
+  add_col_to_end = {}
+  for each_term in cluego_dict:
+    if "associated genes found" in each_term.lower():
+      for each_col in cluego_dict[each_term]:
+        up_or_down = {}
+        total_genes = 0
+        calc_up = 0
+        calc_down = 0
+        list_of_genes = cluego_dict[each_term][each_col].strip('][').split(', ') 
+        for each_gene in list_of_genes:
+          if type == "5":
+            if each_gene.lower() in uniprot_list['name']:
+              indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
+              for each_index in indices:
+                total_genes += 1                  
+                FC_val_each_gene = (uniprot_list['FC1'])[each_index]
+                if FC_val_each_gene > 0:
+                  calc_up += 1
+                elif FC_val_each_gene < 0:
+                  calc_down -= 1
+            else:
+              total_genes+=1
+          
+          elif type == "1":
+            total_genes += 1          
+            if each_gene.lower() in uniprot_list["name"]:
+              indexOf = uniprot_list["name"].index(each_gene.lower())
+              FC_val_each_gene = (uniprot_list['FC1'])[indexOf]
+              if FC_val_each_gene > 0:
+                calc_up += 1
+              elif FC_val_each_gene < 0:
+                calc_down -= 1            
+        
+        if (calc_up/total_genes*100) > 60: 
+          percent_val = str(round((calc_up/total_genes*100),2))
+        elif (abs(calc_down)/total_genes*100) > 60:
+          percent_val = str(round((calc_down/total_genes*100),2))
+        else: 
+          percent_val = "0"
+        up_or_down.update({"Percent":percent_val})
+        
+        add_new_col = json.dumps([{'label': None, 'percent': v} for k,v in up_or_down.items()])
+        #add_new_col = json.dumps([{'label': k, 'percent': v} for k,v in new_dict.items()])
+        add_col_to_end[each_col] = add_new_col
+  cluego_dict.update({'Status':add_col_to_end})
+  df = pd.DataFrame.from_dict(cluego_dict)
+  return(df)
+  
 SEP = "/"
 HEADERS = {'Content-Type': 'application/json'}
 
 CLUEGO_BASE_PATH = "/v1/apps/cluego/cluego-manager"
 
-def writeLines(lines,out_file):
+def writeLines(lines,out_file,type,uniprot_list):
   ''' Write the lines to a file, removing duplicates of specific columns '''
   df = pd.read_csv(StringIO(lines), sep='\t')
   df = df.drop_duplicates(subset=['GOTerm','Ontology Source', 'Nr. Genes', 'Associated Genes Found'])
+  if type == "1" or type == "5":
+    df = calc_protein_change(df, uniprot_list, type)
   df.to_csv(out_file, header=True, index=False, sep='\t', mode='w')
  
 def writeBin(raw,out_file):
@@ -2981,7 +3033,7 @@ def writeLog(lines,out_file):
         file.write(line)
     file.close()
     
-def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out):
+def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, type, uniprot_list):
   '''
   Obtain ClueGO annotations based on user settings for the list of genes via a Cytoscape App request call. Output is a list of annotation terms along with associated genes and corresponding term p-value
   ''' 
@@ -3115,9 +3167,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       eprint("Error: ClueGO couldn't find any pathways")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)  
-  
 
-  
   # Get network id (SUID) (CyRest function from Cytoscape)
   response = request_retry(CYREST_URL+"/v1"+SEP+"networks"+SEP+"currentNetwork", "GET", headers=HEADERS)
   current_network_suid = response.json()['data']['networkSUID']
@@ -3128,8 +3178,9 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     try:
       response.raise_for_status()
       table_file_name = output_cluego
-      writeLines(response.text,table_file_name)
+      writeLines(response.text,table_file_name,type,uniprot_list)
     except:
+      traceback.print_exc()
       eprint("Error: No pathways found for input list")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)  
@@ -3161,7 +3212,7 @@ def write_into_out(merged_out_dict, out, dup_prot_ids):
     for each_prot in merged_out_dict:
       if 'PickedPeptide' in merged_out_dict[each_prot] or 'DroppedPeptide' in merged_out_dict[each_prot]:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,Reason for Dropped Site, \n")
+          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,Retained Peptide,Retained Site,Dropped Peptide,Dropped Site,Reason for Dropped Site \n")
         if "PickedPeptide" in merged_out_dict[each_prot]:
           ambi_picked_pep = [i for i in merged_out_dict[each_prot]["PickedPeptide"] if "**" in i]
           ambi_picked_site = [i for i in merged_out_dict[each_prot]["PickedSite"] if "**" in i]
@@ -3176,7 +3227,7 @@ def write_into_out(merged_out_dict, out, dup_prot_ids):
         line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "," + ";".join(picked_pep_list) + ", " + ";".join(picked_site_list) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","")  + "\n"
       else:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene,\n")
+          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene \n")
         line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "\n"
         
       i+=1
@@ -4603,7 +4654,7 @@ def main(argv):
     print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
     print("Argument(opt): -a [--inputcluego]: filtered cluego file with ontology terms of interest")
     sys.exit()
-
+  
   if not cy_in or not cy_species or not cy_type or not cy_out_dir or not cy_exe or not cy_map:
     eprint("Error: Mandatory parameter not provided. Please provide path to cytoscape exe, path to ClueGO mapping file, input csv file, species, run type and output directory")
     sys.exit(1)
@@ -5184,7 +5235,7 @@ def main(argv):
     
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
-      cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out)
+      cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list)
     
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
