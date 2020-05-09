@@ -3001,7 +3001,7 @@ def calc_protein_change(df, uniprot_list, type):
           percent_val = "0"
         up_or_down.update({"Percent":percent_val})
         
-        add_new_col = json.dumps([{'label': None, 'percent': v} for k,v in up_or_down.items()])
+        add_new_col = json.dumps([{'label': 'Status', 'percent': v} for k,v in up_or_down.items()])
         #add_new_col = json.dumps([{'label': k, 'percent': v} for k,v in new_dict.items()])
         add_col_to_end[each_col] = add_new_col
   cluego_dict.update({'Status':add_col_to_end})
