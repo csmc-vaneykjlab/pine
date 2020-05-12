@@ -834,6 +834,9 @@ let vm = new Vue({
                                 record["data"][header] = JSON.parse(fields[i].replace(/^"|"$/g, "").replace(/""/g, '"'));
                                 for(let label of record["data"][header]) {
                                     label.percent = parseFloat(label.percent);
+                                    if(!isNaN(label.percent)) {
+                                        label.percent = label.percent.toFixed(1);
+                                    }
                                 }
                             } catch(e) {
                                 if(e instanceof SyntaxError) {
@@ -1263,8 +1266,16 @@ let vm = new Vue({
         });
     },
     filters: {
-        longname: function(v, len) {
-            let basename = path.basename(v);
+        longname: function(v, len, is_path) {
+            if(v == null) {
+                return "";
+            }
+            let basename;
+            if(is_path) {
+                basename = path.basename(v);
+            } else {
+                basename = v;
+            }
             if(basename.length > len) {
                 return basename.slice(0, len - 3) + "...";
             }
