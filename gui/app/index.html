@@ -179,9 +179,9 @@
                 </span>
               </div>
               <div>
-                <select v-model="input.species" v-if="cluego_picked_version">
+                <select v-model="input.species" v-if="cluego_picked_version" v-on:change="selected_species_updated(input.species)">
                   <option v-for="species in selectable_species" v-bind:value="species.name" :disabled="!species.selectable">
-                    {{ species.name }}
+                    {{ species.display_name }}
                   </option>
                 </select>
               </div>
@@ -309,7 +309,9 @@
               </div>
               <div>
                 <select v-model="input.run">
-                  <option v-for="ar in allowed_runs" v-bind:value="ar">{{ ar }}</option>
+                  <option v-for="ar in allowed_runs" v-bind:value="ar.name" :disabled="ar.disabled">
+                    {{ ar.name }}
+                  </option>
                 </select>
               </div>
 

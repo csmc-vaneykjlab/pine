@@ -37,8 +37,6 @@ const ONTOLOGY_SOURCE_TYPES = [
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
-const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
-
 const OUT_NAME_INVALID_REGEX = /[\/\\:\*\?"<>\|]/g;
 
 function is_dir(dirname) {
@@ -71,8 +69,23 @@ let vm = new Vue({
             "multiFC-ptm": {"text": "Multi fold change PTM", "er": true},
         },
         extra_required_fields: ["mods", "fasta_file", "enzyme"],
-        species_map: {"homo sapiens": "human", "mus musculus": "mouse", "rattus norvegicus": "rat"},
-        allowed_runs: ["string", "genemania", "both"],
+        species_map: {
+            "homo sapiens": {name: "human", genemania: "4"},
+            "mus musculus": {name: "mouse", genemania: "5"},
+            "rattus norvegicus": {name: "rat", genemania: "7"},
+            "escherichia coli": {name: "E. coli", genemania: "9"},
+            "saccharomyces cerevisiae s288c": {name: "yeast", genemania: "6"},
+            "arabidopsis thaliana": {name: "arabidopsis", genemania: "1"},
+            "caenorhabditis elegans": {name: "C. elegans", genemania: "2"},
+            "danio rerio": {name: "zebrafish", genemania: "8"},
+            "drosophila melanogaster": {name: "fruit fly", genemania: "3"},
+            "bos taurus": {name: "bovine", genemania: null},
+            "gallus gallus": {name: "chicken", genemania: null},
+            "sus scrofa": {name: "pig", genemania: null},
+            "oryctolagus cuniculus": {name: "rabbit", genemania: null},
+            "ovis aries": {name: "sheep", genemania: null},
+            "canis lupus familiaris": {name: "dog", genemania: null},
+        },
         allowed_visualize: ["biological process","cellular component","molecular function","pathways","all"],
         allowed_grouping: ["global", "medium", "detailed"],
         allowed_enzymes: {
@@ -436,10 +449,10 @@ let vm = new Vue({
                 return msg_genemania;
             }
 
-            if(!(this.input.species in GENEMANIA_SPECIES_TO_NUMBER)) {
+            const species_number = this.get_genemania_species(this.input.species);
+            if(species_number == null) {
                 return msg_invalid_species;
             }
-            const species_number = GENEMANIA_SPECIES_TO_NUMBER[this.input.species];
 
             for(const sd of subdirs) {
                 const sd_files = fs.readdirSync(sd);
@@ -871,7 +884,7 @@ let vm = new Vue({
             }
 
             for(const mapping of this.cluego_picked_version.mapping_files) {
-                if(this.species_map[mapping.species.toLowerCase()] === this.input.species) {
+                if(this.species_map[mapping.species.toLowerCase()].name === this.input.species) {
                     return mapping.fullpath;
                 }
             }
@@ -1219,6 +1232,20 @@ let vm = new Vue({
             }
             return NaN;
         },
+        get_genemania_species: function(species_name) {
+            for(const species_key in this.species_map) {
+                const species = this.species_map[species_key];
+                if(species.name === species_name) {
+                    return species.genemania;
+                }
+            }
+            return null;
+        },
+        selected_species_updated: function(species_name) {
+            if(this.get_genemania_species(species_name) == null) {
+                this.input.run = "string";
+            }
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();
@@ -1416,25 +1443,50 @@ let vm = new Vue({
             for(const mapping of this.cluego_picked_version.mapping_files) {
                 const mapping_species = mapping.species.toLowerCase();
                 if(mapping_species in this.species_map) {
+                    const name = this.species_map[mapping_species].name;
+                    let display_name = name;
+                    if(this.species_map[mapping_species].genemania == null) {
+                        display_name += " (STRING only)";
+                    }
                     selectable.push({
-                        "name": this.species_map[mapping_species],
+                        "name": name,
+                        "display_name": display_name,
                         "selectable": true,
+                        "has_genemania": this.species_map[mapping_species].genemania != null,
                     });
-                    seen.add(this.species_map[mapping_species]);
+                    seen.add(this.species_map[mapping_species].name);
                 }
             }
             for(const key in this.species_map) {
-                const species = this.species_map[key];
+                const species = this.species_map[key].name;
                 if(seen.has(species)) {
                     continue;
                 }
                 selectable.push({
-                    "name": species + " (not installed in ClueGO)",
+                    "name": species,
+                    "display_name": species + " (not installed in ClueGO)",
                     "selectable": false,
                 });
                 seen.add(species);
             }
             return selectable;
+        },
+        allowed_runs: function() {
+            let runs = [
+                {"name": "string", "disabled": false},
+                {"name": "genemania", "disabled": false},
+                {"name": "both", "disabled": false},
+            ];
+            if(this.get_genemania_species(this.input.species) == null) {
+                runs = runs.map((x) => {
+                    if(x.name === "string") {
+                        return x;
+                    } else {
+                        return Object.assign({}, x, {"disabled": true});
+                    }
+                });
+            }
+            return runs;
         },
     },
     watch: {
