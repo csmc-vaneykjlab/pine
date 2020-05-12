@@ -365,7 +365,7 @@ img.icon {
 }
 
 .select-pathway-label {
-  width: 150px;
+  width: 100px;
 }
 
 .pathway-select-checkbox {
@@ -405,6 +405,14 @@ img.pine-img {
 
 .lock-error {
   z-index: 1001;
+}
+
+.color-up-reg {
+  color: #FF6633;
+}
+
+.color-down-reg {
+  color: #0000CC;
 }
 
 /*# sourceMappingURL=index.css.map */

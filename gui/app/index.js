@@ -1224,16 +1224,32 @@ let vm = new Vue({
                 credit.show_license = true;
             }
         },
-        pathway_data_label_percent: function(datum, label) {
+        pathway_data_label: function(datum, label) {
             if(!("Status" in datum)) {
                 return NaN;
             }
+
+            let percent = null;
             for(const status of datum.Status) {
                 if(status.label === label) {
-                    return status.percent;
+                    percent = status.percent;
                 }
             }
-            return NaN;
+
+            if(percent == null) {
+                return NaN;
+            }
+
+            let icon_classes;
+            if(percent > 0) {
+                icon = "fas fa-arrow-up color-up-reg";
+            } else if(percent < 0) {
+                icon = "fas fa-arrow-down color-down-reg";
+            } else {
+                icon = "fas fa-minus";
+            }
+
+            return `<i class="${icon}"></i> ${percent}%`;
         },
         get_genemania_species: function(species_name) {
             for(const species_key in this.species_map) {

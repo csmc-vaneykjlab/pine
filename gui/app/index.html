@@ -467,6 +467,7 @@
               </div>
               <div>
                 <div v-show="cluego_pathways_filtered.labels.length > 1">
+                  Label:
                   <select class="select-pathway-label" v-model="cluego_pathways.picked_label">
                     <option v-for="label in cluego_pathways_filtered.labels" v-bind:value="label">{{ label }}</option>
                   </select>
@@ -539,7 +540,7 @@
                     <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
                     <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
                     <td class="align-right" v-show="cluego_pathways_filtered.labels.length > 0">
-                      {{ pathway_data_label_percent(pathway.data, cluego_pathways_filtered.picked_label) }}
+                      <span v-html="pathway_data_label(pathway.data, cluego_pathways_filtered.picked_label)"></span>
                     </td>
                   </tr>
                   <tr v-for="(i,ix) in cluego_pathways_filtered.n_empty_rows">
