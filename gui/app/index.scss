@@ -156,7 +156,7 @@ input.big {
 
 .grid-pathway-selection-header {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 3fr 3fr 3fr 3fr;
 }
 
 .grid-about-pine {
@@ -398,6 +398,10 @@ img.icon {
     width: 150px;
 }
 
+.select-pathway-label {
+    width: 100px;
+}
+
 .pathway-select-checkbox {
     cursor: pointer;
 }
@@ -442,4 +446,12 @@ img.pine-img {
 
 .lock-error {
     z-index: 1001;
+}
+
+.color-up-reg {
+    color: #FF6633;
+};
+
+.color-down-reg {
+    color: #0000CC;
 }
