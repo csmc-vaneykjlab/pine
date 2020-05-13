@@ -450,10 +450,6 @@
         <div v-if="current_tab === tabs.PATHWAY_SELECTION">
           <div class="full-section">
             <div class="grid-pathway-selection-header">
-              <div class="tooltip-parent">
-                <i class="far fa-question-circle"></i>
-                <div class="tooltip">Choose a subset of pathways to analyze.</div>
-              </div>
               <div>
                 Filter: <input type="text" v-model="cluego_pathways.query" size="15" />
               </div>
@@ -467,7 +463,7 @@
               </div>
               <div>
                 <div v-show="cluego_pathways_filtered.labels.length > 1">
-                  Label:
+                  Category:
                   <select class="select-pathway-label" v-model="cluego_pathways.picked_label">
                     <option v-for="label in cluego_pathways_filtered.labels" v-bind:value="label">{{ label }}</option>
                   </select>
@@ -476,7 +472,7 @@
               <div>
                 <span class="button danger-button" v-if="cluego_pathways.sort" v-on:click="cluego_pathways_sort_clear()">
                   <i class="fas fa-times"></i>
-                  {{ cluego_pathways.sort.display }}
+                  {{ cluego_pathways.sort.display | longname(15, false) }}
                   ({{ cluego_pathways.sort.order }})
                 </span>
                 <span class="button danger-button" v-show="cluego_pathways_filtered.n_selected > 0" v-on:click="cluego_pathways_unselect_all()">
