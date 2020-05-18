@@ -175,9 +175,10 @@ def db_handling(db_file):
             seq = ""
         
         else:           
-          seq += line.strip("\n\r")
-          if " " in seq:
+          line_seq = line.strip("\n\r")
+          if " " in line_seq:
             raise PineError("Fasta file sequences should not have spaces")
+          seq += line_seq
             
       if proteinID:
         if '|' in proteinID:
