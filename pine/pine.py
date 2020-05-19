@@ -4807,8 +4807,44 @@ def main(argv):
   elif cy_species.lower() == "rat":
     tax_id = "10116"
     organism_name = "Rattus norvegicus"
+  elif cy_species.lower() == "ecoli":
+    tax_id = "199310"
+    organism_name = "Escherichia coli"
+  elif cy_species.lower() == "yeast":
+    tax_id = "4932"
+    organism_name = "Saccharomyces cerevisiae"
+  elif cy_species.lower() == "arabidopsis thaliana":
+    tax_id = "3702"
+    organism_name = "Arabidopsis thaliana"
+  elif cy_species.lower() == "roundworm":
+    tax_id = "6239"
+    organism_name = "Caenorhabditis elegans"
+  elif cy_species.lower() == "zebrafish":
+    tax_id = "7955"
+    organism_name = "Danio rerio"
+  elif cy_species.lower() == "fruit fly":
+    tax_id = "7227"
+    organism_name = "Drosophila melanogaster"
+  elif cy_species.lower() == "bovine":
+    tax_id = "9913"
+    organism_name = "Bos taurus"
+  elif cy_species.lower() == "chicken":
+    tax_id = "9031"
+    organism_name = "gallus gallus"
+  elif cy_species.lower() == "pig":
+    tax_id = "9823"
+    organism_name = "sus scrofa"
+  elif cy_species.lower() == "rabbit":
+    tax_id = "9986"
+    organism_name = "Oryctolagus cuniculus"
+  elif cy_species.lower() == "sheep":
+    tax_id = "9940"
+    organism_name = "Ovis aries"
+  elif cy_species.lower() == "dog":
+    tax_id = "9612"
+    organism_name = "Canis Lupus Familiaris"
   else:
-    eprint("Error: Species currently supported are human, mouse, rat")
+    eprint("Error: Species not currently supported")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
@@ -4964,7 +5000,11 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)        
       try:
+        sys.stdout.write("Send"+ str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")) + "\n")
+        sys.stdout.flush()
         database_dict = db_handling(cy_fasta_file)
+        sys.stdout.write("Retrieved"+ str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")) + "\n")
+        sys.stdout.flush()
         if len(database_dict) == 0:
           eprint("Error: Fasta file is empty or not in fasta format")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
