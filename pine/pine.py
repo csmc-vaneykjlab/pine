@@ -42,6 +42,7 @@ import collections
 import subprocess
 import warnings
 from collections import Counter
+import socket
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 __author__ = "Niveda Sundararaman, James Go and Vidya Venkatraman"
@@ -74,6 +75,13 @@ def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   if with_stdout:
     logger.addHandler(logging.StreamHandler(sys.stdout))
   return logger
+
+def port_in_use(port):
+  ''' Check if can connect to a localhost port. Credit: https://stackoverflow.com/a/52872579 '''
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    bound = s.connect_ex(('localhost', port)) == 0
+    s.close()
+    return bound
 
 def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300, timeout_interval=5, request_timeout=300):
   '''
@@ -167,9 +175,10 @@ def db_handling(db_file):
             seq = ""
         
         else:           
-          seq += line.strip("\n\r")
-          if " " in seq:
+          line_seq = line.strip("\n\r")
+          if " " in line_seq:
             raise PineError("Fasta file sequences should not have spaces")
+          seq += line_seq
             
       if proteinID:
         if '|' in proteinID:
@@ -4963,13 +4972,11 @@ def main(argv):
     global CYREST_URL
     global CYREST_PORT
     for cyrest_port in CYREST_PORTS:
-      try:
-        CYREST_URL = "http://localhost:" + str(cyrest_port)
-        r = requests.get(f"{CYREST_URL}/v1/version")
-      except requests.exceptions.ConnectionError:
+      if not port_in_use(cyrest_port):
         found_open_port = True
         break
     CYREST_PORT = cyrest_port
+    CYREST_URL = "http://localhost:" + str(cyrest_port)
 
     if not found_open_port:
       eprint("Could not find an open port to start Cytoscape. Please close a previous PINE generated Cytoscape session and start the run again.")

@@ -1240,16 +1240,35 @@ let vm = new Vue({
                 return NaN;
             }
 
-            let icon_classes;
+            let icon;
             if(percent > 0) {
-                icon = "fas fa-arrow-up color-up-reg";
+                icon = {
+                    "classes": "fas fa-arrow-up color-up-reg",
+                    "tooltip": "Activation",
+                };
             } else if(percent < 0) {
-                icon = "fas fa-arrow-down color-down-reg";
+                icon = {
+                    "classes": "fas fa-arrow-down color-down-reg",
+                    "tooltip": "Inhibition",
+                };
             } else {
-                icon = "fas fa-minus";
+                icon = {
+                    "classes": "fas fa-minus",
+                    "tooltip": "No change",
+                };
+            }
+            let display = percent;
+            if(display < 0) {
+                display = -display;
             }
 
-            return `<i class="${icon}"></i> ${percent}%`;
+            return `
+                <span class="tooltip-parent">
+                    <i class="${icon.classes}"></i>
+                    <div class="tooltip">${icon.tooltip}</div>
+                </span>
+                ${display}%
+            `;
         },
         get_genemania_species: function(species_name) {
             for(const species_key in this.species_map) {
