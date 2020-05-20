@@ -533,10 +533,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if len(seqInDatabase_list) == 0:
                     seqInDatabase = -1
                     if protein_list_id not in pep_not_in_fasta:   
-                      pep_not_in_fasta.update({protein_list_id:[peptide_sub]})
+                      pep_not_in_fasta.update({protein_list_id:[peptide]})
                     else:
-                      if peptide_sub not in pep_not_in_fasta[protein_list_id]:
-                        pep_not_in_fasta[protein_list_id].append(peptide_sub)
+                      if peptide not in pep_not_in_fasta[protein_list_id]:
+                        pep_not_in_fasta[protein_list_id].append(peptide)
                   elif len(seqInDatabase_list) == 1:                        
                     seqInDatabase = seqInDatabase_list[0]
                   else:
@@ -667,8 +667,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
                     sys.exit(1)
               else:
-                if seqInDatabase!="Ambiguous": 
-                  # If no modifications of interest are found in the peptide sequence, assign site = NA              
+                if seqInDatabase != -1: 
+                # If no modifications of interest are found in the peptide sequence, assign site = NA              
                   sites = "NA"
                   if type == "6":
                     if protein_list_id not in dropped_invalid_site:
@@ -684,7 +684,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     else:
                       dropped_invalid_site[protein_list_id]["PeptideandLabel"].append(peptide)
                       dropped_invalid_site[protein_list_id]["Site"].append(sites)        
-              
+
           if row[protein] not in each_protein_list:
             each_protein_list.append(row[protein])
             if type == "1" or type == "2" or type == "3":          
@@ -938,8 +938,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if 'Comment' not in merged_out_dict_2[each_key]:
                 merged_out_dict_2[each_key].update({'Comment':"No site;"})
               else:
-                merged_out_dict_2[each_key]['Comment'] += "No site;"            
-            
+                merged_out_dict_2[each_key]['Comment'] += "No site;"       
         logging.debug("DISCARD WARNING - No sites available: " + str(pep_len) + " peptides")       
         
     else:
@@ -1280,6 +1279,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             continue
           
           for get_each_pep,get_each_site in zip(dropped_invalid_site[each_key]["PeptideandLabel"],dropped_invalid_site[each_key]["Site"]):
+            
             bool_yes = False
             if "-" in get_each_pep:
               each_pep = (get_each_pep.split("-"))[0]
@@ -1654,18 +1654,37 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       warning = []
       count_warn = 0
       for each_mult in pep_not_in_fasta:
-        if each_mult in each_protein_list:
-          warning.append(each_mult + "(" + ','.join(pep_not_in_fasta[each_mult]) + ")")
-          count_warn +=1 
+        #if each_mult in each_protein_list:
+        warning.append(each_mult + "(" + ','.join(pep_not_in_fasta[each_mult]) + ")")       
+        for each_pep in pep_not_in_fasta[each_mult]:
+          count_warn += 1
+          if each_mult not in merged_out_dict:
+            merged_out_dict[each_mult] = {}
+            merged_out_dict[each_mult].update({'DroppedPeptide':[each_pep]})
+            merged_out_dict[each_mult].update({'DroppedSite':["NA"]})
+          else:
+            if 'DroppedPeptide' not in merged_out_dict[each_mult]: 
+              merged_out_dict[each_mult].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict[each_mult].update({'DroppedSite':["NA"]})
+            else:
+              merged_out_dict[each_mult]['DroppedPeptide'].append(each_pep)
+              merged_out_dict[each_mult]['DroppedSite'].append("NA") 
+              
+          if 'Comment' not in merged_out_dict[each_mult]:      
+            merged_out_dict[each_mult].update({'Comment':"Peptide not in FASTA;"})
+          else:
+            merged_out_dict[each_mult]["Comment"] += "Peptide not in FASTA;"
+            
       if warning:
         logging.debug("DISCARD WARNING - Peptides not found in FASTA: " + str(count_warn))
   
   if cy_debug:
     if type == "5" or type == "6":
       countpep = []
+      
       for getprot,getsite in site_info_dict.items():
         countpep.extend(list(getsite.keys()))
-      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(len(list(set(countpep)))) + " unique peptides")
+      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(len(list(countpep))) + " unique peptides")
       each_protein_list = list(site_info_dict.keys())
     
   dup_prot_ids_to_return = []
@@ -1679,7 +1698,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   
   #if (len(unique_unimods)) > 1:
     #mult_mods_of_int = True 
-  
+
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -3038,7 +3057,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
                 for each_index in indices:
                   total_genes += 1                  
-                  FC_val_each_gene = (uniprot_list['FC1'])[each_index]
+                  FC_val_each_gene = (uniprot_list[term_FC])[each_index]
                   if FC_val_each_gene > 0:
                     calc_up += 1
                   elif FC_val_each_gene < 0:
@@ -5007,11 +5026,7 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)        
       try:
-        sys.stdout.write("Send"+ str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")) + "\n")
-        sys.stdout.flush()
         database_dict = db_handling(cy_fasta_file)
-        sys.stdout.write("Retrieved"+ str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")) + "\n")
-        sys.stdout.flush()
         if len(database_dict) == 0:
           eprint("Error: Fasta file is empty or not in fasta format")
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
