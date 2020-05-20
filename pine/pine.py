@@ -506,6 +506,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 for each_seq_in_db_dict in database_dict[protein_list_id]:
                   # Check for position of peptide in FASTA sequence
                   seqInDatabase_list = find(peptide_sub,each_seq_in_db_dict)
+                  bool_mult = False
                   if len(seqInDatabase_list) > 1:
                     # If peptide maps to multiple regions in FASTA, then either pick first option or drop peptide based on user's choice to retain or drop ambiguity
                     if protein_list_id not in mapping_multiple_regions:   
@@ -521,6 +522,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                             if each_include_list == each_mod_key:
                               for each_pos_in_list in modInSeq_all_dict[each_mod]:
                                 store_as_mult.append(each_include_list + str(each_pos_in_list+each_pos+1))
+                                bool_mult = True
                         if store_as_mult:
                           each_pos_store_as_mult.append('/'.join(store_as_mult))
                       if key_val not in mapping_multiple_regions and each_pos_store_as_mult:
@@ -539,6 +541,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         pep_not_in_fasta[protein_list_id].append(peptide)
                   elif len(seqInDatabase_list) == 1:                        
                     seqInDatabase = seqInDatabase_list[0]
+                  elif bool_mult:
+                    seqInDatabase = -1 
                   else:
                     if exclude_ambi:
                       seqInDatabase = "Ambiguous"
@@ -1013,7 +1017,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         list_of_duplicates = additional_dropped + repeat_prot_ids_key_append + retain_prot_ids
         list_of_duplicates = list(set(repeat_prot_ids_2))
         if list_of_duplicates:
-          logging.debug("DISCARD WARNING - Dropping proteins due to inconsistent fold changes or p-values between duplicates: " + str(len(list(set(unique_each_protein_list))))) 
+          logging.debug("DISCARD WARNING - Dropping proteins due to inconsistent fold changes or p-values between duplicates: " + str(len(list(set(list_of_duplicates))))) 
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
