@@ -4833,48 +4833,63 @@ def main(argv):
   if cy_species.lower() == "human":
     tax_id = "9606"
     organism_name = "Homo Sapiens"
+    organism_cluego = "Homo Sapiens"
   elif cy_species.lower() == "mouse":
     tax_id = "10090"
     organism_name = "Mus Musculus"
+    organism_cluego = "Mus Musculus"
   elif cy_species.lower() == "rat":
     tax_id = "10116"
     organism_name = "Rattus norvegicus"
+    organism_cluego = "Rattus norvegicus"
   elif cy_species.lower() == "e. coli":
     tax_id = "511145"
     organism_name = "Escherichia coli"
+    organism_cluego = "Escherichia coli"
   elif cy_species.lower() == "yeast":
     tax_id = "4932"
     organism_name = "Saccharomyces cerevisiae"
+    organism_cluego = "Saccharomyces cerevisiae S288c"
   elif cy_species.lower() == "arabidopsis":
     tax_id = "3702"
     organism_name = "Arabidopsis thaliana"
+    organism_cluego = "Arabidopsis thaliana"
   elif cy_species.lower() == "c. elegans":
     tax_id = "6239"
     organism_name = "Caenorhabditis elegans"
+    organism_cluego = "Caenorhabditis elegans"
   elif cy_species.lower() == "zebrafish":
     tax_id = "7955"
     organism_name = "Danio rerio"
+    organism_cluego = "Danio rerio"
   elif cy_species.lower() == "fruit fly":
     tax_id = "7227"
     organism_name = "Drosophila melanogaster"
+    organism_cluego = "Drosophila melanogaster"
   elif cy_species.lower() == "bovine":
     tax_id = "9913"
     organism_name = "Bos taurus"
+    organism_cluego = "Bos taurus"
   elif cy_species.lower() == "chicken":
     tax_id = "9031"
     organism_name = "gallus gallus"
+    organism_cluego = "gallus gallus"
   elif cy_species.lower() == "pig":
     tax_id = "9823"
     organism_name = "sus scrofa"
+    organism_cluego = "sus scrofa"
   elif cy_species.lower() == "rabbit":
     tax_id = "9986"
     organism_name = "Oryctolagus cuniculus"
+    organism_cluego = "Oryctolagus cuniculus"
   elif cy_species.lower() == "sheep":
     tax_id = "9940"
     organism_name = "Ovis aries"
+    organism_cluego = "Ovis aries"
   elif cy_species.lower() == "dog":
     tax_id = "9612"
     organism_name = "Canis Lupus Familiaris"
+    organism_cluego = "Canis Lupus Familiaris"
   else:
     eprint("Error: Species not currently supported: " + cy_species.lower())
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5012,8 +5027,8 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       else:
-        if organism_name.lower() not in cy_map.lower():
-          eprint("Error: Species mismatch.  Species parameter provided is " + organism_name + " which does not match species contained in path to ClueGO mapping file is " + cy_map)
+        if organism_cluego.lower() not in cy_map.lower():
+          eprint("Error: Species mismatch.  Species parameter provided is " + organism_cluego + " which does not match species contained in path to ClueGO mapping file is " + cy_map)
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
           sys.exit(1)
     
@@ -5363,7 +5378,7 @@ def main(argv):
     
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
-      cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels)
+      cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels)
     
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
