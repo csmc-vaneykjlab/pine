@@ -4856,28 +4856,28 @@ def main(argv):
     organism_cluego = "Arabidopsis thaliana"
   elif cy_species.lower() == "c. elegans":
     tax_id = "6239"
-    organism_name = "Caenorhabditis elegans"
-    organism_cluego = "Caenorhabditis elegans"
+    organism_name = "Caenorhabditis Elegans"
+    organism_cluego = "Caenorhabditis Elegans"
   elif cy_species.lower() == "zebrafish":
     tax_id = "7955"
     organism_name = "Danio rerio"
     organism_cluego = "Danio rerio"
   elif cy_species.lower() == "fruit fly":
     tax_id = "7227"
-    organism_name = "Drosophila melanogaster"
-    organism_cluego = "Drosophila melanogaster"
+    organism_name = "Drosophila Melanogaster"
+    organism_cluego = "Drosophila Melanogaster"
   elif cy_species.lower() == "bovine":
     tax_id = "9913"
     organism_name = "Bos taurus"
     organism_cluego = "Bos taurus"
   elif cy_species.lower() == "chicken":
     tax_id = "9031"
-    organism_name = "gallus gallus"
-    organism_cluego = "gallus gallus"
+    organism_name = "Gallus gallus"
+    organism_cluego = "Gallus gallus"
   elif cy_species.lower() == "pig":
     tax_id = "9823"
-    organism_name = "sus scrofa"
-    organism_cluego = "sus scrofa"
+    organism_name = "Sus scrofa"
+    organism_cluego = "Sus scrofa"
   elif cy_species.lower() == "rabbit":
     tax_id = "9986"
     organism_name = "Oryctolagus cuniculus"
