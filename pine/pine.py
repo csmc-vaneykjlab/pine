@@ -4829,7 +4829,7 @@ def main(argv):
     logging = setup_logger("PINE.log", logging_file, with_stdout=True)
   else:
     logging = setup_logger("PINE.log", logging_file)
-
+  
   if cy_species.lower() == "human":
     tax_id = "9606"
     organism_name = "Homo Sapiens"
@@ -4839,16 +4839,16 @@ def main(argv):
   elif cy_species.lower() == "rat":
     tax_id = "10116"
     organism_name = "Rattus norvegicus"
-  elif cy_species.lower() == "ecoli":
-    tax_id = "199310"
+  elif cy_species.lower() == "e. coli":
+    tax_id = "511145"
     organism_name = "Escherichia coli"
   elif cy_species.lower() == "yeast":
     tax_id = "4932"
     organism_name = "Saccharomyces cerevisiae"
-  elif cy_species.lower() == "arabidopsis thaliana":
+  elif cy_species.lower() == "arabidopsis":
     tax_id = "3702"
     organism_name = "Arabidopsis thaliana"
-  elif cy_species.lower() == "roundworm":
+  elif cy_species.lower() == "c. elegans":
     tax_id = "6239"
     organism_name = "Caenorhabditis elegans"
   elif cy_species.lower() == "zebrafish":
@@ -4876,7 +4876,7 @@ def main(argv):
     tax_id = "9612"
     organism_name = "Canis Lupus Familiaris"
   else:
-    eprint("Error: Species not currently supported")
+    eprint("Error: Species not currently supported: " + cy_species.lower())
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
@@ -5160,6 +5160,7 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
     
+    genemania_species = ""
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       body = dict(offline=True)
       response = request_retry(f"{CYREST_URL}/v1/commands/genemania/organisms", 'POST', json=body)
@@ -5167,6 +5168,10 @@ def main(argv):
       for each in response.json()['data']['organisms']:
         if tax_id == str(each['taxonomyId']):
           genemania_bool = True
+          genemania_species = tax_id
+        elif organism_name.lower() == str(each['scientificName']).lower():
+          genemania_bool = True
+          genemania_species = str(each['taxonomyId'])
       if not genemania_bool:
         eprint("Error: Please install " + cy_species + " dataset in Genemania")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5272,7 +5277,7 @@ def main(argv):
         logging.debug("Genemania query: " + str(len(unique_each_primgene_list)))
     
       #Send gene list to string, get mapping & interactions
-      genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict = create_genemania_interactions(uniprot_query,unique_each_primgene_list,tax_id,cy_lim,"10",cy_debug,logging, merged_out_dict, cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file)
+      genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict = create_genemania_interactions(uniprot_query,unique_each_primgene_list,genemania_species,cy_lim,"10",cy_debug,logging, merged_out_dict, cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file)
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       genemania_category = categorize_gene(genemania_unique_vertex, genemania_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
