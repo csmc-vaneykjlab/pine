@@ -1707,16 +1707,25 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
 
 def ptm_scoring(site_dict, enzyme, include_list):
   ''' PTM scoring algorithm for ambiguous sites: For proteins having different peptides for the same modification site, one representation of site is picked by choosing the peptide having no miscleavages or modifications other than the mod of interest '''
-  enzyme_info = {'trypsin':{'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}, 
+  enzyme_info = {'trypsin' : {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP','RP']},
                  'trypsin_p':{'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : []}, 
+                 'asp_n':{'terminus' : 'N' , 'cleave' : ['D'], 'exceptions' : []},
+                 'arg_c':{'terminus' : 'C' , 'cleave' : ['R'], 'exceptions' : ['RP']},
+                 'chymotrypsin':{'terminus' : 'C' , 'cleave' : ['F','L','M','W','Y'], 'exceptions' :['FP','LP','MP','WP','YP','PY']},                 
+                 'lys_c' : {'terminus' : 'C' , 'cleave' : ['K'], 'exceptions' : ['KP']},
                  'lys_n':{'terminus' : 'N' , 'cleave' : ['K'], 'exceptions' : []}, 
-                 'asp_n':{'terminus' : 'N' , 'cleave' : ['B','D'], 'exceptions' : []}, 
-                 'arg_c':{'terminus' : 'C' , 'cleave' : ['R'], 'exceptions' : ['RP']}, 
-                 'chymotrypsin':{'terminus' : 'C' , 'cleave' : ['F','Y','W','L'], 'exceptions' : ['FP','YP','WP','LP']}, 
-                 'lys_c' : {'terminus' : 'C' , 'cleave' : ['K'], 'exceptions' : ['KP']}}
-                 
+                 'thermolysin':{'terminus' : 'N' , 'cleave' : ['A','F','I','L','M','V'], 
+                                'exceptions' : ['DA','DF','DI','DL','DM','DV','EA','EF','EI','EL','EM','EV']},
+                 'proteinasek':{'terminus' : 'C' , 'cleave' : ['A','F','Y','W','L','I','V'], 'exceptions' : []}, 
+                 'mfh':{'terminus' : 'C' , 'cleave' : ['D'], 'exceptions' : []},
+                 'gluc':{'terminus' : 'C','cleave':['D','E'],'exceptions':['DP','EP',"EE","DE"]},
+                 'glucbicarb':{'terminus' : 'C','cleave':['E'],'exceptions':['EP','EE']},                 
+                 'cnbr':{'terminus' : 'C' , 'cleave' : ['M'], 'exceptions' : []}}
+                  
   all_peptides = list(site_dict.keys())
+  copy_all_peptides = list(site_dict.keys())
   top_score = [0] * len(all_peptides)
+  drop_score = [0] * len(all_peptides)
   index = 0
   for each_peptide in all_peptides: 
     # Other Mods
@@ -1725,13 +1734,14 @@ def ptm_scoring(site_dict, enzyme, include_list):
     all_mods_dict = find_mod(each_peptide)
     combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
     each_peptide_without_mods = re.sub(combined_pat,'',each_peptide)
-    for k in include_list:
-      for key,value in all_mods_dict.items():         
-        key = re.sub('\+','',key)                               
-        k = re.sub('\+','',k)
-        if "c[" in key.lower() or "c{" in key.lower() or "c(" in key.lower():
+    
+    for key,value in all_mods_dict.items(): 
+      if "c[" in key.lower() or "c{" in key.lower() or "c(" in key.lower():
           total_mods += 1
           continue
+      for k in include_list:    
+        key = re.sub('\+','',key)                               
+        k = re.sub('\+','',k)
         key_match = re.search(combined_pat,key)
         k_match = re.search(combined_pat,k)
         if not (key_match and k_match):
@@ -1741,20 +1751,56 @@ def ptm_scoring(site_dict, enzyme, include_list):
           total_mods += 1   
     om = len(all_mods_dict) - total_mods
 
-    # Miscleavage  
-    miscleave = 0
-    exception = 0
-    for each_cleave in enzyme_info[enzyme.lower()]['cleave']:
-      miscleave += each_peptide_without_mods.count(each_cleave)
-    if miscleave > 0:
-      miscleave -=1
-      
-    # Exclude exceptions
-    for each_except in enzyme_info[enzyme.lower()]['exceptions']:
-      exception += each_peptide_without_mods.count(each_except)
+    # Miscleavage 
+    cleavage_score = 0
+    FOUND = False
+    cleave_site = enzyme_info[enzyme.lower()]['cleave']
+    exceptions = enzyme_info[enzyme.lower()]['exceptions']
     
-    top_score[index] += miscleave - exception + om
-    index += 1  
+    # adjust and calculate miscleavage score 
+    if enzyme_info[enzyme.lower()]['terminus']=="C":
+      for i in range (len(each_peptide_without_mods)):
+        if each_peptide_without_mods[i] in cleave_site:
+          FOUND = True
+          if each_peptide_without_mods[i:(i+2)] in exceptions:
+            pass
+          else:
+            cleavage_score += 1
+        
+      if each_peptide_without_mods[-1] in cleave_site:
+        cleavage_score -= 1
+  
+    elif enzyme_info[enzyme.lower()]['terminus']=="N":
+      for i in range (len(each_peptide_without_mods)):
+        if each_peptide_without_mods[i] in cleave_site:
+          FOUND = True
+          if each_peptide_without_mods[(i-1):(i+1)] in exceptions:
+            pass
+          else:
+            cleavage_score += 1
+
+      if each_peptide_without_mods[0] in cleave_site:
+        cleavage_score -= 1
+
+    if FOUND == False:
+      cleavage_score = "NA"
+    
+    if cleavage_score != "NA":    
+      top_score[index] += cleavage_score + om
+      drop_score[index] += cleavage_score + om
+      
+    else:
+      top_score[index] += om
+      drop_score[index] = "NA"
+    
+    index += 1
+  if drop_score.count("NA") != len(all_peptides) and drop_score.count("NA") > 0:
+    for i in reversed(range(len(drop_score))):
+      if drop_score[i] == "NA":
+        del top_score[i]
+        del drop_score[i]
+        del all_peptides[i]
+          
   # Pick lowest score
   min_score = min(top_score)
   indices = [i for i, x in enumerate(top_score) if x == min_score]
@@ -1767,7 +1813,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
       avg_FC = 0     
       for each_site_pos in site_dict[each_pick_pep][0]:
         try:
-          float(each_site_pos)
+          each_site_pos = float(each_site_pos)
           avg_FC += abs(each_site_pos)
           n+= 1
         except:
@@ -1780,7 +1826,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
   else:
     index = indices[0]
   pick_pep = all_peptides[index]
-  dropped_pep = [x for x in all_peptides if not x == pick_pep]
+  dropped_pep = [x for x in copy_all_peptides if not x == pick_pep]
   
   return(site_dict[pick_pep],dropped_pep,pick_pep)  
     
