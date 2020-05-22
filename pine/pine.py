@@ -506,6 +506,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 for each_seq_in_db_dict in database_dict[protein_list_id]:
                   # Check for position of peptide in FASTA sequence
                   seqInDatabase_list = find(peptide_sub,each_seq_in_db_dict)
+                  bool_mult = False
                   if len(seqInDatabase_list) > 1:
                     # If peptide maps to multiple regions in FASTA, then either pick first option or drop peptide based on user's choice to retain or drop ambiguity
                     if protein_list_id not in mapping_multiple_regions:   
@@ -521,6 +522,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                             if each_include_list == each_mod_key:
                               for each_pos_in_list in modInSeq_all_dict[each_mod]:
                                 store_as_mult.append(each_include_list + str(each_pos_in_list+each_pos+1))
+                                bool_mult = True
                         if store_as_mult:
                           each_pos_store_as_mult.append('/'.join(store_as_mult))
                       if key_val not in mapping_multiple_regions and each_pos_store_as_mult:
@@ -533,12 +535,14 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                   if len(seqInDatabase_list) == 0:
                     seqInDatabase = -1
                     if protein_list_id not in pep_not_in_fasta:   
-                      pep_not_in_fasta.update({protein_list_id:[peptide_sub]})
+                      pep_not_in_fasta.update({protein_list_id:[peptide]})
                     else:
-                      if peptide_sub not in pep_not_in_fasta[protein_list_id]:
-                        pep_not_in_fasta[protein_list_id].append(peptide_sub)
+                      if peptide not in pep_not_in_fasta[protein_list_id]:
+                        pep_not_in_fasta[protein_list_id].append(peptide)
                   elif len(seqInDatabase_list) == 1:                        
                     seqInDatabase = seqInDatabase_list[0]
+                  elif bool_mult:
+                    seqInDatabase = -1 
                   else:
                     if exclude_ambi:
                       seqInDatabase = "Ambiguous"
@@ -667,8 +671,8 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
                     sys.exit(1)
               else:
-                if seqInDatabase!="Ambiguous": 
-                  # If no modifications of interest are found in the peptide sequence, assign site = NA              
+                if seqInDatabase != -1: 
+                # If no modifications of interest are found in the peptide sequence, assign site = NA              
                   sites = "NA"
                   if type == "6":
                     if protein_list_id not in dropped_invalid_site:
@@ -684,7 +688,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     else:
                       dropped_invalid_site[protein_list_id]["PeptideandLabel"].append(peptide)
                       dropped_invalid_site[protein_list_id]["Site"].append(sites)        
-              
+
           if row[protein] not in each_protein_list:
             each_protein_list.append(row[protein])
             if type == "1" or type == "2" or type == "3":          
@@ -938,8 +942,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               if 'Comment' not in merged_out_dict_2[each_key]:
                 merged_out_dict_2[each_key].update({'Comment':"No site;"})
               else:
-                merged_out_dict_2[each_key]['Comment'] += "No site;"            
-            
+                merged_out_dict_2[each_key]['Comment'] += "No site;"       
         logging.debug("DISCARD WARNING - No sites available: " + str(pep_len) + " peptides")       
         
     else:
@@ -1014,7 +1017,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
         list_of_duplicates = additional_dropped + repeat_prot_ids_key_append + retain_prot_ids
         list_of_duplicates = list(set(repeat_prot_ids_2))
         if list_of_duplicates:
-          logging.debug("DISCARD WARNING - Dropping proteins due to inconsistent fold changes or p-values between duplicates: " + str(len(list(set(unique_each_protein_list))))) 
+          logging.debug("DISCARD WARNING - Dropping proteins due to inconsistent fold changes or p-values between duplicates: " + str(len(list(set(list_of_duplicates))))) 
       each_protein_list = unique_each_protein_list
       max_FC_len = len(unique_labels)
       prot_list_rearrange = {}
@@ -1280,6 +1283,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             continue
           
           for get_each_pep,get_each_site in zip(dropped_invalid_site[each_key]["PeptideandLabel"],dropped_invalid_site[each_key]["Site"]):
+            
             bool_yes = False
             if "-" in get_each_pep:
               each_pep = (get_each_pep.split("-"))[0]
@@ -1654,18 +1658,37 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
       warning = []
       count_warn = 0
       for each_mult in pep_not_in_fasta:
-        if each_mult in each_protein_list:
-          warning.append(each_mult + "(" + ','.join(pep_not_in_fasta[each_mult]) + ")")
-          count_warn +=1 
+        #if each_mult in each_protein_list:
+        warning.append(each_mult + "(" + ','.join(pep_not_in_fasta[each_mult]) + ")")       
+        for each_pep in pep_not_in_fasta[each_mult]:
+          count_warn += 1
+          if each_mult not in merged_out_dict:
+            merged_out_dict[each_mult] = {}
+            merged_out_dict[each_mult].update({'DroppedPeptide':[each_pep]})
+            merged_out_dict[each_mult].update({'DroppedSite':["NA"]})
+          else:
+            if 'DroppedPeptide' not in merged_out_dict[each_mult]: 
+              merged_out_dict[each_mult].update({'DroppedPeptide':[each_pep]})
+              merged_out_dict[each_mult].update({'DroppedSite':["NA"]})
+            else:
+              merged_out_dict[each_mult]['DroppedPeptide'].append(each_pep)
+              merged_out_dict[each_mult]['DroppedSite'].append("NA") 
+              
+          if 'Comment' not in merged_out_dict[each_mult]:      
+            merged_out_dict[each_mult].update({'Comment':"Peptide not in FASTA;"})
+          else:
+            merged_out_dict[each_mult]["Comment"] += "Peptide not in FASTA;"
+            
       if warning:
         logging.debug("DISCARD WARNING - Peptides not found in FASTA: " + str(count_warn))
   
   if cy_debug:
     if type == "5" or type == "6":
       countpep = []
+      
       for getprot,getsite in site_info_dict.items():
         countpep.extend(list(getsite.keys()))
-      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(len(list(set(countpep)))) + " unique peptides")
+      logging.debug("Remaining query: " + str(len(list(site_info_dict.keys()))) + " unique proteins IDs, " + str(len(list(countpep))) + " unique peptides")
       each_protein_list = list(site_info_dict.keys())
     
   dup_prot_ids_to_return = []
@@ -1679,21 +1702,30 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   
   #if (len(unique_unimods)) > 1:
     #mult_mods_of_int = True 
-  
+
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int)
 
 def ptm_scoring(site_dict, enzyme, include_list):
   ''' PTM scoring algorithm for ambiguous sites: For proteins having different peptides for the same modification site, one representation of site is picked by choosing the peptide having no miscleavages or modifications other than the mod of interest '''
-  enzyme_info = {'trypsin':{'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}, 
+  enzyme_info = {'trypsin' : {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP','RP']},
                  'trypsin_p':{'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : []}, 
+                 'asp_n':{'terminus' : 'N' , 'cleave' : ['D'], 'exceptions' : []},
+                 'arg_c':{'terminus' : 'C' , 'cleave' : ['R'], 'exceptions' : ['RP']},
+                 'chymotrypsin':{'terminus' : 'C' , 'cleave' : ['F','L','M','W','Y'], 'exceptions' :['FP','LP','MP','WP','YP','PY']},                 
+                 'lys_c' : {'terminus' : 'C' , 'cleave' : ['K'], 'exceptions' : ['KP']},
                  'lys_n':{'terminus' : 'N' , 'cleave' : ['K'], 'exceptions' : []}, 
-                 'asp_n':{'terminus' : 'N' , 'cleave' : ['B','D'], 'exceptions' : []}, 
-                 'arg_c':{'terminus' : 'C' , 'cleave' : ['R'], 'exceptions' : ['RP']}, 
-                 'chymotrypsin':{'terminus' : 'C' , 'cleave' : ['F','Y','W','L'], 'exceptions' : ['FP','YP','WP','LP']}, 
-                 'lys_c' : {'terminus' : 'C' , 'cleave' : ['K'], 'exceptions' : ['KP']}}
-                 
+                 'thermolysin':{'terminus' : 'N' , 'cleave' : ['A','F','I','L','M','V'], 
+                                'exceptions' : ['DA','DF','DI','DL','DM','DV','EA','EF','EI','EL','EM','EV']},
+                 'proteinasek':{'terminus' : 'C' , 'cleave' : ['A','F','Y','W','L','I','V'], 'exceptions' : []}, 
+                 'mfh':{'terminus' : 'C' , 'cleave' : ['D'], 'exceptions' : []},
+                 'gluc':{'terminus' : 'C','cleave':['D','E'],'exceptions':['DP','EP',"EE","DE"]},
+                 'glucbicarb':{'terminus' : 'C','cleave':['E'],'exceptions':['EP','EE']},                 
+                 'cnbr':{'terminus' : 'C' , 'cleave' : ['M'], 'exceptions' : []}}
+                  
   all_peptides = list(site_dict.keys())
+  copy_all_peptides = list(site_dict.keys())
   top_score = [0] * len(all_peptides)
+  drop_score = [0] * len(all_peptides)
   index = 0
   for each_peptide in all_peptides: 
     # Other Mods
@@ -1702,13 +1734,14 @@ def ptm_scoring(site_dict, enzyme, include_list):
     all_mods_dict = find_mod(each_peptide)
     combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
     each_peptide_without_mods = re.sub(combined_pat,'',each_peptide)
-    for k in include_list:
-      for key,value in all_mods_dict.items():         
-        key = re.sub('\+','',key)                               
-        k = re.sub('\+','',k)
-        if "c[" in key.lower() or "c{" in key.lower() or "c(" in key.lower():
+    
+    for key,value in all_mods_dict.items(): 
+      if "c[" in key.lower() or "c{" in key.lower() or "c(" in key.lower():
           total_mods += 1
           continue
+      for k in include_list:    
+        key = re.sub('\+','',key)                               
+        k = re.sub('\+','',k)
         key_match = re.search(combined_pat,key)
         k_match = re.search(combined_pat,k)
         if not (key_match and k_match):
@@ -1718,20 +1751,56 @@ def ptm_scoring(site_dict, enzyme, include_list):
           total_mods += 1   
     om = len(all_mods_dict) - total_mods
 
-    # Miscleavage  
-    miscleave = 0
-    exception = 0
-    for each_cleave in enzyme_info[enzyme.lower()]['cleave']:
-      miscleave += each_peptide_without_mods.count(each_cleave)
-    if miscleave > 0:
-      miscleave -=1
-      
-    # Exclude exceptions
-    for each_except in enzyme_info[enzyme.lower()]['exceptions']:
-      exception += each_peptide_without_mods.count(each_except)
+    # Miscleavage 
+    cleavage_score = 0
+    FOUND = False
+    cleave_site = enzyme_info[enzyme.lower()]['cleave']
+    exceptions = enzyme_info[enzyme.lower()]['exceptions']
     
-    top_score[index] += miscleave - exception + om
-    index += 1  
+    # adjust and calculate miscleavage score 
+    if enzyme_info[enzyme.lower()]['terminus']=="C":
+      for i in range (len(each_peptide_without_mods)):
+        if each_peptide_without_mods[i] in cleave_site:
+          FOUND = True
+          if each_peptide_without_mods[i:(i+2)] in exceptions:
+            pass
+          else:
+            cleavage_score += 1
+        
+      if each_peptide_without_mods[-1] in cleave_site:
+        cleavage_score -= 1
+  
+    elif enzyme_info[enzyme.lower()]['terminus']=="N":
+      for i in range (len(each_peptide_without_mods)):
+        if each_peptide_without_mods[i] in cleave_site:
+          FOUND = True
+          if each_peptide_without_mods[(i-1):(i+1)] in exceptions:
+            pass
+          else:
+            cleavage_score += 1
+
+      if each_peptide_without_mods[0] in cleave_site:
+        cleavage_score -= 1
+
+    if FOUND == False:
+      cleavage_score = "NA"
+    
+    if cleavage_score != "NA":    
+      top_score[index] += cleavage_score + om
+      drop_score[index] += cleavage_score + om
+      
+    else:
+      top_score[index] += om
+      drop_score[index] = "NA"
+    
+    index += 1
+  if drop_score.count("NA") != len(all_peptides) and drop_score.count("NA") > 0:
+    for i in reversed(range(len(drop_score))):
+      if drop_score[i] == "NA":
+        del top_score[i]
+        del drop_score[i]
+        del all_peptides[i]
+          
   # Pick lowest score
   min_score = min(top_score)
   indices = [i for i, x in enumerate(top_score) if x == min_score]
@@ -1744,7 +1813,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
       avg_FC = 0     
       for each_site_pos in site_dict[each_pick_pep][0]:
         try:
-          float(each_site_pos)
+          each_site_pos = float(each_site_pos)
           avg_FC += abs(each_site_pos)
           n+= 1
         except:
@@ -1757,7 +1826,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
   else:
     index = indices[0]
   pick_pep = all_peptides[index]
-  dropped_pep = [x for x in all_peptides if not x == pick_pep]
+  dropped_pep = [x for x in copy_all_peptides if not x == pick_pep]
   
   return(site_dict[pick_pep],dropped_pep,pick_pep)  
     
@@ -3038,7 +3107,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
                 for each_index in indices:
                   total_genes += 1                  
-                  FC_val_each_gene = (uniprot_list['FC1'])[each_index]
+                  FC_val_each_gene = (uniprot_list[term_FC])[each_index]
                   if FC_val_each_gene > 0:
                     calc_up += 1
                   elif FC_val_each_gene < 0:
@@ -4806,18 +4875,69 @@ def main(argv):
     logging = setup_logger("PINE.log", logging_file, with_stdout=True)
   else:
     logging = setup_logger("PINE.log", logging_file)
-
+  
   if cy_species.lower() == "human":
     tax_id = "9606"
     organism_name = "Homo Sapiens"
+    organism_cluego = "Homo Sapiens"
   elif cy_species.lower() == "mouse":
     tax_id = "10090"
     organism_name = "Mus Musculus"
+    organism_cluego = "Mus Musculus"
   elif cy_species.lower() == "rat":
     tax_id = "10116"
     organism_name = "Rattus norvegicus"
+    organism_cluego = "Rattus norvegicus"
+  elif cy_species.lower() == "e. coli":
+    tax_id = "511145"
+    organism_name = "Escherichia coli"
+    organism_cluego = "Escherichia coli"
+  elif cy_species.lower() == "yeast":
+    tax_id = "4932"
+    organism_name = "Saccharomyces cerevisiae"
+    organism_cluego = "Saccharomyces cerevisiae S288c"
+  elif cy_species.lower() == "arabidopsis":
+    tax_id = "3702"
+    organism_name = "Arabidopsis thaliana"
+    organism_cluego = "Arabidopsis thaliana"
+  elif cy_species.lower() == "c. elegans":
+    tax_id = "6239"
+    organism_name = "Caenorhabditis Elegans"
+    organism_cluego = "Caenorhabditis Elegans"
+  elif cy_species.lower() == "zebrafish":
+    tax_id = "7955"
+    organism_name = "Danio rerio"
+    organism_cluego = "Danio rerio"
+  elif cy_species.lower() == "fruit fly":
+    tax_id = "7227"
+    organism_name = "Drosophila Melanogaster"
+    organism_cluego = "Drosophila Melanogaster"
+  elif cy_species.lower() == "bovine":
+    tax_id = "9913"
+    organism_name = "Bos taurus"
+    organism_cluego = "Bos taurus"
+  elif cy_species.lower() == "chicken":
+    tax_id = "9031"
+    organism_name = "Gallus gallus"
+    organism_cluego = "Gallus gallus"
+  elif cy_species.lower() == "pig":
+    tax_id = "9823"
+    organism_name = "Sus scrofa"
+    organism_cluego = "Sus scrofa"
+  elif cy_species.lower() == "rabbit":
+    tax_id = "9986"
+    organism_name = "Oryctolagus cuniculus"
+    organism_cluego = "Oryctolagus cuniculus"
+  elif cy_species.lower() == "sheep":
+    tax_id = "9940"
+    organism_name = "Ovis aries"
+    organism_cluego = "Ovis aries"
+  elif cy_species.lower() == "dog":
+    tax_id = "9612"
+    organism_name = "Canis Lupus Familiaris"
+    organism_cluego = "Canis Lupus Familiaris"
   else:
-    eprint("Error: Species currently supported are human, mouse, rat")
+    eprint("Error: Species not currently supported: " + cy_species.lower())
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
 
@@ -4953,8 +5073,8 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
       else:
-        if organism_name.lower() not in cy_map.lower():
-          eprint("Error: Species mismatch.  Species parameter provided is " + organism_name + " which does not match species contained in path to ClueGO mapping file is " + cy_map)
+        if organism_cluego.lower() not in cy_map.lower():
+          eprint("Error: Species mismatch.  Species parameter provided is " + organism_cluego + " which does not match species contained in path to ClueGO mapping file is " + cy_map)
           remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
           sys.exit(1)
     
@@ -5101,6 +5221,7 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
     
+    genemania_species = ""
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       body = dict(offline=True)
       response = request_retry(f"{CYREST_URL}/v1/commands/genemania/organisms", 'POST', json=body)
@@ -5108,6 +5229,10 @@ def main(argv):
       for each in response.json()['data']['organisms']:
         if tax_id == str(each['taxonomyId']):
           genemania_bool = True
+          genemania_species = tax_id
+        elif organism_name.lower() == str(each['scientificName']).lower():
+          genemania_bool = True
+          genemania_species = str(each['taxonomyId'])
       if not genemania_bool:
         eprint("Error: Please install " + cy_species + " dataset in Genemania")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5213,7 +5338,7 @@ def main(argv):
         logging.debug("Genemania query: " + str(len(unique_each_primgene_list)))
     
       #Send gene list to string, get mapping & interactions
-      genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict = create_genemania_interactions(uniprot_query,unique_each_primgene_list,tax_id,cy_lim,"10",cy_debug,logging, merged_out_dict, cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file)
+      genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict = create_genemania_interactions(uniprot_query,unique_each_primgene_list,genemania_species,cy_lim,"10",cy_debug,logging, merged_out_dict, cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file)
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       genemania_category = categorize_gene(genemania_unique_vertex, genemania_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
@@ -5299,7 +5424,7 @@ def main(argv):
     
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
-      cluego_run(organism_name,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels)
+      cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels)
     
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
