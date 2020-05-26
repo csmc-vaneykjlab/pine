@@ -53,7 +53,7 @@ __maintainer__ = "Niveda Sundararaman"
 __email__ = "GroupHeartBioinformaticsSupport@cshs.org"
 __status__ = "Production"
 
-CYREST_PORTS = [8012, 8013]
+CYREST_PORTS = [1234]
 CYREST_URL = None
 CYREST_PORT = None
 
@@ -5090,7 +5090,7 @@ def main(argv):
     CYREST_URL = "http://localhost:" + str(cyrest_port)
 
     if not found_open_port:
-      eprint("Could not find an open port to start Cytoscape. Please close a previous PINE generated Cytoscape session and start the run again.")
+      eprint("Please close all open Cytoscape sessions and start the run again.")
       sys.exit(1)
     
     if not cy_cluego_inp_file:
