@@ -3038,11 +3038,13 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
 
 def calc_protein_change_sf(df, uniprot_list, type):
   cluego_dict = df.to_dict()
-  add_col_to_end = {}
+  status_col = {}
+  percent_col = {}
   for each_term in cluego_dict:
     if "associated genes found" in each_term.lower():
       for each_col in cluego_dict[each_term]:
         up_or_down = {}
+        status_per_col = {}
         total_genes = 0
         calc_up = 0
         calc_down = 0
@@ -3073,26 +3075,35 @@ def calc_protein_change_sf(df, uniprot_list, type):
         
         if (calc_up/total_genes*100) > 60: 
           percent_val = str(round((calc_up/total_genes*100),2))
+          status_val = "Upregulation"
         elif (abs(calc_down)/total_genes*100) > 60:
           percent_val = str(round((calc_down/total_genes*100),2))
+          status_val = "Downregulation"
         else: 
-          percent_val = "0"
+          percent_val = "NA"
+          status_val = "No change"
         up_or_down.update({"Percent":percent_val})
+        status_per_col.update({"Status":status_val})
         
-        add_new_col = json.dumps([{'label': 'Status', 'percent': v} for k,v in up_or_down.items()])
-        #add_new_col = json.dumps([{'label': k, 'percent': v} for k,v in new_dict.items()])
-        add_col_to_end[each_col] = add_new_col
-  cluego_dict.update({'Status':add_col_to_end})
+        add_new_percent_col = up_or_down["Percent"]
+        percent_col[each_col] = add_new_percent_col
+        add_new_status_col = status_per_col["Status"]
+        status_col[each_col] = add_new_status_col
+        
+  cluego_dict.update({'Status':status_col, '% change':percent_col})
   df = pd.DataFrame.from_dict(cluego_dict)
   return(df)
 
 def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
   cluego_dict = df.to_dict()
   add_col_to_end = {}
+  status_col = {}
+  percent_col = {}
   for each_term in cluego_dict:
     if "associated genes found" in each_term.lower():
       for each_col in cluego_dict[each_term]:
         up_or_down = {}
+        status_per_col = {}
         list_of_genes = cluego_dict[each_term][each_col].strip('][').split(', ') 
         for i in range(1,max_FC_len+1):
           term_FC = 'FC' + str(i)
@@ -3127,16 +3138,33 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                   
           if (calc_up/total_genes*100) > 60: 
             percent_val = str(round((calc_up/total_genes*100),2))
+            status_val = "Upregulation"
           elif (abs(calc_down)/total_genes*100) > 60:
             percent_val = str(round((calc_down/total_genes*100),2))
+            status_val = "Downregulation"
           else: 
-            percent_val = "0"
+            percent_val = "NA"
+            status_val = "No change"
+            
           up_or_down.update({val_term_FC:percent_val})
-          
-        add_new_col = json.dumps([{'label': k, 'percent': v} for k,v in up_or_down.items()])
-        add_col_to_end[each_col] = add_new_col
+          status_per_col.update({val_term_FC:status_val})
         
-  cluego_dict.update({'Status':add_col_to_end})
+        for each_val_term_FC in up_or_down:
+          label = each_val_term_FC 
+          if label not in status_col:
+            status_col[label] = {}
+            status_col[label][each_col] = status_per_col[each_val_term_FC]
+            percent_col[label] = {}
+            percent_col[label][each_col] = up_or_down[each_val_term_FC]
+          else:
+            status_col[label][each_col] = status_per_col[each_val_term_FC]
+            percent_col[label][each_col] = up_or_down[each_val_term_FC]
+              
+  for each_col in status_col:
+    label = "Status:"+str(each_col)
+    percent = "% change:"+str(each_col)    
+    cluego_dict.update({label:status_col[each_col], percent:percent_col[each_col]})
+    
   df = pd.DataFrame.from_dict(cluego_dict)
   return(df)        
                   
@@ -3315,7 +3343,6 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       table_file_name = output_cluego
       writeLines(response.text,table_file_name,type,uniprot_list,max_FC_len,unique_labels)
     except:
-      traceback.print_exc()
       eprint("Error: No pathways found for input list")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)  
