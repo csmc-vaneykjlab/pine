@@ -536,7 +536,7 @@
                     <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
                     <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
                     <td class="align-right" v-show="cluego_pathways_filtered.labels.length > 0">
-                      <span v-html="pathway_data_label(pathway.data, cluego_pathways_filtered.picked_label)"></span>
+                      <span v-html="pathway_data_label(pathway, cluego_pathways_filtered.picked_label)"></span>
                     </td>
                   </tr>
                   <tr v-for="(i,ix) in cluego_pathways_filtered.n_empty_rows">

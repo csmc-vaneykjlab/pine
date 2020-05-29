@@ -76,9 +76,7 @@ let vm = new Vue({
             "escherichia coli": {name: "E. coli", genemania: "9"},
             "saccharomyces cerevisiae s288c": {name: "yeast", genemania: "6"},
             "arabidopsis thaliana": {name: "arabidopsis", genemania: "1"},
-            "caenorhabditis elegans": {name: "C. elegans", genemania: "2"},
             "danio rerio": {name: "zebrafish", genemania: "8"},
-            "drosophila melanogaster": {name: "fruit fly", genemania: "3"},
             "bos taurus": {name: "bovine", genemania: null},
             "gallus gallus": {name: "chicken", genemania: null},
             "sus scrofa": {name: "pig", genemania: null},
@@ -826,29 +824,24 @@ let vm = new Vue({
                     if(fields.length !== that.cluego_pathways.header.length) {
                         return; // invalid line
                     }
-                    let record = {"data": {}, "selected": false, "line": line};
+                    let record = {"data": {}, "selected": false, "line": line, "labels": {}};
                     for(let i = 0; i < that.cluego_pathways.header.length; i++) {
                         const header = that.cluego_pathways.header[i];
-                        if(header === "Status") {
-                            try {
-                                record["data"][header] = JSON.parse(fields[i].replace(/^"|"$/g, "").replace(/""/g, '"'));
-                                for(let label of record["data"][header]) {
-                                    label.percent = parseFloat(label.percent);
-                                    if(!isNaN(label.percent)) {
-                                        label.percent = label.percent.toFixed(1);
-                                    }
-                                }
-                            } catch(e) {
-                                if(e instanceof SyntaxError) {
-                                    record["data"][header] = null;
-                                } else {
-                                    console.log("here2");
-                                    throw e;
-                                }
+                        if(header.startsWith("% change")) {
+                            let label;
+                            if(header.includes(":")) {
+                                label = header.split(":").slice(1).join(":");
+                            } else {
+                                label = "Status";
                             }
-                        } else {
-                            record["data"][header] = fields[i];
+                            const val = parseFloat(fields[i]);
+                            if(isNaN(val)) {
+                                record["labels"][label] = 0.0;
+                            } else {
+                                record["labels"][label] = val;
+                            }
                         }
+                        record["data"][header] = fields[i];
                     }
 
                     /* get ontology source category */
@@ -871,13 +864,12 @@ let vm = new Vue({
                 /* get labels */
                 let labels = new Set();
                 for(const record of this.cluego_pathways.data) {
-                    if("Status" in record.data) {
-                        for(const label of record.data.Status) {
-                            labels.add(label.label);
-                        }
+                    for(const label in record.labels) {
+                        labels.add(label);
                     }
                 }
                 this.cluego_pathways.labels = Array.from(labels);
+                this.cluego_pathways.labels.sort((x, y) => x.localeCompare(y));
                 this.cluego_pathways.picked_label = this.cluego_pathways.labels.length > 0 ? this.cluego_pathways.labels[0] : "";
             });
         },
@@ -1225,18 +1217,9 @@ let vm = new Vue({
             }
         },
         pathway_data_label: function(datum, label) {
-            if(!("Status" in datum)) {
-                return NaN;
-            }
+            let percent = datum.labels[label];
 
-            let percent = null;
-            for(const status of datum.Status) {
-                if(status.label === label) {
-                    percent = status.percent;
-                }
-            }
-
-            if(percent == null) {
+            if(percent == null || isNaN(percent)) {
                 return NaN;
             }
 
@@ -1244,12 +1227,12 @@ let vm = new Vue({
             if(percent > 0) {
                 icon = {
                     "classes": "fas fa-arrow-up color-up-reg",
-                    "tooltip": "Activation",
+                    "tooltip": "% genes upregulated",
                 };
             } else if(percent < 0) {
                 icon = {
                     "classes": "fas fa-arrow-down color-down-reg",
-                    "tooltip": "Inhibition",
+                    "tooltip": "% genes downregulated",
                 };
             } else {
                 icon = {
@@ -1257,17 +1240,21 @@ let vm = new Vue({
                     "tooltip": "No change",
                 };
             }
-            let display = percent;
-            if(display < 0) {
-                display = -display;
+            let display;
+            if(percent > 0) {
+                display = `${percent}%`;
+            } else if(percent < 0) {
+                display = `${-percent}%`;
+            } else {
+                display = "N/A";
             }
 
             return `
                 <span class="tooltip-parent">
                     <i class="${icon.classes}"></i>
-                    <div class="tooltip">${icon.tooltip}</div>
+                    <div class="tooltip tooltip-right">${icon.tooltip}</div>
                 </span>
-                ${display}%
+                ${display}
             `;
         },
         get_genemania_species: function(species_name) {
@@ -1389,19 +1376,6 @@ let vm = new Vue({
                 return pathway.data["Ontology Source Category"] === that.cluego_pathways.ontology_sources_filter;
             });
 
-            /* set label value */
-            if(this.cluego_pathways.picked_label) {
-                for(let record of this.cluego_pathways.data) {
-                    if("Status" in record.data) {
-                        for(const status of record.data.Status) {
-                            if(status.label === this.cluego_pathways.picked_label) {
-                                record.data.label = status.percent;
-                            }
-                        }
-                    }
-                }
-            }
-
             if(this.cluego_pathways.sort) {
                 const lower = this.cluego_pathways.sort.order === "asc" ? -1 : 1;
                 const higher = lower * -1;
@@ -1412,6 +1386,16 @@ let vm = new Vue({
                         if(a.selected && !b.selected) return lower;
                         if(!a.selected && b.selected) return higher;
                         return 0;
+                    });
+                } else if(col === "label") {
+                    filtered.sort(function(a, b) {
+                        if(a.labels[that.cluego_pathways.picked_label] < b.labels[that.cluego_pathways.picked_label]) {
+                            return lower;
+                        } else if(a.labels[that.cluego_pathways.picked_label] > b.labels[that.cluego_pathways.picked_label]) {
+                            return higher;
+                        } else {
+                            return 0;
+                        }
                     });
                 } else {
                     filtered.sort(function(a, b) {
@@ -1547,6 +1531,11 @@ let vm = new Vue({
         },
         "reanalysis_name": function(new_val) {
             this.$set(this, "reanalysis_name", new_val.replace(OUT_NAME_INVALID_REGEX, ""));
+        },
+        "cluego_pathways.picked_label": function(new_val) {
+            if(this.cluego_pathways.sort && this.cluego_pathways.sort.column === "label") {
+                this.cluego_pathways.sort.display = new_val;
+            }
         },
     }
 });
