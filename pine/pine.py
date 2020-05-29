@@ -3207,17 +3207,13 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       min_number_of_genes_per_term = 20
     min_percentage_of_genes_mapped = 0
     min_go = 1
-    max_go = 6
+    max_go = 4
     kappa = 0.5
   elif group.lower() == "medium":
-    if len(merged_vertex) <= 500:
-      min_number_of_genes_per_term = 3
-      min_percentage_of_genes_mapped = 2
-    else:
-      min_number_of_genes_per_term = 20
-      min_percentage_of_genes_mapped = 4
-    min_go = 7
-    max_go = 11
+    min_number_of_genes_per_term = 3
+    min_percentage_of_genes_mapped = 4
+    min_go = 3
+    max_go = 8
     kappa = 0.4
   else:
     min_number_of_genes_per_term = 1
@@ -4927,18 +4923,10 @@ def main(argv):
     tax_id = "3702"
     organism_name = "Arabidopsis thaliana"
     organism_cluego = "Arabidopsis thaliana"
-  elif cy_species.lower() == "c. elegans":
-    tax_id = "6239"
-    organism_name = "Caenorhabditis Elegans"
-    organism_cluego = "Caenorhabditis Elegans"
   elif cy_species.lower() == "zebrafish":
     tax_id = "7955"
     organism_name = "Danio rerio"
     organism_cluego = "Danio rerio"
-  elif cy_species.lower() == "fruit fly":
-    tax_id = "7227"
-    organism_name = "Drosophila Melanogaster"
-    organism_cluego = "Drosophila Melanogaster"
   elif cy_species.lower() == "bovine":
     tax_id = "9913"
     organism_name = "Bos taurus"
