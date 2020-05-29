@@ -1227,12 +1227,12 @@ let vm = new Vue({
             if(percent > 0) {
                 icon = {
                     "classes": "fas fa-arrow-up color-up-reg",
-                    "tooltip": "Upregulation",
+                    "tooltip": "% genes upregulated",
                 };
             } else if(percent < 0) {
                 icon = {
                     "classes": "fas fa-arrow-down color-down-reg",
-                    "tooltip": "Downregulation",
+                    "tooltip": "% genes downregulated",
                 };
             } else {
                 icon = {
@@ -1252,7 +1252,7 @@ let vm = new Vue({
             return `
                 <span class="tooltip-parent">
                     <i class="${icon.classes}"></i>
-                    <div class="tooltip">${icon.tooltip}</div>
+                    <div class="tooltip tooltip-right">${icon.tooltip}</div>
                 </span>
                 ${display}
             `;
