@@ -1532,5 +1532,10 @@ let vm = new Vue({
         "reanalysis_name": function(new_val) {
             this.$set(this, "reanalysis_name", new_val.replace(OUT_NAME_INVALID_REGEX, ""));
         },
+        "cluego_pathways.picked_label": function(new_val) {
+            if(this.cluego_pathways.sort && this.cluego_pathways.sort.column === "label") {
+                this.cluego_pathways.sort.display = new_val;
+            }
+        },
     }
 });
