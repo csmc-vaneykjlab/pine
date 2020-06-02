@@ -3074,10 +3074,10 @@ def calc_protein_change_sf(df, uniprot_list, type):
                 calc_down -= 1                
         
         if (calc_up/total_genes*100) > 60: 
-          percent_val = str(round((calc_up/total_genes*100),2))
+          percent_val = str(round((calc_up/total_genes*100)))
           status_val = "Upregulation"
         elif (abs(calc_down)/total_genes*100) > 60:
-          percent_val = str(round((calc_down/total_genes*100),2))
+          percent_val = str(round((calc_down/total_genes*100)))
           status_val = "Downregulation"
         else: 
           percent_val = "NA"
@@ -3137,10 +3137,10 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                   calc_down -= 1   
                   
           if (calc_up/total_genes*100) > 60: 
-            percent_val = str(round((calc_up/total_genes*100),2))
+            percent_val = str(round((calc_up/total_genes*100)))
             status_val = "Upregulation"
           elif (abs(calc_down)/total_genes*100) > 60:
-            percent_val = str(round((calc_down/total_genes*100),2))
+            percent_val = str(round((calc_down/total_genes*100)))
             status_val = "Downregulation"
           else: 
             percent_val = "NA"
@@ -3201,11 +3201,8 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
   Obtain ClueGO annotations based on user settings for the list of genes via a Cytoscape App request call. Output is a list of annotation terms along with associated genes and corresponding term p-value
   ''' 
   if group.lower() == "global":
-    if len(merged_vertex) <= 500:
-      min_number_of_genes_per_term = 3
-    else:
-      min_number_of_genes_per_term = 20
-    min_percentage_of_genes_mapped = 0
+    min_number_of_genes_per_term = 5
+    min_percentage_of_genes_mapped = 2
     min_go = 1
     max_go = 4
     kappa = 0.5
@@ -5079,6 +5076,7 @@ def main(argv):
 
     if not found_open_port:
       eprint("Please close all open Cytoscape sessions and start the run again.")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)
     
     if not cy_cluego_inp_file:
