@@ -1242,9 +1242,9 @@ let vm = new Vue({
             }
             let display;
             if(percent > 0) {
-                display = `${percent}%`;
+                display = `${percent.toFixed(0)}%`;
             } else if(percent < 0) {
-                display = `${-percent}%`;
+                display = `${-percent.toFixed(0)}%`;
             } else {
                 display = "N/A";
             }
