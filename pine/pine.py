@@ -446,6 +446,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               eprint("Error: Invalid peptide: " + row[peptide_col] + " in line " + str(line_count+1))
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
               sys.exit(1)
+              
             if row[protein] not in unique_prot_pep:
               unique_prot_pep.update({row[protein]:[row[peptide_col]]})
               initial_query_pep_count += 1
@@ -556,10 +557,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
                 sys.exit(1)         
                 
-              if seqInDatabase!=-1 and seqInDatabase!="Ambiguous":           
-                for k in include_list:
-                  for key,value in modInSeq_all_dict.items():                   
-                    combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
+              if seqInDatabase!=-1 and seqInDatabase!="Ambiguous": 
+                not_alkylated = []                  
+                for key,value in modInSeq_all_dict.items():
+                  is_present = False      
+                  combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))              
+                  for k in include_list:
                     #key = re.sub('\+','',key)                               
                     #k = re.sub('\+','',k)
                     key_match = re.search(combined_pat,key)
@@ -571,6 +574,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                       key1 = key
                       k1 = k                   
                     if k1.lower() in key1.lower(): 
+                      is_present = True
                       for each_val in value:
                         val = int(each_val)+int(seqInDatabase)+1
                         match_unimod = re.findall(combined_pat, key)
@@ -582,7 +586,21 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                           modInSeq_dict[key_with_unimod].append(val)                          
                         else:
                           modInSeq_dict[key_with_unimod] = [val]
-                        all_mods_for_prot.append(key)         
+                        all_mods_for_prot.append(key)
+                    
+                  if not is_present:  
+                    get_mod_of_int = re.sub(combined_pat, '', key)
+                    match_unimod = re.findall(combined_pat, key)
+                    remove_brackets = r'|'.join(('\[', '\{', '\(', '\]', '\}', '\)'))
+                    get_unimod = re.sub(remove_brackets, '', match_unimod[0])                    
+                    if get_mod_of_int.lower() == "c" and not ("+57" == get_unimod.lower() or "cam" == get_unimod.lower() or "unimod:4" == get_unimod.lower()):
+                      if key not in not_alkylated:
+                        not_alkylated.append(key)
+                
+                if not_alkylated:
+                  eprint("Error: Found" + ",".join(not_alkylated) + ". Alkylation on C should be shown in the data as C[+57] or C(cam) or C{Unimod:4} whereas modification of interest on C must have other contents enclosed within (), {} or []. Ex: C[+45], C(cys).")
+                  remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+                  sys.exit(1)                    
                          
               # If a protein ID has multiple modification sites, separator "/" is used for representation 
               sites = ""
@@ -1726,19 +1744,20 @@ def ptm_scoring(site_dict, enzyme, include_list):
   copy_all_peptides = list(site_dict.keys())
   top_score = [0] * len(all_peptides)
   drop_score = [0] * len(all_peptides)
+  alk_score = [0] * len(all_peptides)
   index = 0
   for each_peptide in all_peptides: 
     # Other Mods
     total_mods = 0
     om = 0
+    alkylated = 0
     all_mods_dict = find_mod(each_peptide)
     combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
     each_peptide_without_mods = re.sub(combined_pat,'',each_peptide)
     
     for key,value in all_mods_dict.items(): 
-      if "c[" in key.lower() or "c{" in key.lower() or "c(" in key.lower():
-          total_mods += 1
-          continue
+      is_present = False
+      key1 = key
       for k in include_list:    
         key = re.sub('\+','',key)                               
         k = re.sub('\+','',k)
@@ -1748,8 +1767,18 @@ def ptm_scoring(site_dict, enzyme, include_list):
           key = re.sub(combined_pat, '', key)
           k = re.sub(combined_pat,'',k)           
         if k.lower() in key.lower():
-          total_mods += 1   
-    om = len(all_mods_dict) - total_mods
+          is_present = True
+          total_mods += 1
+      
+      if not is_present:      
+        get_mod_of_int = re.sub(combined_pat, '', key1)
+        match_unimod = re.findall(combined_pat, key1)
+        remove_brackets = r'|'.join(('\[', '\{', '\(', '\]', '\}', '\)'))
+        get_unimod = re.sub(remove_brackets, '', match_unimod[0])                    
+        if (get_mod_of_int.lower() == "c" and ("+57" == get_unimod.lower() or "cam" == get_unimod.lower() or "unimod:4" == get_unimod.lower())):
+          alkylated += 1
+          
+    om = len(all_mods_dict) - total_mods - alkylated
 
     # Miscleavage 
     cleavage_score = 0
@@ -1781,19 +1810,32 @@ def ptm_scoring(site_dict, enzyme, include_list):
 
       if each_peptide_without_mods[0] in cleave_site:
         cleavage_score -= 1
-
+    
     if FOUND == False:
       cleavage_score = "NA"
     
+    if alkylated:
+      alk_score[index] = "Alkylated"
+    else:
+      alk_score[index] = "0"
+   
     if cleavage_score != "NA":    
       top_score[index] += cleavage_score + om
-      drop_score[index] += cleavage_score + om
-      
+      drop_score[index] += cleavage_score + om      
     else:
       top_score[index] += om
       drop_score[index] = "NA"
-    
+        
     index += 1
+  
+  if alk_score.count("Alkylated") != len(all_peptides) and alk_score.count("Alkylated") > 0:
+    for i in reversed(range(len(alk_score))):
+      if alk_score[i] != "Alkylated":
+        del alk_score[i]
+        del top_score[i]
+        del drop_score[i]
+        del all_peptides[i] 
+  
   if drop_score.count("NA") != len(all_peptides) and drop_score.count("NA") > 0:
     for i in reversed(range(len(drop_score))):
       if drop_score[i] == "NA":
@@ -5121,7 +5163,22 @@ def main(argv):
         eprint(f"Error: {e}")
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
+        
       mods_list = cy_mods.split(",") 
+      for each_mods in mods_list:
+        check_mods_string = re.match('^([A-Za-z]{1})([\[\(\{]{1}[^\[\(\{\)\]\}]{1,}[\]\}\)]{1}){0,1}', each_mods)
+        if check_mods_string.group(1).lower() == "c":
+          check_mods_c_string = re.match('^([A-Za-z]{1})([\[\(\{]{1}[^\[\(\{\)\]\}]{1,}[\]\}\)]{1}){1}', each_mods)
+          if not check_mods_c_string:
+            eprint("Error: Required residue C along with PTM information in brackets (), {} or []. Ex: C[+57], C(cam)")
+            remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+            sys.exit(1)
+            
+        if not check_mods_string:
+          eprint("Error: Invalid format for modification. Required comma separated list with residue or residue and PTM information in brackets (), {} or []. Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(Unimod:21),T(Unimod:21),Y(Unimod:21)")
+          remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+          sys.exit(1) 
+      
       allowed_enzyme = ['trypsin', 'trypsin_p', 'lys_n', 'asp_n', 'arg_c', 'chymotrypsin', 'lys_c']
       if cy_enzyme.lower() not in allowed_enzyme:
         eprint("Error: Enzyme must be one of the following: " + ','.join(allowed_enzyme))
