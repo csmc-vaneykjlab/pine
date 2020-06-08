@@ -334,10 +334,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             elif "fc" in row[i].lower():
               FC=i
               is_FC = True  
-            elif "adj.pval" in row[i].lower():
+            elif "adj.pvalue" in row[i].lower() or "fdr" in row[i].lower():
               pval = i
               is_pval = True
-            elif "pval" in row[i].lower() and not is_pval:
+            elif "pvalue" in row[i].lower() and not is_pval:
               pval=i
               is_pval = True  
             elif "category" in row[i].lower():
@@ -1688,7 +1688,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
            merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
           es+=1 
       if site_len > 0:
-        logging.debug("DISCARD WARNING - Fold Change and P-Value cutoff not met: " + str(pep_len) + " peptides")  
+        logging.debug("DISCARD WARNING - Fold Change and/or P-Value cutoff not met: " + str(pep_len) + " peptides")  
                       
     if pep_not_in_fasta:
       warning = []
@@ -1738,7 +1738,10 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   
   #if (len(unique_unimods)) > 1:
     #mult_mods_of_int = True 
-    
+  if type == "1" or type == "2" or type == "5" or type == "6":
+    if not is_pval:
+      logging.debug("No pvalue column found")     
+   
   return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int,is_prot_col)
 
 def ptm_scoring(site_dict, enzyme, include_list):
@@ -1916,7 +1919,7 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
         merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met;'})
       
   if cy_debug:
-    logging.debug("DISCARD WARNING - Fold Change and P-Value cutoff not met: " + str(len(queries_dropped)))
+    logging.debug("DISCARD WARNING - Fold Change and/or P-Value cutoff not met: " + str(len(queries_dropped)))
     
   return(unique_each_protein_list, prot_list, merged_out_dict)
 
@@ -4342,6 +4345,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
             query.append('Gene')
           else:
             query.append("EI")
+            if type == "5":
+              total_genes += 1
           merged_vertex_sites_only.append(uniprot_list['ambigious_genes'][indexOf])
           merged_vertex_unimod_only.append(uniprot_list['ambigious_genes'][indexOf])
           if max_FC_len == 0 and not category_present:
@@ -4391,7 +4396,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
                     if FC_val_each_gene > 0:
                       calc_up += 1
                     elif FC_val_each_gene < 0:
-                      calc_down -= 1  
+                      calc_down -= 1
+                              
       else:
         if type == "5":
           indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
@@ -4420,9 +4426,9 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           elif FC_val_each_gene < 0:
             calc_down -= 1
     if type == "1" or type == "5":            
-      if (calc_up/total_genes*100) > 60: 
+      if (round(calc_up/total_genes*100)) >= 60: 
         up_or_down.append("Up")
-      elif (abs(calc_down)/total_genes*100) > 60:
+      elif (round(abs(calc_down)/total_genes*100)) >= 60:
         up_or_down.append("Down")
       else: 
         up_or_down.append("None")
@@ -5403,6 +5409,9 @@ def main(argv):
         uniprot_query[each_gene].update({'Uniprot':"NA",'Primary':each_gene,'Synonym':"NA",'Organism':organism_name,'Reviewed':"NA",'Date_modified':"NA"})   
         if each_gene not in merged_out_dict:
           merged_out_dict[each_gene] = {}
+          merged_out_dict[each_gene].update({'Primary':each_gene, 'String': '', 'Genemania': '', 'ClueGO': '', 'CommentGene': ''})
+        else:
+          merged_out_dict[each_gene].update({'Primary':each_gene, 'String': '', 'Genemania': '', 'ClueGO': ''})
           
       if cy_type_num == "1" or cy_type_num == "2":
         for each_in_list in prot_list:
@@ -5416,7 +5425,7 @@ def main(argv):
             uniprot_query[each_in_list].update({"Category":prot_list[each_in_list]})      
 
       unique_each_primgene_list = unique_each_protein_list
-      genes_before_initial_drop = unique_each_primgene_list
+      genes_before_initial_drop = unique_each_primgene_list 
     
     if cy_cluego_inp_file:
       leading_term_cluster, unique_each_primgene_list = cluego_input_file(cy_cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5547,7 +5556,7 @@ def main(argv):
       if not cy_cluego_inp_file:
         logging.debug("\nQuery coverage = " + str(round(coverage, 2)) + "%")
       logging.debug("\nRun completed successfully")
-     
+    
     #Write into outfile
     write_into_out(merged_out_dict, cy_out, dup_prot_ids)
     request_retry(f"{CYREST_URL}/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
