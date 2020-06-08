@@ -316,6 +316,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 **Multi fold change**
 
@@ -324,6 +325,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
 | Label | `label` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 **Category**
 
@@ -339,6 +341,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Uniprot ID | `proteinid` |
 | Peptide sequence | `peptide` |
 | Fold change | `fc` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 **Multi fold change PTM**
 
@@ -348,6 +351,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Peptide sequence | `peptide` |
 | Fold change | `fc` |
 | Label | `label` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 ## Output directory description
 
