@@ -40,7 +40,7 @@ ClueGO requires license for usage. Once installation is complete, opening the ap
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
 
 ### Species installation within apps
-PINE currently supports human, mouse and rat analysis. These species datasets must be installed within the following apps:
+PINE currently supports human, mouse, rat, arabidopsis thaliana, bovine, dog, zebrafish, e.coli, chicken, rabbit, sheep, yeast and pig analysis. These species datasets must be installed within the following apps:
 #### Genemania
 
 If you've never used Genemania before, navigate to Apps -> GeneMANIA -> Local Search...
@@ -59,9 +59,9 @@ If you've used Genemania before, then open the App within Cytoscape and click on
 
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
-By default human and mouse datasets are installed; rat dataset must be installed manually.
-If you installed the rat dataset in ClueGO, but it still cannot used in PINE, then there may have been a problem during installation of the dataset.
-Try reinstalling the rat dataset to fix the issue.
+By default human and mouse datasets are installed; other datasets must be installed manually.
+If you installed the other datasets in ClueGO, but it still cannot used in PINE, then there may have been a problem during installation of the dataset.
+Try reinstalling the dataset to fix the issue.
 
 ![ClueGO species installation](Image/cluego-species-install.png)
 
