@@ -158,6 +158,7 @@ The columns in the pathway selection page are:
 - **Adj.p-value**: Corrected significance of the GO term
 - **% genes**: Percent of genes in a ClueGO cluster associated with the GO term
 - **# of genes**: Number of genes associated with the GO term
+- **Status**: Depiction of up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. If a majority of genes have fold changes > 1, then the GO term is said to be overall up-regulated. If a majority of enes have fold changes < 1, then the GO term is said to be overall down-regulated. If there is no majority of genes with either fold change > 1 or < 1, then the GO term is said to have no change.
 
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
 
