@@ -611,7 +611,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                         not_alkylated.append(key)
                 
                 if not_alkylated:
-                  eprint("Error: Found" + ",".join(not_alkylated) + ". Alkylation on C should be shown in the data as C[+57] or C(cam) or C{Unimod:4} whereas modification of interest on C must have other contents enclosed within (), {} or []. Ex: C[+45], C(cys).")
+                  eprint("Error: Found " + ",".join(not_alkylated) + ". Alkylation on C should be shown in the data as C[+57] or C(cam) or C{Unimod:4} whereas modification of interest on C must have other contents enclosed within (), {} or []. Ex: C[+45], C(cys).")
                   remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
                   sys.exit(1)                    
                          
