@@ -5,6 +5,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Example usage](#example-usage)
 - [Using PINE GUI](#using-pine-gui)
+- [Ontology/Pathway Term Status]
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
