@@ -365,7 +365,7 @@ A directory is created in the specified output directory after the analysis comp
 - **timestamp.json** - The time when the analysis was run.  This file should not be modified.
 
 ## Cite us
-Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, Jennifer E. Van Eyk, Vidya Venkatraman. "PINE: An Automation Tool to Extract & Visualize Protein-Centric Functional Networks". Journal of the American Society for Mass Spectrometry. Just Accepted Manuscript (2020)
+Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, Jennifer E. Van Eyk, Vidya Venkatraman. "PINE: An Automation Tool to Extract & Visualize Protein-Centric Functional Networks". Journal of the American Society for Mass Spectrometry. (2020) https://pubs.acs.org/doi/pdf/10.1021/jasms.0c00032
 
 ## Support
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
