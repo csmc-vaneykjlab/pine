@@ -1138,7 +1138,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 i += 1
 
               if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
-                cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,new_each_site_info)              
+                cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,new_each_site_info,is_pval)              
                 if cutoff_drop:
                   if each_protid not in dropped_cutoff_fc_pval:
                     dropped_cutoff_fc_pval[each_protid] = {}
@@ -1289,7 +1289,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             i+=1
 
           if each_site_info[0] and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
-            cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info)              
+            cutoff_drop = inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info,is_pval)              
             if cutoff_drop:
               if each_protid not in dropped_cutoff_fc_pval:
                 dropped_cutoff_fc_pval[each_protid] = {}
@@ -1687,7 +1687,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
           else:
            merged_out_dict[each_key]['Comment'] += "FC/PVal cutoff not met;"
           es+=1 
-      if site_len > 0:
+      if pep_len > 0:
         logging.debug("DISCARD WARNING - Fold Change and/or P-Value cutoff not met: " + str(pep_len) + " peptides")  
                       
     if pep_not_in_fasta:
@@ -1740,9 +1740,9 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     #mult_mods_of_int = True 
   if type == "1" or type == "2" or type == "5" or type == "6":
     if not is_pval:
-      logging.debug("No pvalue column found")     
+      logging.debug("P-value cutoff not considered")     
    
-  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int,is_prot_col)
+  return(each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict, to_return_unique_protids_length, site_info_dict, ambigious_sites, unique_labels,dup_prot_ids_to_return, mult_mods_of_int,is_prot_col,is_pval)
 
 def ptm_scoring(site_dict, enzyme, include_list):
   ''' PTM scoring algorithm for ambiguous sites: For proteins having different peptides for the same modification site, one representation of site is picked by choosing the peptide having no miscleavages or modifications other than the mod of interest '''
@@ -1760,7 +1760,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
                  'gluc':{'terminus' : 'C','cleave':['D','E'],'exceptions':['DP','EP',"EE","DE"]},
                  'glucbicarb':{'terminus' : 'C','cleave':['E'],'exceptions':['EP','EE']},                 
                  'cnbr':{'terminus' : 'C' , 'cleave' : ['M'], 'exceptions' : []}}
-                  
+                
   all_peptides = list(site_dict.keys())
   copy_all_peptides = list(site_dict.keys())
   top_score = [0] * len(all_peptides)
@@ -1893,9 +1893,12 @@ def ptm_scoring(site_dict, enzyme, include_list):
   
   return(site_dict[pick_pep],dropped_pep,pick_pep)  
     
-def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict):
+def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict, is_pval):
   ''' Filter input based on user defined fold change or p-value cutoffs '''
   queries_dropped = []
+  if not is_pval:
+    cy_pval_cutoff = 1.0
+    
   for each_prot in list(prot_list):
     delete_each_prot = False
     for each_fc_val,each_pval in zip(prot_list[each_prot][0],prot_list[each_prot][1]):
@@ -1919,13 +1922,17 @@ def inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list
         merged_out_dict[each_prot].update({'CommentGene':'FC/Pval cutoff not met;'})
       
   if cy_debug:
-    logging.debug("DISCARD WARNING - Fold Change and/or P-Value cutoff not met: " + str(len(queries_dropped)))
+    if len(queries_dropped) > 0:
+      logging.debug("DISCARD WARNING - Fold Change and/or P-Value cutoff not met: " + str(len(queries_dropped)))
     
   return(unique_each_protein_list, prot_list, merged_out_dict)
 
-def inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info):
+def inp_cutoff_ptms(cy_fc_cutoff,cy_pval_cutoff,each_site_info,is_pval):
   ''' Filter input based on user defined fold change or p-value cutoffs for PTM based analysis '''
   delete_site = False
+  if not is_pval:
+    cy_pval_cutoff = 1.0
+    
   for each_fc_val,each_pval in zip(each_site_info[0],each_site_info[1]):
     try:         
       if not (abs(float(each_fc_val)) >= abs(float(cy_fc_cutoff)) and float(each_pval) <= float(cy_pval_cutoff)):
@@ -3445,7 +3452,7 @@ def write_into_out(merged_out_dict, out, dup_prot_ids):
         line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "," + ";".join(picked_pep_list) + ", " + ";".join(picked_site_list) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedPeptide",[""])) + ", " + ";".join(merged_out_dict[each_prot].get("DroppedSite",[""])) + ", " + merged_out_dict[each_prot].get("Comment","")  + "\n"
       else:
         if i == 0:
-          csv_file.write("ProteinID,Primary Gene,String,Genemania,Reason for Dropped Gene \n")
+          csv_file.write("ID,Primary Gene,String,Genemania,Reason for Dropped Gene \n")
         line = each_prot + "," + merged_out_dict[each_prot].get("Primary","") + "," + merged_out_dict[each_prot].get("String","") + "," + merged_out_dict[each_prot].get("Genemania","") + "," + merged_out_dict[each_prot].get("CommentGene","") + "\n"
         
       i+=1
@@ -5211,11 +5218,11 @@ def main(argv):
     #Read input and obtain protid 
     if cy_debug:
       logging.debug("Step 1: Start processing the input protein list at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
-    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels, dup_prot_ids, mult_mods_of_int,is_prot_col = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
+    unique_each_protein_list, prot_list, max_FC_len, each_category, merged_out_dict,initial_length, site_info_dict, ambigious_sites, unique_labels, dup_prot_ids, mult_mods_of_int,is_prot_col,is_pval = preprocessing(cy_in, cy_type_num, cy_debug, logging, merged_out_dict, cy_out, cy_session, cy_cluego_out, database_dict, mods_list, cy_fasta_file, cy_enzyme, path_to_new_dir, logging_file, cy_fc_cutoff, cy_pval_cutoff, cy_ambi, cy_settings_file)
     
     # FC and Pval cutoff
     if (cy_type_num == "1" or cy_type_num == "2") and not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
-      unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict)  
+      unique_each_protein_list, prot_list, merged_out_dict = inp_cutoff(cy_fc_cutoff, cy_pval_cutoff, unique_each_protein_list, prot_list, cy_debug, logging, merged_out_dict, is_pval)  
     
     if cy_type_num == "5" or cy_type_num == "6":
       for each_prot_id in merged_out_dict:
@@ -5399,6 +5406,7 @@ def main(argv):
             logging.debug("AMBIGUITY WARNING - Uniprot duplicate primary gene mapping: " + str(count_dup_drops))
             logging.warning("Dropping all but first query: " + ','.join(warning))            
     else:
+      all_prot_site_snps = {}
       if cy_debug:
         logging.debug("\nStep 2: Start the uniprot api call at " + str(datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")))
         logging.debug("Uniprot query: " + str(len(unique_each_protein_list)))
