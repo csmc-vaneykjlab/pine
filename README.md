@@ -5,7 +5,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Example usage](#example-usage)
 - [Using PINE GUI](#using-pine-gui)
-- [Ontology/Pathway Term Status]
+- [Ontology/Pathway Term Status](#ontology/pathway-term-status)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
@@ -175,6 +175,9 @@ Colors on the annotation node indicate the following:
 ### Legend  
 Shown below is the legend for interpreting visualizations through PINE:
 ![Legend](Image/legend.png)
+
+## Ontology/Pathway Term Status
+
 
 ## Customized Styling in Cytoscape
 
