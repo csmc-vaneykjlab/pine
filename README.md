@@ -283,7 +283,7 @@ python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type 
 | -i, --in | input file in csv format with the following headers as applicable: ProteinID, GeneID, FC, pvalue, adj.pvalue, Label, Category, Peptide |
 | -o, --output | path to output directory |
 | -t, --type | analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm] |
-| -s, --species | species [Allowed: human, mouse, rat] |
+| -s, --species | species [Allowed: human, mouse, rat, arabidopsis, bovine, dog, zebrafish, e. coli, chicken, rabbit, sheep, yeast, pig] |
 | -x, --enzyme | (required if singlefc-ptm or multifc-ptm) enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c] |
 | -d, --mods | (required if singlefc-ptm or multifc-ptm) comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]] |
 | -b, --fastafile | (required if singlefc-ptm or multifc-ptm) path to fasta file |
