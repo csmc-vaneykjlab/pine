@@ -177,7 +177,13 @@ Shown below is the legend for interpreting visualizations through PINE:
 ![Legend](Image/legend.png)
 
 ## Ontology/Pathway Term Status
+In the case of single-fc type analysis, a column labelled "Status" is available in the Pathway Selection page that depicts up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. If a majority of genes have fold changes > 1, then the GO term is said to be overall up-regulated. If a majority of enes have fold changes < 1, then the GO term is said to be overall down-regulated. If there is no majority of genes with either fold change > 1 or < 1, then the GO term is said to have no change.
 
+![Pathway analysis singlefc](Image/pine-usage-pathway-selection-1.png)
+
+In the case of multiple-fc type analysis, a drop-down of all comparison groups appears on the top of the Pathway Selection page. Based on the label selected, a column with the comparison name is updated that depicts up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. Switching comparison groups in the dropdown updates the column to the selected comparison name.
+
+![Pathway analysis multifc](Image/multifc-pathway-selection.png)
 
 ## Customized Styling in Cytoscape
 
