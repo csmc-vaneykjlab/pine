@@ -280,7 +280,7 @@ python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type 
 ### Command line parameters
 | Parameter | Description |
 | --------- | ----------- |
-| -i, --in | input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide |
+| -i, --in | input file in csv format with the following headers as applicable: ProteinID, GeneID, FC, pvalue, adj.pvalue, Label, Category, Peptide |
 | -o, --output | path to output directory |
 | -t, --type | analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm] |
 | -s, --species | species [Allowed: human, mouse, rat] |
