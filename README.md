@@ -5,7 +5,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Example usage](#example-usage)
 - [Using PINE GUI](#using-pine-gui)
-- [Ontology/Pathway Term Status](#ontology/pathway-term-status)
+- [Ontology and Pathway Term Status](#ontology-and-pathway-term-status)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
@@ -176,7 +176,7 @@ Colors on the annotation node indicate the following:
 Shown below is the legend for interpreting visualizations through PINE:
 ![Legend](Image/legend.png)
 
-## Ontology/Pathway Term Status
+## Ontology and Pathway Term Status
 In the case of single-fc type analysis, a column labelled "Status" is available in the Pathway Selection page that depicts up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. If a majority of genes have fold changes > 1, then the GO term is said to be overall up-regulated. If a majority of enes have fold changes < 1, then the GO term is said to be overall down-regulated. If there is no majority of genes with either fold change > 1 or < 1, then the GO term is said to have no change.
 
 ![Pathway analysis singlefc](Image/pine-usage-pathway-selection-1.png)
