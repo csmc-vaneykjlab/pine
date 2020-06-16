@@ -5,6 +5,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Example usage](#example-usage)
 - [Using PINE GUI](#using-pine-gui)
+- [Ontology/Pathway Term Status]
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
@@ -40,7 +41,7 @@ ClueGO requires license for usage. Once installation is complete, opening the ap
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
 
 ### Species installation within apps
-PINE currently supports human, mouse and rat analysis. These species datasets must be installed within the following apps:
+PINE currently supports human, mouse, rat, arabidopsis thaliana, bovine, dog, zebrafish, e.coli, chicken, rabbit, sheep, yeast and pig analysis. These species datasets must be installed within the following apps:
 #### Genemania
 
 If you've never used Genemania before, navigate to Apps -> GeneMANIA -> Local Search...
@@ -59,9 +60,9 @@ If you've used Genemania before, then open the App within Cytoscape and click on
 
 ![Genemania species installation](Image/genemania-species-install.jpg)
 ####  ClueGO
-By default human and mouse datasets are installed; rat dataset must be installed manually.
-If you installed the rat dataset in ClueGO, but it still cannot used in PINE, then there may have been a problem during installation of the dataset.
-Try reinstalling the rat dataset to fix the issue.
+By default human and mouse datasets are installed; other datasets must be installed manually.
+If you installed the other datasets in ClueGO, but it still cannot used in PINE, then there may have been a problem during installation of the dataset.
+Try reinstalling the dataset to fix the issue.
 
 ![ClueGO species installation](Image/cluego-species-install.png)
 
@@ -140,7 +141,7 @@ The following are the options that can be set to run an analysis.
 ### Log
 While PINE is running, output is written to the log. A copy of the log will also be saved to PINE.log within the output subdirectory. The analysis can be cancelled at anytime from this tab.
 
-![PINE log example](Image/pine-usage-log-1.png)
+![PINE log example](Image/pine-usage-log-1.png)  
 When the PINE analysis is complete, you can view the interaction network by going to the Network tab and selecting the Interaction Network.
 
 ![Interaction network example](Image/initial-network.png)
@@ -152,9 +153,28 @@ From this tab, you can also open the results folder ([see here for results descr
 
 ![Pathway analysis](Image/pine-usage-pathway-selection-1.png)
 
+The columns in the pathway selection page are:
+- **GO term**: Annotation or pathway term for a query
+- **P-value**: Significance of the GO term
+- **Adj.p-value**: Corrected significance of the GO term
+- **% genes**: Percent of genes in a ClueGO cluster associated with the GO term
+- **# of genes**: Number of genes associated with the GO term
+- **Status**: Depiction of up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. If a majority of genes have fold changes > 1, then the GO term is said to be overall up-regulated. If a majority of enes have fold changes < 1, then the GO term is said to be overall down-regulated. If there is no majority of genes with either fold change > 1 or < 1, then the GO term is said to have no change.
+
 After reanalysis is complete, there will be a new interaction network which contains only the genes from the selected pathways and terms and an ontology network shows which genes are included in the selected pathways and terms.
 
 ![Pathway analysis ontology network](Image/pathway-selection-network.png)
+
+Colors on the annotation node indicate the following:
+- **Dark blue annotation nodes**: Nodes connected to 60% or more up-regulated sites
+- **Orange annotation nodes**: Nodes connected to 60% or more down-regulated sites
+- **Grey annotation nodes**: Nodes connected to approximately the same number of up-regulated and down-regulated sites  
+
+**NOTE**: Annotation nodes are fixed colors and do not indicate the degree of connectivity to up-regulated or down-regulated sites  
+
+### Legend  
+Shown below is the legend for interpreting visualizations through PINE:
+![Legend](Image/legend.png)
 
 ## Customized Styling in Cytoscape
 
@@ -202,22 +222,24 @@ Note:
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
 | Ambiguous sites	| Ambiguity	| Preprocessing |	PTM Site |	Multiple peptides that represent same PTM type on the same site of a protein |	One representative peptide picked |
 | Peptide Mapping |	Ambiguity |	Preprocessing |	PTM Site |	Peptide maps to multiple regions in FASTA |	First mapping site picked |
-| Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked |
-| Protein Mapping |	Ambiguity |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	First mapping UniprotID picked |
+| Isoforms |	Ambiguity |	Uniprot Mapping |	Protein |	Isoforms in query map to same primary gene |	One represenatative isoform picked, canonical protein, if it exists gets preference |
 | Primary Gene Mapping |	Ambiguity |	Uniprot Mapping |	Protein	| Query ProteinID maps to multiple primary genes in Uniprot |	First mapping primary gene picked |
-| Peptide Unmapped |	Drop	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
-| Site Not Available |	Drop	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
-| Duplicate query	| Drop |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
-| Invalid FC/Pval	| Drop	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
-| FC/Pval cutoff |	Drop |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
-| ProteinID unmapped |	Drop	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
-|Primary Gene Not Available |	Drop |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
-| Duplicate Primary Gene	| Drop	| Uniprot Mapping	| Protein	| Query ProteinIDs mapping to same primary genes	| Drop all duplicate mapping to primary genes |
-| Gene Unmapped in Interaction Databases	| Drop	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
-| Interactions Not available	| Drop	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
-| Invalid Interaction Category	| Drop	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
-| Gene Unmapped in ClueGO	| Drop	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
-| Invalid Mapping Category	| Drop	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
+| Duplicate Primary Gene	| Ambiguity	| Uniprot Mapping	| Protein	| Query ProteinIDs map to same primary gene	| One representative protein ID picked, reviewed protein, if it exists gets preference |
+| Duplicate Protein Mapping | Ambiguity | Uniprot Mapping | Protein | Multiple query ProteinIDs mapping to single Uniprot ID | Drop all obsolete IDs, retain active IDs |
+| Peptide Unmapped |	Discard	| Preprocessing	| Peptide |	Query peptides do not map in FASTA	| Drop peptides with no peptide mapping |
+| Duplicate Peptide | Discard | Preprocessing | Peptide | Duplicate query peptides across multiple UniprotIDs | Drop duplicate peptides |
+| Site Not Available |	Discard	| Preprocessing |	Peptide |	No modifications of interest found in peptide	| Drop all peptides having no modification site |
+| Duplicate query	| Discard |	Preprocessing |	Protein |	Duplicate fields in input |	Drop duplicates |
+| Invalid FC/Pval	| Discard	| Preprocessing	| Protein |	Query contains non-numeric fold change and p-values |	Drop all queries with non-numeric FC/Pval | 
+| FC/Pval cutoff |	Discard |	Preprocessing |	Protein |	Query does not meet fold change and p-value cutoffs |	Drop all queries with cutoff not met |
+| ProteinID unmapped |	Discard	| Uniprot Mapping |	Protein	| Query ProteinID not mapped in Uniprot	| Drop queries with no Uniprot mapping |
+| Protein Mapping |	Discard |	Uniprot Mapping |	Protein |	Query ProteinID maps to multiple UniprotIDs |	Drop all queries because ID is obsolete |
+| Primary Gene Not Available |	Discard |	Uniprot Mapping |	Protein	| Query ProteinID does not have a primary gene in Uniprot	| Drop queries with no primary genes |
+| Gene Unmapped in Interaction Databases	| Discard	| Interaction Retrieval	| Gene	| Genes not mapped in String and GeneMANIA	| Drop all unmapped genes |
+| Interactions Not available	| Discard	| Interaction Retrieval	| Gene	| Genes having no interactions in String and GeneMANIA	| Drop all genes with no interactions |
+| Invalid Interaction Category	| Discard	| Interaction Retrieval	| Gene	| Query genes not categorized as primary interactors in STRING and GeneMANIA	| Drop all query genes with category other than primary interactor |
+| Gene Unmapped in ClueGO	| Discard	| Enrichment	| Gene	| Genes not mapped in ClueGO	| Drop all unmapped genes |
+| Invalid Mapping Category	| Discard	| Enrichment	| Gene	| Genes not categorized as primary in ClueGO mapping	| Drop all query genes with category other than primary |
 
 ### PTM Handling  
 For ambiguous sites, scoring is performed for representative site selection by excluding sites with oxidized methionines, missed cleavages, and ragged ends.  
@@ -229,13 +251,8 @@ Number of missed cleavages are calculated for all peptides of a single site, wit
 ![Other-Mods](Image/Other-Mods.JPG)  
 Number of modifications other than the modification of interest are calculated for all peptides of a single site, with the peptide having the least number of other modifications showing higher score.  
 
-- Missed Cleavage + Other Modifications  
-![Both](Image/Both.JPG)  
-Number of both missed cleavage and other modifications are calculated for all peptides of a single site, with the peptide having a lower combination of the two showing higher score. In case of two peptides having the same high score, that peptide having higher absolute fold change is selected.  
-
 ### PTM Naming Convention
-PTM sites are represented in the interaction and ontology network by residue, PTM information in brackets and site position as shown in the figures above. 
-The PTM information proves to be useful in case of occurrence of multiple PTMs on a single amino acid in order to differentiate between PTMs using the PTM information. But, in other cases, this can be optionally turned off by the user by switching node label to column 'substitute name'  
+PTM sites are represented in the interaction and ontology network by Amino acid modified followed by PTM type in curly brackets followed by PTM site as shown above (E.g. S{+80}25). PTM type is denoted based on PTM identifier present within brackets in the input data (e.g. Modification mass [+80] or Unimod accession (Unimod:21) or free text {Phos} etc.). This information proves to be useful in case of occurrence of multiple PTMs on a single amino acid in order to differentiate between PTMs using the PTM type. But, in other cases, this can be optionally turned off by the user by switching node label to column 'substitute name' within Cytoscape->Control Panel->Style->Label (e.g. S{+80}25 will be denoted as S25) as shown below:  
 ![substitute-name](Image/substitute-name.png)  
 
 ## Using PINE command line
@@ -300,6 +317,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | ------ | ---------------- |
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 **Multi fold change**
 
@@ -308,6 +326,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Uniprot ID | `proteinid` |
 | Fold change | `fc` |
 | Label | `label` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 **Category**
 
@@ -323,6 +342,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Uniprot ID | `proteinid` |
 | Peptide sequence | `peptide` |
 | Fold change | `fc` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 **Multi fold change PTM**
 
@@ -332,6 +352,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Peptide sequence | `peptide` |
 | Fold change | `fc` |
 | Label | `label` |
+| P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
 ## Output directory description
 
@@ -344,7 +365,7 @@ A directory is created in the specified output directory after the analysis comp
 - **timestamp.json** - The time when the analysis was run.  This file should not be modified.
 
 ## Cite us
-Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, Jennifer E. Van Eyk, Vidya Venkatraman. "PINE: An Automation Tool to Extract & Visualize Protein-Centric Functional Networks". Manuscript submitted (2020).
+Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, Jennifer E. Van Eyk, Vidya Venkatraman. "PINE: An Automation Tool to Extract & Visualize Protein-Centric Functional Networks". Journal of the American Society for Mass Spectrometry. (2020) https://pubs.acs.org/doi/pdf/10.1021/jasms.0c00032
 
 ## Support
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.

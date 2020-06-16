@@ -34,7 +34,7 @@ After PINE finishes running, you can go to the **Network** tab in the Cytoscape 
 ![results 1](images/InteractionNetwork.png)
 
 ## Pathway selection
-You can now refine your results by selecting different pathways or GO terms to reanalyze with.  Go back to PINE and select a few terms, then click **Reanalyze**.  In the following example "Glycerophospholipid biosynthesis", "Regulation of mRNA stability by proteins that bind AU-rich elements", "Metabolism of RNA" and "Synthesis of bile acids and bile salts" were selected.
+You can now refine your results by selecting different pathways or GO terms to reanalyze with.  Go back to PINE and select a few terms, then click **Reanalyze**.  In the following example "Tight junction", "Protein ubiquitination" and "Synthesis of bile acids and bile salts"  were selected.
 ![pathway selection](images/pathway-selection.png)
 
 ## Reanalysis results
