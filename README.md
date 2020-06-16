@@ -260,7 +260,7 @@ Number of missed cleavages are calculated for all peptides of a single site, wit
 ![Other-Mods](Image/Other-Mods.JPG)  
 Number of modifications other than the modification of interest are calculated for all peptides of a single site, with the peptide having the least number of other modifications showing higher score.  
 
-Note: Alkylated Cys are not considered as other modifications. Sequences containing alkylated cys are always preferred over sequences containing non-alkylated cys during ambiguity resolution.
+Note: Alkylated Cys are not considered as other modifications. Sequences containing alkylated Cys are always preferred over sequences containing non-alkylated Cys during ambiguity resolution.
 
 ### PTM Naming Convention
 PTM sites are represented in the interaction and ontology network by Amino acid modified followed by PTM type in curly brackets followed by PTM site as shown above (E.g. S{+80}25). PTM type is denoted based on PTM identifier present within brackets in the input data (e.g. Modification mass [+80] or Unimod accession (Unimod:21) or free text {Phos} etc.). This information proves to be useful in case of occurrence of multiple PTMs on a single amino acid in order to differentiate between PTMs using the PTM type. But, in other cases, this can be optionally turned off by the user by switching node label to column 'substitute name' within Cytoscape->Control Panel->Style->Label (e.g. S{+80}25 will be denoted as S25) as shown below:  
