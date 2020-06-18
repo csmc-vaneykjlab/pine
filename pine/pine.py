@@ -1819,6 +1819,8 @@ def ptm_scoring(site_dict, enzyme, include_list):
         
       if each_peptide_without_mods[-1] in cleave_site:
         cleavage_score -= 1
+      else:
+        cleavage_score += 1000
   
     elif enzyme_info[enzyme.lower()]['terminus']=="N":
       for i in range (len(each_peptide_without_mods)):
@@ -1831,9 +1833,11 @@ def ptm_scoring(site_dict, enzyme, include_list):
 
       if each_peptide_without_mods[0] in cleave_site:
         cleavage_score -= 1
+      else:
+        cleavage_score += 1000
     
     if FOUND == False:
-      cleavage_score = "NA"
+      cleavage_score += 1000
     
     if alkylated:
       alk_score[index] = "Alkylated"
@@ -4859,11 +4863,11 @@ def main(argv):
   if help:
     print("PINE")
     print("---------------------------------------------------------------------------------------------")
-    print("Usage:         pine.py -i input.csv -o output_dir -t input_type -s species -m cluego_map_file.gz")
-    print("Argument:      -i [--in]: input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide")
+    print("Usage:         pine.py -i <input.csv> -o <output_dir> -t <input_type> -s <species> -m <cluego_map_file.gz> -e <cytoscape.exe>")
+    print("Argument:      -i [--in]: input file in csv format with the following headers as applicable: ProteinID, GeneID, FC, pvalue, adj.pvalue, fdr, Label, Category, Peptide")
     print("Argument:      -o [--output]: path to output directory")     
     print("Argument:      -t [--type]: analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm]")   
-    print("Argument:      -s [--species]: species [Allowed: human, mouse, rat]")   
+    print("Argument:      -s [--species]: species [Allowed: human, mouse, rat, arabidopsis, bovine, dog, zebrafish, e. coli, chicken, rabbit, sheep, yeast, pig]")   
     print("Argument:      -x [--enzyme]: enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c]")   
     print("Argument:      -d [--mods]: comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]]")
     print("Argument:      -b [--fastafile]: path to fasta file")
