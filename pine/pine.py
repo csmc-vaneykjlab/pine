@@ -313,6 +313,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
   raw_label_set = set()
   count_dup_pep = []
   collect_dup_pep = {}
+  not_alkylated = [] 
   
   try:
     with open(inp,'r') as csv_file:
@@ -570,8 +571,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                 remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
                 sys.exit(1)         
                 
-              if seqInDatabase!=-1 and seqInDatabase!="Ambiguous": 
-                not_alkylated = []                  
+              if seqInDatabase!=-1 and seqInDatabase!="Ambiguous":                  
                 for key,value in modInSeq_all_dict.items():
                   is_present = False      
                   combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))              
@@ -608,12 +608,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     get_unimod = re.sub(remove_brackets, '', match_unimod[0])                    
                     if get_mod_of_int.lower() == "c" and not ("+57" == get_unimod.lower() or "cam" == get_unimod.lower() or "unimod:4" == get_unimod.lower()):
                       if key not in not_alkylated:
-                        not_alkylated.append(key)
-                
-                if not_alkylated:
-                  eprint("Error: Found " + ",".join(not_alkylated) + ". Alkylation on C should be shown in the data as C[+57] or C(cam) or C{Unimod:4} whereas modification of interest on C must have other contents enclosed within (), {} or []. Ex: C[+45], C(cys).")
-                  remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-                  sys.exit(1)                    
+                        not_alkylated.append(key)                
                          
               # If a protein ID has multiple modification sites, separator "/" is used for representation 
               sites = ""
@@ -812,6 +807,11 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
   
+  if not_alkylated:
+    eprint("Error: Found " + ",".join(not_alkylated) + ". Alkylation on C should be shown in the data as C[+57] or C(cam) or C{Unimod:4} whereas modification of interest on C must have other contents enclosed within (), {} or []. Ex: C[+45], C(cys).")
+    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+    sys.exit(1)   
+    
   # Remove duplicate peptides across proteinIDs within the input
   if type == "5" or type == "6":
     mult_pep_to_prot_dict = {}
