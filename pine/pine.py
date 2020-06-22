@@ -3111,6 +3111,7 @@ def cluego_filtering(unique_nodes, cluego_mapping_file, uniprot_query, cy_debug,
   return(filtered_preferred_unique_list,merged_out_dict)
 
 def calc_protein_change_sf(df, uniprot_list, type):
+  ''' Calculate up regulation/down regulation/no change status of go terms for single fc cases. Adds new columns of status and percent to the cluego text file'''
   cluego_dict = df.to_dict()
   status_col = {}
   percent_col = {}
@@ -3169,6 +3170,7 @@ def calc_protein_change_sf(df, uniprot_list, type):
   return(df)
 
 def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
+  ''' Calculate up regulation/down regulation/no change status of go terms for multiple fc cases. Adds new columns for status and percent of each label to the cluego text file'''
   cluego_dict = df.to_dict()
   add_col_to_end = {}
   status_col = {}
