@@ -1804,6 +1804,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
     # Miscleavage 
     cleavage_score = 0
     FOUND = False
+    bool = False
     cleave_site = enzyme_info[enzyme.lower()]['cleave']
     exceptions = enzyme_info[enzyme.lower()]['exceptions']
     
@@ -1821,6 +1822,7 @@ def ptm_scoring(site_dict, enzyme, include_list):
         cleavage_score -= 1
       else:
         cleavage_score += 1000
+        bool = True
   
     elif enzyme_info[enzyme.lower()]['terminus']=="N":
       for i in range (len(each_peptide_without_mods)):
@@ -1835,8 +1837,9 @@ def ptm_scoring(site_dict, enzyme, include_list):
         cleavage_score -= 1
       else:
         cleavage_score += 1000
+        bool = True
     
-    if FOUND == False:
+    if FOUND == False and bool == False:
       cleavage_score += 1000
     
     if alkylated:
