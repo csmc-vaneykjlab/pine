@@ -1,6 +1,6 @@
 {
   "name": "pine",
-  "version": "0.1.4",
+  "version": "2.0.0",
   "description": "Protein Interaction Network Extractor",
   "main": "main.js",
   "scripts": {
