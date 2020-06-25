@@ -104,8 +104,6 @@
             </div>
           </section>
           <section class="run-section">
-            <span class="button success-button big" v-on:click="open_url('mailto:GroupHeartBioinformaticsSupport@cshs.org')">Email</span>
-            <span class="horizontal-sep"></span>
             <span class="button success-button big" v-on:click="open_url('https://github.com/csmc-vaneykjlab/pine#cite-us')">Cite Us</span>
             <span class="horizontal-sep"></span>
             <span class="button success-button big" v-on:click="open_url('https://github.com/csmc-vaneykjlab/pine/blob/master/README.md')">Help</span>
@@ -129,10 +127,14 @@
               <div>
                 <label class="button success-button" for="file-button-input">Select file</label>
                 <input class="file-button" id="file-button-input" v-on:change="inputFileChange($event, 'in')" type="file" accept=".csv" ref="input_in" />
-                <span class="text-small" v-show="input.in" v-bind:title="input.in">{{ input.in | filename }}</span>
+                <span class="text-small" v-show="input.in" v-bind:title="input.in">{{ input.in | longname(10, true) }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.in">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-wide">Input file is missing:<br/>{{ input.in }}</div>
+                </span>
+                <span class="tooltip-parent" v-show="!validate_inputs_in()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-wide">Input file must have .csv extension</div>
                 </span>
               </div>
 
@@ -159,7 +161,7 @@
               <div>
                 <label class="button success-button" for="file-button-output">Select directory</label>
                 <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory ref="input_output" />
-                <span class="text-small" v-show="input.output" v-bind:title="input.output">{{ input.output | filename }}</span>
+                <span class="text-small" v-show="input.output" v-bind:title="input.output">{{ input.output | longname(10, true) }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.output">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-wide">Output directory is missing: {{ input.output }}</div>
@@ -175,9 +177,9 @@
                 </span>
               </div>
               <div>
-                <select v-model="input.species" v-if="cluego_picked_version">
+                <select v-model="input.species" v-if="cluego_picked_version" v-on:change="selected_species_updated(input.species)">
                   <option v-for="species in selectable_species" v-bind:value="species.name" :disabled="!species.selectable">
-                    {{ species.name }}
+                    {{ species.display_name }}
                   </option>
                 </select>
               </div>
@@ -191,10 +193,14 @@
               <div v-if="is_extra_options_required()">
                 <label class="button success-button" for="file-button-fasta">Select file</label>
                 <input class="file-button" id="file-button-fasta" type="file" v-on:change="inputFileChange($event, 'fasta_file')" accept=".fasta" ref="input_fasta" />
-                <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | filename }}</span>
+                <span class="text-small" v-show="input.fasta_file" v-bind:title="input.fasta_file">{{ input.fasta_file | longname(10, true) }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.fasta_file">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-wide">Fasta file is missing: {{ input.fasta_file }}</div>
+                </span>
+                <span class="tooltip-parent" v-show="!validate_inputs_fasta_file()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-wide">Fasta file must have .fasta extension</div>
                 </span>
               </div>
 
@@ -219,7 +225,9 @@
               <div class="align-right" v-if="is_extra_options_required()">
                 <span class="tooltip-parent">
                   Modifications <i class="far fa-question-circle"></i>
-                  <div class="tooltip">Comma separated list of modifications of interest.</div>
+                  <div class="tooltip">
+                    Comma separated list of modifications of interest specified by their residue or residue with PTM information in brackets (),[] or {} as denoted in input. For example S,T,Y or S[+80],T[+80],Y[+80] or S(Unimod:21),T(Unimod:21),Y(Unimod:21)
+                  </div>
                 </span>
               </div>
               <div v-if="is_extra_options_required()">
@@ -227,8 +235,7 @@
                 <span v-show="!validate_inputs_mods()" class="tooltip-parent">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-right">
-                    Comma separated list of modifications of interest, optionally including PTM specific information in (),[] or {}.
-                    Ex: S,T,Y or S[+80],T[+80],Y[+80] or S(phospho),T(phospho),Y(phospho)
+                    Must be a comma separated list of modifications of interest specified by their residue or residue with PTM information in brackets (),[] or {} as denoted in input. For example S,T,Y or S[+80],T[+80],Y[+80] or S(Unimod:21),T(Unimod:21),Y(Unimod:21)
                   </div>
                 </span>
               </div>
@@ -300,7 +307,9 @@
               </div>
               <div>
                 <select v-model="input.run">
-                  <option v-for="ar in allowed_runs" v-bind:value="ar">{{ ar }}</option>
+                  <option v-for="ar in allowed_runs" v-bind:value="ar.name" :disabled="ar.disabled">
+                    {{ ar.name }}
+                  </option>
                 </select>
               </div>
 
@@ -386,12 +395,16 @@
                 <label class="button success-button" for="file-button-reference">Select file</label>
                 <input class="file-button" id="file-button-reference" type="file" v-on:change="inputFileChange($event, 'reference_path')" accept=".txt" ref="input_reference_path" />
                 <span class="text-small" v-show="input.reference_path" style="margin-top: 0.5rem" v-bind:title="input.reference_path">
-                  {{ input.reference_path | filename }}
+                  {{ input.reference_path | longname(10, true) }}
                   <i class="fas fa-times-circle color-2 clickable" v-on:click="reset_input_file('reference_path')"></i>
                 </span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.reference_path">
                   <i class="fas fa-exclamation-circle color-2"></i>
                   <div class="tooltip tooltip-right tooltip-wide">Reference file is missing:<br/>{{ input.reference_path }}</div>
+                </span>
+                <span class="tooltip-parent" v-show="!validate_inputs_reference_path()">
+                  <i class="fas fa-exclamation-circle color-2"></i>
+                  <div class="tooltip tooltip-right tooltip-wide">Reference file must have .txt extension</div>
                 </span>
               </div>
 
@@ -435,10 +448,6 @@
         <div v-if="current_tab === tabs.PATHWAY_SELECTION">
           <div class="full-section">
             <div class="grid-pathway-selection-header">
-              <div class="tooltip-parent">
-                Pathway selection <i class="far fa-question-circle"></i>
-                <div class="tooltip">Choose a subset of pathways to analyze.</div>
-              </div>
               <div>
                 Filter: <input type="text" v-model="cluego_pathways.query" size="15" />
               </div>
@@ -451,9 +460,17 @@
                 </select>
               </div>
               <div>
+                <div v-show="cluego_pathways_filtered.labels.length > 1">
+                  Comparison:
+                  <select class="select-pathway-label" v-model="cluego_pathways.picked_label">
+                    <option v-for="label in cluego_pathways_filtered.labels" v-bind:value="label">{{ label }}</option>
+                  </select>
+                </div>
+              </div>
+              <div>
                 <span class="button danger-button" v-if="cluego_pathways.sort" v-on:click="cluego_pathways_sort_clear()">
                   <i class="fas fa-times"></i>
-                  {{ cluego_pathways.sort.display }}
+                  {{ cluego_pathways.sort.display | longname(15, false) }}
                   ({{ cluego_pathways.sort.order }})
                 </span>
                 <span class="button danger-button" v-show="cluego_pathways_filtered.n_selected > 0" v-on:click="cluego_pathways_unselect_all()">
@@ -471,7 +488,7 @@
                     <th>
                       <i v-on:click="cluego_pathways_sort('selected', 'Selected')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
-                    <th style="width: 25rem">
+                    <th style="width: 20rem">
                       GO term
                       <i v-on:click="cluego_pathways_sort('GOTerm', 'GO term')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
@@ -490,6 +507,10 @@
                     <th>
                       # of genes
                       <i v-on:click="cluego_pathways_sort('Nr. Genes', '# of genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    </th>
+                    <th v-show="cluego_pathways_filtered.labels.length > 0">
+                      {{ cluego_pathways_filtered.picked_label | longname(7, false) }}
+                      <i v-on:click="cluego_pathways_sort('label', cluego_pathways_filtered.picked_label)" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
                   </tr>
                 </thead>
@@ -512,10 +533,14 @@
                     <td class="align-right">{{ pathway.data['Term PValue Corrected with Bonferroni step down'] | roundString(4) }}</td>
                     <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
                     <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
+                    <td class="align-right" v-show="cluego_pathways_filtered.labels.length > 0">
+                      <span v-html="pathway_data_label(pathway, cluego_pathways_filtered.picked_label)"></span>
+                    </td>
                   </tr>
                   <tr v-for="(i,ix) in cluego_pathways_filtered.n_empty_rows">
                     <!-- empty rows to so there is always the same number per page -->
-                    <td v-for="(j,jx) in 6"></td>
+                    <td v-if="cluego_pathways_filtered.labels.length === 0" v-for="(j,jx) in 6"></td>
+                    <td v-if="cluego_pathways_filtered.labels.length > 0" v-for="(j,jx) in 7"></td>
                   </tr>
                 </tbody>
               </table>

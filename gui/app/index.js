@@ -37,8 +37,6 @@ const ONTOLOGY_SOURCE_TYPES = [
 ];
 const NON_NUMERIC_SORT_COLUMNS = ["GOTerm"];
 
-const GENEMANIA_SPECIES_TO_NUMBER = {"human": "4", "mouse": "5", "rat": "7"};
-
 const OUT_NAME_INVALID_REGEX = /[\/\\:\*\?"<>\|]/g;
 
 function is_dir(dirname) {
@@ -71,8 +69,21 @@ let vm = new Vue({
             "multiFC-ptm": {"text": "Multi fold change PTM", "er": true},
         },
         extra_required_fields: ["mods", "fasta_file", "enzyme"],
-        species_map: {"homo sapiens": "human", "mus musculus": "mouse", "rattus norvegicus": "rat"},
-        allowed_runs: ["string", "genemania", "both"],
+        species_map: {
+            "homo sapiens": {name: "human", genemania: "4"},
+            "mus musculus": {name: "mouse", genemania: "5"},
+            "rattus norvegicus": {name: "rat", genemania: "7"},
+            "escherichia coli": {name: "E. coli", genemania: "9"},
+            "saccharomyces cerevisiae s288c": {name: "yeast", genemania: "6"},
+            "arabidopsis thaliana": {name: "arabidopsis", genemania: "1"},
+            "danio rerio": {name: "zebrafish", genemania: "8"},
+            "bos taurus": {name: "bovine", genemania: null},
+            "gallus gallus": {name: "chicken", genemania: null},
+            "sus scrofa": {name: "pig", genemania: null},
+            "oryctolagus cuniculus": {name: "rabbit", genemania: null},
+            "ovis aries": {name: "sheep", genemania: null},
+            "canis lupus familiaris": {name: "dog", genemania: null},
+        },
         allowed_visualize: ["biological process","cellular component","molecular function","pathways","all"],
         allowed_grouping: ["global", "medium", "detailed"],
         allowed_enzymes: {
@@ -111,7 +122,7 @@ let vm = new Vue({
         missing_files: {
             in: false,
             output: false,
-            fast_file: false,
+            fasta_file: false,
             reference_path: false,
         },
         stdout: "",
@@ -129,6 +140,8 @@ let vm = new Vue({
             per_page: null,
             sort: null,
             ontology_sources_filter: null,
+            labels: null,
+            picked_label: null,
         },
         show_config: false,
         show_about: false,
@@ -336,11 +349,8 @@ let vm = new Vue({
         },
         run_full: function() {
             /* if genemania can't be found, show popup confirming they want to continue */
-            if(!this.genemania_check()) {
-                let gm_message = 
-                    "The required GeneMANIA dataset cannot be found on your system. " + 
-                    "It is recommended that you open Cytoscape to install the plugin and the required species datasets before continuing. " +
-                    "If GeneMANIA and the required species datasets are already installed, then you can ignore this message and continue.";
+            const gm_check = this.genemania_check();
+            if(gm_check != null) {
                 const res = remote.dialog.showMessageBoxSync({
                     "type": "warning",
                     "buttons": [
@@ -348,8 +358,8 @@ let vm = new Vue({
                         "Cancel (recommended)",
                     ],
                     "defaultId": 1,
-                    "title": "GeneMANIA missing",
-                    "message": gm_message,
+                    "title": "GeneMANIA error",
+                    "message": gm_check,
                 });
                 if(res !== 0) {
                     return;
@@ -409,13 +419,17 @@ let vm = new Vue({
         },
         genemania_check: function() {
             if(this.input.run !== "both" && this.input.run !== "genemania") {
-                return true; // check passed because genemania is not needed
+                return null; // check passed because genemania is not needed
             }
+
+            const msg_genemania = "Please install Genemania plugin. If it is already installed, ignore this message and continue.";
+            const msg_invalid_species = "Unsupported species chosen";
+            const msg_missing_species = `Please install '${this.input.species}' dataset for Genemania plugin within Cytoscape. If it is already installed, ignore this message and continue.`;
 
             /* check for genemania configuration directory - only should need to be checked on first run */
             let gm_config_dir = path.join(os.homedir(), "Documents/genemania_plugin");
             if(!is_dir(gm_config_dir)) {
-                return false;
+                return msg_genemania;
             }
 
             const files = fs.readdirSync(gm_config_dir);
@@ -430,13 +444,13 @@ let vm = new Vue({
                 }
             }
             if(subdirs.length === 0) {
-                return false;
+                return msg_genemania;
             }
 
-            if(!(this.input.species in GENEMANIA_SPECIES_TO_NUMBER)) {
-                return false;
+            const species_number = this.get_genemania_species(this.input.species);
+            if(species_number == null) {
+                return msg_invalid_species;
             }
-            const species_number = GENEMANIA_SPECIES_TO_NUMBER[this.input.species];
 
             for(const sd of subdirs) {
                 const sd_files = fs.readdirSync(sd);
@@ -444,13 +458,13 @@ let vm = new Vue({
                     if(!is_dir(path.join(sd, sdf))) {
                         continue;
                     }
-                    if(sdf === species_number) {
-                        return true;
+                    if(sdf === species_number && is_file(path.join(sd, sdf, "metadata.xml"))) {
+                        return null;
                     }
                 }
             }
 
-            return false;
+            return msg_missing_species;
         },
         cancel_pine: function() {
             if(this.pine === null || !this.running) {
@@ -673,11 +687,16 @@ let vm = new Vue({
             this.cluego_pathways.per_page = 5;
             this.cluego_pathways.sort = null;
             this.cluego_pathways.ontology_sources_filter = "All";
+            this.cluego_pathways.labels = [];
+            this.cluego_pathways.picked_label = null;
         },
         validate_inputs: function() {
             if(this.is_extra_options_required() && !this.validate_inputs_mods()) {
                 return false;
             } else if(
+                !this.validate_inputs_in() ||
+                !this.validate_inputs_fasta_file() ||
+                !this.validate_inputs_reference_path() ||
                 !this.validate_inputs_fccutoff() ||
                 !this.validate_inputs_pvalcutoff() ||
                 !this.validate_inputs_score() ||
@@ -688,9 +707,27 @@ let vm = new Vue({
             }
             return true;
         },
+        validate_inputs_in: function() {
+            if(!this.input.in) {
+                return true;
+            }
+            return this.input.in.endsWith(".csv");
+        },
+        validate_inputs_fasta_file: function() {
+            if(!this.input.fasta_file) {
+                return true;
+            }
+            return this.input.fasta_file.endsWith(".fasta");
+        },
+        validate_inputs_reference_path: function() {
+            if(!this.input.reference_path) {
+                return true;
+            }
+            return this.input.reference_path.endsWith(".txt");
+        },
         validate_inputs_mods: function() {
             /* allow for a comma separated list of amino acids with modifications */
-            const allowed_chars = "[a-zA-Z0-9.+:]+";
+            const allowed_chars = "[^[\\](){}]+";
             const single_element = `[A-Z](?:\\(${allowed_chars}\\)|\\[${allowed_chars}\\]|\\{${allowed_chars}\\})?`;
             const regex = RegExp(`^${single_element}(?:, ?${single_element})*$`)
             return regex.test(this.input.mods);
@@ -787,9 +824,24 @@ let vm = new Vue({
                     if(fields.length !== that.cluego_pathways.header.length) {
                         return; // invalid line
                     }
-                    let record = {"data": {}, "selected": false, "line": line};
+                    let record = {"data": {}, "selected": false, "line": line, "labels": {}};
                     for(let i = 0; i < that.cluego_pathways.header.length; i++) {
-                        record["data"][that.cluego_pathways.header[i]] = fields[i];
+                        const header = that.cluego_pathways.header[i];
+                        if(header.startsWith("% change")) {
+                            let label;
+                            if(header.includes(":")) {
+                                label = header.split(":").slice(1).join(":");
+                            } else {
+                                label = "Status";
+                            }
+                            const val = parseFloat(fields[i]);
+                            if(isNaN(val)) {
+                                record["labels"][label] = 0.0;
+                            } else {
+                                record["labels"][label] = val;
+                            }
+                        }
+                        record["data"][header] = fields[i];
                     }
 
                     /* get ontology source category */
@@ -806,7 +858,20 @@ let vm = new Vue({
                 counter += 1;
             });
 
-            this.cluego_pathways.data = cluego_pathways;
+            line_reader.on("close", () => {
+                this.cluego_pathways.data = cluego_pathways;
+
+                /* get labels */
+                let labels = new Set();
+                for(const record of this.cluego_pathways.data) {
+                    for(const label in record.labels) {
+                        labels.add(label);
+                    }
+                }
+                this.cluego_pathways.labels = Array.from(labels);
+                this.cluego_pathways.labels.sort((x, y) => x.localeCompare(y));
+                this.cluego_pathways.picked_label = this.cluego_pathways.labels.length > 0 ? this.cluego_pathways.labels[0] : "";
+            });
         },
         get_cluego_mapping: function() {
             if(!this.cluego_picked_version) {
@@ -814,7 +879,7 @@ let vm = new Vue({
             }
 
             for(const mapping of this.cluego_picked_version.mapping_files) {
-                if(this.species_map[mapping.species.toLowerCase()] === this.input.species) {
+                if(this.species_map[mapping.species.toLowerCase()].name === this.input.species) {
                     return mapping.fullpath;
                 }
             }
@@ -830,9 +895,9 @@ let vm = new Vue({
                 this.setCytoscapePath(path, true);
             } else if(name === "cluego_base_path") {
                 this.setCluegoBasePath(path, true);
-            } else {
-                this.input[name] = path;
             }
+
+            this.input[name] = path;
 
             this.runnable_file_check(false);
         },
@@ -1151,6 +1216,61 @@ let vm = new Vue({
                 credit.show_license = true;
             }
         },
+        pathway_data_label: function(datum, label) {
+            let percent = datum.labels[label];
+
+            if(percent == null || isNaN(percent)) {
+                return NaN;
+            }
+
+            let icon;
+            if(percent > 0) {
+                icon = {
+                    "classes": "fas fa-arrow-up color-up-reg",
+                    "tooltip": "% genes upregulated",
+                };
+            } else if(percent < 0) {
+                icon = {
+                    "classes": "fas fa-arrow-down color-down-reg",
+                    "tooltip": "% genes downregulated",
+                };
+            } else {
+                icon = {
+                    "classes": "fas fa-minus",
+                    "tooltip": "No change",
+                };
+            }
+            let display;
+            if(percent > 0) {
+                display = `${percent.toFixed(0)}%`;
+            } else if(percent < 0) {
+                display = `${-percent.toFixed(0)}%`;
+            } else {
+                display = "N/A";
+            }
+
+            return `
+                <span class="tooltip-parent">
+                    <i class="${icon.classes}"></i>
+                    <div class="tooltip tooltip-right">${icon.tooltip}</div>
+                </span>
+                ${display}
+            `;
+        },
+        get_genemania_species: function(species_name) {
+            for(const species_key in this.species_map) {
+                const species = this.species_map[species_key];
+                if(species.name === species_name) {
+                    return species.genemania;
+                }
+            }
+            return null;
+        },
+        selected_species_updated: function(species_name) {
+            if(this.get_genemania_species(species_name) == null) {
+                this.input.run = "string";
+            }
+        },
     },
     mounted: function() {
         this.reset_cluego_pathways();
@@ -1168,10 +1288,18 @@ let vm = new Vue({
         });
     },
     filters: {
-        filename: function(v) {
-            let basename = path.basename(v);
-            if(basename.length > 10) {
-                return basename.slice(0, 7) + "...";
+        longname: function(v, len, is_path) {
+            if(v == null) {
+                return "";
+            }
+            let basename;
+            if(is_path) {
+                basename = path.basename(v);
+            } else {
+                basename = v;
+            }
+            if(basename.length > len) {
+                return basename.slice(0, len - 3) + "...";
             }
             return basename;
         },
@@ -1259,6 +1387,16 @@ let vm = new Vue({
                         if(!a.selected && b.selected) return higher;
                         return 0;
                     });
+                } else if(col === "label") {
+                    filtered.sort(function(a, b) {
+                        if(a.labels[that.cluego_pathways.picked_label] < b.labels[that.cluego_pathways.picked_label]) {
+                            return lower;
+                        } else if(a.labels[that.cluego_pathways.picked_label] > b.labels[that.cluego_pathways.picked_label]) {
+                            return higher;
+                        } else {
+                            return 0;
+                        }
+                    });
                 } else {
                     filtered.sort(function(a, b) {
                         if(!(col in a.data)) return 1;
@@ -1301,6 +1439,8 @@ let vm = new Vue({
                 n_pages: n_pages,
                 ontology_sources: ontology_sources,
                 n_selected: n_selected,
+                labels: this.cluego_pathways.labels,
+                picked_label: this.cluego_pathways.picked_label,
             };
         },
         session_cluego_file: function() {
@@ -1333,25 +1473,50 @@ let vm = new Vue({
             for(const mapping of this.cluego_picked_version.mapping_files) {
                 const mapping_species = mapping.species.toLowerCase();
                 if(mapping_species in this.species_map) {
+                    const name = this.species_map[mapping_species].name;
+                    let display_name = name;
+                    if(this.species_map[mapping_species].genemania == null) {
+                        display_name += " (STRING only)";
+                    }
                     selectable.push({
-                        "name": this.species_map[mapping_species],
+                        "name": name,
+                        "display_name": display_name,
                         "selectable": true,
+                        "has_genemania": this.species_map[mapping_species].genemania != null,
                     });
-                    seen.add(this.species_map[mapping_species]);
+                    seen.add(this.species_map[mapping_species].name);
                 }
             }
             for(const key in this.species_map) {
-                const species = this.species_map[key];
+                const species = this.species_map[key].name;
                 if(seen.has(species)) {
                     continue;
                 }
                 selectable.push({
-                    "name": species + " (not installed)",
+                    "name": species,
+                    "display_name": species + " (not installed in ClueGO)",
                     "selectable": false,
                 });
                 seen.add(species);
             }
             return selectable;
+        },
+        allowed_runs: function() {
+            let runs = [
+                {"name": "string", "disabled": false},
+                {"name": "genemania", "disabled": false},
+                {"name": "both", "disabled": false},
+            ];
+            if(this.get_genemania_species(this.input.species) == null) {
+                runs = runs.map((x) => {
+                    if(x.name === "string") {
+                        return x;
+                    } else {
+                        return Object.assign({}, x, {"disabled": true});
+                    }
+                });
+            }
+            return runs;
         },
     },
     watch: {
@@ -1366,6 +1531,11 @@ let vm = new Vue({
         },
         "reanalysis_name": function(new_val) {
             this.$set(this, "reanalysis_name", new_val.replace(OUT_NAME_INVALID_REGEX, ""));
+        },
+        "cluego_pathways.picked_label": function(new_val) {
+            if(this.cluego_pathways.sort && this.cluego_pathways.sort.column === "label") {
+                this.cluego_pathways.sort.display = new_val;
+            }
         },
     }
 });
