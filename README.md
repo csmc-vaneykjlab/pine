@@ -13,6 +13,7 @@
 - [Output directory description](#output-directory-description)
 - [Cite us](#cite-us)
 - [Support](#support)
+- [Release notes](#release-notes)
 - [License](#license)
 
 ## What is PINE
@@ -382,6 +383,11 @@ Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, J
 
 ## Support
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
+
+## Release notes
+### Version 2.0.2
+- Fixed directory selection for new Electron version.
+- Show version number on setup tab in the GUI.
 
 ## License
 See the [LICENSE](https://github.com/csmc-vaneykjlab/pine/blob/master/LICENSE) file for license rights and limitations (Apache 2.0).
