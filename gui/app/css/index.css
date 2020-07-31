@@ -41,9 +41,6 @@ h1, h2, h3, h4, h5, h6.full-section-header {
   margin: 1rem;
   text-align: center;
 }
-.run-section.run-section-setup-tab {
-  margin-bottom: 0.25rem;
-}
 
 input.file-button {
   display: none;
@@ -416,6 +413,12 @@ img.pine-img {
 
 .color-down-reg {
   color: #0000CC;
+}
+
+.grid-pine-name-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin-right: 1rem;
 }
 
 /*# sourceMappingURL=index.css.map */

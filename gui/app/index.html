@@ -36,9 +36,14 @@
               <img src="assets/pine.png" class="pine-img" />
             </div>
             <div>
-              <h2>
-                <span class="color-3">P</span>rotein <span class="color-3">I</span>nteraction <span class="color-3">N</span>etwork <span class="color-3">E</span>xtractor
-              </h2>
+              <div class="grid-pine-name-header">
+                <h2>
+                  <span class="color-3">P</span>rotein <span class="color-3">I</span>nteraction <span class="color-3">N</span>etwork <span class="color-3">E</span>xtractor
+                </h2>
+                <div class="align-right">
+                  <span class="text-small">Version {{ version }}</span>
+                </div>
+              </div>
               <p>
                 A tool that enables extraction and visualization of protein-protein interactions from publicly available databases to reveal complex context-specific functional networks.
               </p>
@@ -102,14 +107,13 @@
               </div>
             </div>
           </section>
-          <section class="run-section run-section-setup-tab">
+          <section class="run-section">
             <span class="button success-button big" v-on:click="open_url('https://github.com/csmc-vaneykjlab/pine#cite-us')">Cite Us</span>
             <span class="horizontal-sep"></span>
             <span class="button success-button big" v-on:click="open_url('https://github.com/csmc-vaneykjlab/pine/blob/master/README.md')">Help</span>
             <span class="horizontal-sep"></span>
             <span class="button success-button big" v-on:click="switchTab(tabs.CREDITS)">Credits</span>
           </section>
-          <span class="text-small">Version {{ version }}</span>
         </div>
 
         <div v-if="current_tab === tabs.INPUT">
