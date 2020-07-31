@@ -57,6 +57,14 @@ function error_popup(title, message, warning) {
     remote.dialog.showMessageBox({"type": type, "buttons": ["Ok"], "defaultId": 0, "title": title, "message": message});
 }
 
+function get_directory_from_user() {
+    const res = remote.dialog.showOpenDialogSync({properties: ["openDirectory"]});
+    if(res.length === 0) {
+        return null;
+    }
+    return res[0];
+}
+
 let vm = new Vue({
     el: "#app",
     data: {
@@ -533,12 +541,11 @@ let vm = new Vue({
             }
             return false;
         },
-        user_load_session: function(e) {
-            if(!e.target.files[0].path) {
-                e.target.value = "";
+        user_load_session: function() {
+            const new_dir = get_directory_from_user();
+            if(new_dir == null) {
                 return;
             }
-            let new_dir = e.target.files[0].path;
             if(!is_dir(new_dir)) {
                 error_popup("Invalid path", "Path provided is not a directory");
                 e.target.value = "";
@@ -886,11 +893,16 @@ let vm = new Vue({
             return null;
         },
         inputFileChange: function(e, name) {
-            if(!e.target.files[0].path) {
-                return;
+            let path;
+            if(typeof e === "string") {
+                path = e;
+            } else {
+                if(!e.target.files[0].path) {
+                    return;
+                }
+                path = e.target.files[0].path;
             }
 
-            let path = e.target.files[0].path;
             if(name === "cytoscape_path") {
                 this.setCytoscapePath(path, true);
             } else if(name === "cluego_base_path") {
@@ -900,6 +912,12 @@ let vm = new Vue({
             this.input[name] = path;
 
             this.runnable_file_check(false);
+        },
+        inputDirectoryChange: function(name) {
+            const path_name = get_directory_from_user();
+            if(path_name != null) {
+                this.inputFileChange(path_name, name);
+            }
         },
         save_settings: function(settings_file) {
             let settings = {};
