@@ -8,6 +8,7 @@ const os = require("os");
 const readline = require("readline");
 const shell = require("electron").shell;
 const http = require("http");
+const pjson = require("../package.json");
 
 document.addEventListener("keydown", function(e) {
     if(e.keyCode === 123) {
@@ -68,6 +69,7 @@ function get_directory_from_user() {
 let vm = new Vue({
     el: "#app",
     data: {
+        version: pjson.version,
         allowed_types: {
             "noFC": {"text": "No fold change", "er": false}, // er - extra required - extra fields need to be shown and submitted by the user
             "singleFC": {"text": "Single fold change", "er": false},
