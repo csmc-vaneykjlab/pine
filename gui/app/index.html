@@ -36,9 +36,14 @@
               <img src="assets/pine.png" class="pine-img" />
             </div>
             <div>
-              <h2>
-                <span class="color-3">P</span>rotein <span class="color-3">I</span>nteraction <span class="color-3">N</span>etwork <span class="color-3">E</span>xtractor
-              </h2>
+              <div class="grid-pine-name-header">
+                <h2>
+                  <span class="color-3">P</span>rotein <span class="color-3">I</span>nteraction <span class="color-3">N</span>etwork <span class="color-3">E</span>xtractor
+                </h2>
+                <div class="align-right">
+                  <span class="text-small">Version {{ version }}</span>
+                </div>
+              </div>
               <p>
                 A tool that enables extraction and visualization of protein-protein interactions from publicly available databases to reveal complex context-specific functional networks.
               </p>
@@ -60,8 +65,7 @@
 
               <div class="align-right">ClueGO directory</div>
               <div>
-                <label class="button success-button" for="file-button-cluego">Select file</label>
-                <input class="file-button" id="file-button-cluego" v-on:change="inputFileChange($event, 'cluego_base_path')" type="file" webkitdirectory />
+                <span class="button success-button" v-on:click="inputDirectoryChange('cluego_base_path')">Select file</span>
               </div>
               <div>
                 {{ input.cluego_base_path }}
@@ -159,8 +163,7 @@
                 </span>
               </div>
               <div>
-                <label class="button success-button" for="file-button-output">Select directory</label>
-                <input class="file-button" id="file-button-output" type="file" v-on:change="inputFileChange($event, 'output')" webkitdirectory ref="input_output" />
+                <span class="button success-button" v-on:click="inputDirectoryChange('output')">Select directory</span>
                 <span class="text-small" v-show="input.output" v-bind:title="input.output">{{ input.output | longname(10, true) }}</span>
                 <span class="tooltip-parent lock-error" v-show="missing_files.output">
                   <i class="fas fa-exclamation-circle color-2"></i>
@@ -422,8 +425,7 @@
             <span class="horizontal-sep" v-show="settings_editable()"></span>
             <span class="button success-button big" v-show="session_exists() && !running" v-on:click="reset_session()">New Session</span>
             <span class="horizontal-sep" v-show="session_exists() && !running"></span>
-            <label v-show="!running" class="button success-button big" for="file-button-load-session">Load session</label>
-            <input class="file-button" id="file-button-load-session" type="file" v-on:change="user_load_session($event)" webkitdirectory/>
+            <span v-show="!running" class="button success-button big" v-on:click="user_load_session()">Load session</span>
           </section>
         </div>
 

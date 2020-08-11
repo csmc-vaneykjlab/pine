@@ -5,7 +5,7 @@
 - [Requirements and Setup](#requirements-and-setup)
 - [Example usage](#example-usage)
 - [Using PINE GUI](#using-pine-gui)
-- [Ontology/Pathway Term Status]
+- [Ontology and Pathway Term Status](#ontology-and-pathway-term-status)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
 - [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
@@ -13,6 +13,7 @@
 - [Output directory description](#output-directory-description)
 - [Cite us](#cite-us)
 - [Support](#support)
+- [Release notes](#release-notes)
 - [License](#license)
 
 ## What is PINE
@@ -176,6 +177,15 @@ Colors on the annotation node indicate the following:
 Shown below is the legend for interpreting visualizations through PINE:
 ![Legend](Image/legend.png)
 
+## Ontology and Pathway Term Status
+In the case of single-fc type analysis, a column labelled "Status" is available in the Pathway Selection page that depicts up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. If a majority of genes have fold changes > 1, then the GO term is said to be overall up-regulated. If a majority of enes have fold changes < 1, then the GO term is said to be overall down-regulated. If there is no majority of genes with either fold change > 1 or < 1, then the GO term is said to have no change.
+
+![Pathway analysis singlefc](Image/pine-usage-pathway-selection-1.png)
+
+In the case of multiple-fc type analysis, a drop-down of all comparison groups appears on the top of the Pathway Selection page. Based on the label selected, a column with the comparison name is updated that depicts up-regulation, down-regulation or no change status of a GO term determined on the basis of status of a majority of associated genes. Switching comparison groups in the dropdown updates the column to the selected comparison name.
+
+![Pathway analysis multifc](Image/multifc-pathway-selection.png)
+
 ## Customized Styling in Cytoscape
 
 ### Layout
@@ -251,6 +261,8 @@ Number of missed cleavages are calculated for all peptides of a single site, wit
 ![Other-Mods](Image/Other-Mods.JPG)  
 Number of modifications other than the modification of interest are calculated for all peptides of a single site, with the peptide having the least number of other modifications showing higher score.  
 
+Note: Alkylated Cys are not considered as other modifications. Sequences containing alkylated Cys are always preferred over sequences containing non-alkylated Cys during ambiguity resolution.
+
 ### PTM Naming Convention
 PTM sites are represented in the interaction and ontology network by Amino acid modified followed by PTM type in curly brackets followed by PTM site as shown above (E.g. S{+80}25). PTM type is denoted based on PTM identifier present within brackets in the input data (e.g. Modification mass [+80] or Unimod accession (Unimod:21) or free text {Phos} etc.). This information proves to be useful in case of occurrence of multiple PTMs on a single amino acid in order to differentiate between PTMs using the PTM type. But, in other cases, this can be optionally turned off by the user by switching node label to column 'substitute name' within Cytoscape->Control Panel->Style->Label (e.g. S{+80}25 will be denoted as S25) as shown below:  
 ![substitute-name](Image/substitute-name.png)  
@@ -280,10 +292,10 @@ python3 -m pine.pine -i input.csv -o output_dir -c cluego_out.txt -t input_type 
 ### Command line parameters
 | Parameter | Description |
 | --------- | ----------- |
-| -i, --in | input file in csv format with the following headers as applicable: ProteinID, FC, pval, adj.pval, Label, Category, Peptide |
+| -i, --in | input file in csv format with the following headers as applicable: ProteinID, GeneID, FC, pvalue, adj.pvalue, Label, Category, Peptide |
 | -o, --output | path to output directory |
 | -t, --type | analysis type [Allowed: noFC, singleFC, multiFC, category, singlefc-ptm, multifc-ptm] |
-| -s, --species | species [Allowed: human, mouse, rat] |
+| -s, --species | species [Allowed: human, mouse, rat, arabidopsis, bovine, dog, zebrafish, e. coli, chicken, rabbit, sheep, yeast, pig] |
 | -x, --enzyme | (required if singlefc-ptm or multifc-ptm) enzyme name [Allowed: Trypsin, Trypsin_p, Lys_n, Asp_n, Arg_c, Chymotrypsin, Lys_c] |
 | -d, --mods | (required if singlefc-ptm or multifc-ptm) comma separated list of modifications of interest [Example: S,T,Y or K(Unimod:1) or S[+80]] |
 | -b, --fastafile | (required if singlefc-ptm or multifc-ptm) path to fasta file |
@@ -309,13 +321,13 @@ All input files must be in CSV (comma separated value) format.  All column names
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID | `proteinid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 
 **Single fold change**
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID | `proteinid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 | Fold change | `fc` |
 | P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
@@ -323,7 +335,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID | `proteinid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 | Fold change | `fc` |
 | Label | `label` |
 | P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
@@ -332,7 +344,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID | `proteinid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 | Category | `category` |
 
 **Single fold change PTM**
@@ -354,6 +366,8 @@ All input files must be in CSV (comma separated value) format.  All column names
 | Label | `label` |
 | P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
+NOTE: Alkylated cys should have the following naming convention - C[+57], C(Unimod:4) or C[cys] 
+
 ## Output directory description
 
 A directory is created in the specified output directory after the analysis completes.  This directory will contain six files:
@@ -369,6 +383,11 @@ Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, J
 
 ## Support
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
+
+## Release notes
+### Version 2.0.2
+- Fixed directory selection for new Electron version.
+- Show version number on setup tab in the GUI.
 
 ## License
 See the [LICENSE](https://github.com/csmc-vaneykjlab/pine/blob/master/LICENSE) file for license rights and limitations (Apache 2.0).

@@ -415,4 +415,10 @@ img.pine-img {
   color: #0000CC;
 }
 
+.grid-pine-name-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin-right: 1rem;
+}
+
 /*# sourceMappingURL=index.css.map */
