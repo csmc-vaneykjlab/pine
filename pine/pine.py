@@ -350,7 +350,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             elif "peptide" in row[i].lower():
               peptide_col = i
               is_pep_col = True         
-            elif "geneid" in row[i].lower():
+            elif "gene name" in row[i].lower():
               gene_col = i
               is_gene_col = True
               
