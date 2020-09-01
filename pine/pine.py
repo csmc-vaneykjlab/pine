@@ -43,6 +43,8 @@ import subprocess
 import warnings
 from collections import Counter
 import socket
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.ssl_ import create_urllib3_context
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 __author__ = "Niveda Sundararaman, James Go and Vidya Venkatraman"
@@ -65,6 +67,14 @@ class CytoscapeError(Exception):
 class PineError(Exception):
   def __init__(self, message):
     super().__init__(message)
+
+class SSLContextAdapter(HTTPAdapter):
+  # from: https://stackoverflow.com/a/50215614/3704042
+  def init_poolmanager(self, *args, **kwargs):
+    context = create_urllib3_context()
+    kwargs['ssl_context'] = context
+    context.load_default_certs()
+    return super(SSLContextAdapter, self).init_poolmanager(*args, **kwargs)
 
 def setup_logger(name, log_file, level=logging.DEBUG, with_stdout=False):
   ''' Define logging criteria to generate logs to include warnings or reasons for dropping protein from analysis '''
@@ -121,6 +131,24 @@ def request_retry(url, protocol, headers=None, data=None, json=None, timeout=300
       timer = time.time()
       last_exception = e
   raise CytoscapeError(str(last_exception))
+
+def request_https(url, protocol, **kwargs):
+  url_parsed = urllib.parse.urlparse(url)
+
+  s = requests.Session()
+  adapter = SSLContextAdapter()
+  s.mount(f"https://{url_parsed.netloc}", adapter)
+
+  if protocol == "GET":
+    func = s.get
+  elif protocol == "PUT":
+    func = s.put
+  elif protocol == "POST":
+    func = s.post
+  elif protocol == "DELETE":
+    func = s.delete
+
+  return func(url, **kwargs)
 
 def input_failure_comment(uniprot_query, merged_out_dict, input_id, comment):
   ''' Label an ID from the input with a failure comment '''
@@ -1979,7 +2007,7 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
   'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,reviewed,last-modified'
   }
   try:
-    response = requests.post(url, data=params)
+    response = request_https(url, "POST", data=params)
     response.raise_for_status()
     decode = response.text
     list1=decode.split('\n')
@@ -2490,7 +2518,7 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
   "limit" : 1
   }
   try:
-    response = requests.post('https://string-db.org/api/tsv-no-header/get_string_ids', data=data)
+    response = request_https('https://string-db.org/api/tsv-no-header/get_string_ids', "POST", data=data)
     response.raise_for_status()
     out = pd.read_table(StringIO(response.text), header=None)
     query = list(out[0].values.flatten())
@@ -2507,7 +2535,7 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
     'additional_network_nodes': str(limit),
     'required_score': str(score)
     }
-    response = requests.post('http://string-db.org/api/tsv-no-header/interactions', data=data)
+    response = request_https('https://string-db.org/api/tsv-no-header/interactions', "POST", data=data)
     response.raise_for_status()
     string_db_out.update(pd.read_table(StringIO(response.text), header=None))
     string1 = list(string_db_out[2].values.flatten())
