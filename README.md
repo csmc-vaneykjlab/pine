@@ -321,13 +321,13 @@ All input files must be in CSV (comma separated value) format.  All column names
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID or Gene ID | `proteinid` or `geneid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 
 **Single fold change**
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID or Gene ID | `proteinid` or `geneid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 | Fold change | `fc` |
 | P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
 
@@ -335,7 +335,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID or Gene ID | `proteinid` or `geneid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 | Fold change | `fc` |
 | Label | `label` |
 | P.value (opt) | `pvalue` or `adj.pvalue` or `fdr` | 
@@ -344,7 +344,7 @@ All input files must be in CSV (comma separated value) format.  All column names
 
 | Column | Input column name |
 | ------ | ---------------- |
-| Uniprot ID or Gene ID | `proteinid` or `geneid` |
+| Uniprot ID or Gene ID | `proteinid` or `gene name` |
 | Category | `category` |
 
 **Single fold change PTM**
