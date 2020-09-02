@@ -211,8 +211,9 @@ The colors of the bar and pie charts can be modified by navigating to the 'Image
 ![BarColor](Image/BarChartColor.png)  
 
 Additionally, for bar charts, the option is provided to include:  
-- **Value Labels** in the bar showing the numeric value that represents height of the bar. Select 'Show Value Labels' and choose the PINE generated column pine_value_label to enable this option  
-- **Domain Labels** showing bar labels. Select 'Show Domain Axis' and choose the PINE generated column pine_domain_label to enable this option   
+- **Value Labels** in the bar showing the numeric value that represents height of the bar. Select 'Show Value Labels' and choose the  column --none-- to enable this option  
+- **Domain Labels** showing bar labels. Select 'Show Domain Axis' and choose the PINE generated column pine_domain_label to enable this option  
+Other options include ability to change font size of labels and values, showing axis lines and altering width of axis.
 ![BarOptions](Image/BarChartOptions.png)
 
 This labels bar charts appropriately as below:  
