@@ -3350,6 +3350,9 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
         if "MolecularFunction" in ontologies:
           list_ontology.append(each_ontology+";"+"Ellipse")
+      if select_terms.lower() == "all":
+        if "ImmuneSystemProcess" in ontologies:
+          list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "pathways" or select_terms.lower() == "all":
         if "Human-diseases" in ontologies or "KEGG" in ontologies or "Pathways" in ontologies or "WikiPathways" in ontologies or "CORUM" in ontologies:
           list_ontology.append(each_ontology+";"+"Ellipse")
@@ -5034,7 +5037,7 @@ def main(argv):
     eprint("Error: Species not currently supported: " + cy_species.lower())
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
-
+  
   if not ('\\' in cy_session or "/" in cy_session):
     cwd = os.getcwd()
     cy_session = cwd + "\\" + cy_session
@@ -5142,6 +5145,7 @@ def main(argv):
     sys.exit(1)
     
   try:
+    
     if cy_debug:
       logging.debug("Starting PINE Analysis...\n") 
       
@@ -5155,7 +5159,7 @@ def main(argv):
         break
     CYREST_PORT = cyrest_port
     CYREST_URL = "http://localhost:" + str(cyrest_port)
-
+    
     if not found_open_port:
       eprint("Please close all open Cytoscape sessions and start the run again.")
       sys.exit(1)
@@ -5551,7 +5555,7 @@ def main(argv):
   
       #Start ClueGO
       response = request_retry(f'{CYREST_URL}/v1/apps/cluego/start-up-cluego', 'POST')
-      
+
       if cy_debug:
         # Number of ClueGO query + EI = x + y
         logging.debug("ClueGO query + External Interactor: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))  
@@ -5561,11 +5565,12 @@ def main(argv):
       if cy_debug:
         #Number of ClueGO query + EI = x + y
         logging.debug("Total ClueGO query + External Interactor: " + str(len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in filtered_unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))      
-    
+      
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
+      
       cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels)
-    
+   
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
     
@@ -5577,7 +5582,7 @@ def main(argv):
     #Write into outfile
     write_into_out(merged_out_dict, cy_out, dup_prot_ids)
     request_retry(f"{CYREST_URL}/v1/session?file=" + urllib.parse.quote_plus(cy_session), 'POST')
-
+    
   except CytoscapeError as e:
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     eprint("Error: Cytoscape not responding. Please start the run again")
