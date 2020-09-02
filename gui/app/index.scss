@@ -26,6 +26,9 @@ $screen-height: 500px;
 .full-section.wrapper {
     height: $screen-height;
     overflow-y: auto;
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .full-section-cover {
@@ -254,8 +257,9 @@ input.big {
 ul.tab-selector {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    margin-left: 1rem;
-    margin-right: 1rem;
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    margin-top: 0.25rem;
     border: solid $color-dark 1px;
     //border-radius: 5px 5px 0 0;
     border-bottom-width: 0;
@@ -399,7 +403,7 @@ img.icon {
 }
 
 .select-pathway-label {
-    width: 200px;
+    width: 180px;
 }
 
 .pathway-select-checkbox {
