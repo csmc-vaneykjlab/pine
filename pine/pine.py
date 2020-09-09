@@ -1986,159 +1986,174 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
     2. Query protein ID mapping to multiple primary genes
     3. Isoforms in the query which will map to same protein ID
   '''
+  dropped_ids = list(merged_out_dict.keys())
   uniprot_query = {}
   each_primgene_list = []
   each_protid_list = []
   no_uniprot_val = []
   no_primgene_val = []
   prot_with_mult_primgene = []
-  query_term = ' '.join(each_protein_list)
   url = 'https://www.uniprot.org/uploadlists/'
   ambigious_gene = []
   all_isoforms = []
   count_iso = 0
   duplicate_canonical = []
   retain_dup_can = []
-  params = {
-  'from':'ACC+ID',
-  'to':'ACC',
-  'format':'tab',
-  'query':query_term,
-  'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,reviewed,last-modified'
-  }
-  try:
-    response = request_https(url, "POST", data=params)
-    response.raise_for_status()
-    decode = response.text
-    list1=decode.split('\n')
-    list1 = list1[1:]
-    req_ids = []
-    for l in list1:
-      if l:
-        req_ids.extend(l.split("\t")[6].split(","))
-    id_counts = Counter(req_ids)
-    duplicate_mapping_ids = set([x for x in id_counts if id_counts[x] > 1])
-    seen_duplicate_mapping_ids = {}
-  except:
-    eprint("Error: Uniprot not responding. Please try again later")
-    remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-    sys.exit(1)
-  isoform_warning = ""
-  for each_list1 in list1:
-    remaining_isoforms = []
-    is_mult_prim_gene_bool = False
-    is_isoform_gene_bool = False
-    if each_list1 != '':
-      uniprot_list = each_list1.split('\t')
-      uniprot_protid = uniprot_list[0]
-      prot = uniprot_list[6]
-      split_prot_list = prot.split(',')
-      comment_merged = ""     
-      if len(split_prot_list) > 1:
-        is_isoform_gene_bool = True
-        if exclude_ambi:
-          if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
-            duplicate_canonical.append((uniprot_protid, split_prot_list))
-            for spl in split_prot_list:
-              input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")            
+  batch_size = 1500
+  variants = {}
+  full_list = each_protein_list + dropped_ids
+  full_list = list(set(full_list))
+  for i in range(0, len(full_list), batch_size):
+    batched = full_list[i:i+batch_size]
+    query_term = ' '.join(batched)
+    params = {
+    'from':'ACC+ID',
+    'to':'ACC',
+    'format':'tab',
+    'query':query_term,
+    'columns': 'id,genes(PREFERRED),genes(ALTERNATIVE),organism,reviewed,last-modified'
+    }
+    try:
+      response = request_https(url, "POST", data=params)
+      response.raise_for_status()
+      decode = response.text
+      list1=decode.split('\n')
+      list1 = list1[1:]
+      req_ids = []
+      for l in list1:
+        if l:
+          req_ids.extend(l.split("\t")[6].split(","))
+      id_counts = Counter(req_ids)
+      duplicate_mapping_ids = set([x for x in id_counts if id_counts[x] > 1])
+      seen_duplicate_mapping_ids = {}
+    except:
+      eprint("Error: Uniprot not responding. Please try again later")
+      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      sys.exit(1)
+    isoform_warning = ""
+    for each_list1 in list1:
+      remaining_isoforms = []
+      is_mult_prim_gene_bool = False
+      is_isoform_gene_bool = False
+      if each_list1 != '':
+        uniprot_list = each_list1.split('\t')
+        uniprot_protid = uniprot_list[0]
+        prot = uniprot_list[6]
+        split_prot_list = prot.split(',')
+        comment_merged = ""  
+        for i in range(len(split_prot_list) - 1, -1, -1):
+          if split_prot_list[i] not in each_protein_list:
+            dropped_primary_gene = uniprot_list[1]
+            merged_out_dict[split_prot_list[i]]['Primary'] = dropped_primary_gene
+            del split_prot_list[i]
+        if len(split_prot_list) == 0:
+          continue
+       
+        if len(split_prot_list) > 1:
+          is_isoform_gene_bool = True
+          if exclude_ambi:
+            if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
+              duplicate_canonical.append((uniprot_protid, split_prot_list))
+              for spl in split_prot_list:
+                input_failure_comment(uniprot_query, merged_out_dict, spl, "Multiple input IDs map to a single Uniprot ID")            
+            else:
+              remaining_isoforms = split_prot_list
+              for spl in split_prot_list:
+                input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
+              all_isoforms.extend(remaining_isoforms)            
+            each_prot = ""
           else:
-            remaining_isoforms = split_prot_list
-            for spl in split_prot_list:
-              input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
-            all_isoforms.extend(remaining_isoforms)            
-          each_prot = ""
+            if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
+              get_list_dup_can = []
+              is_retained_dup_can = ""
+              for each_dup_can in split_prot_list:
+                if each_dup_can == uniprot_protid:
+                  is_retained_dup_can = each_dup_can
+                  retain_dup_can.append(each_dup_can)
+                else:
+                  get_list_dup_can.append(each_dup_can)
+                  input_failure_comment(uniprot_query, merged_out_dict, each_dup_can, "Multiple input IDs map to a single Uniprot ID")
+              each_prot = is_retained_dup_can
+              duplicate_canonical.append((uniprot_protid, get_list_dup_can))
+            else:
+              remaining_isoforms = []
+              get_each_picked = ""
+              for each_iso in split_prot_list:
+                if "-" not in each_iso:
+                  get_each_picked = each_iso
+                else:
+                  remaining_isoforms.append(each_iso)
+
+              if not get_each_picked:
+                remaining_isoforms = split_prot_list[1:]
+                get_each_picked = split_prot_list[0]
+              each_prot = get_each_picked
+              count_iso += len(remaining_isoforms)
+              for spl in remaining_isoforms:
+                input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
+              isoform_warning += "(" + ','.join([each_prot] + remaining_isoforms) + "),"
+              all_isoforms.extend(remaining_isoforms)
         else:
-          if len(set([x.split("-")[0] for x in split_prot_list])) > 1: # more than one canonical ID after accounting for isoforms
-            get_list_dup_can = []
-            is_retained_dup_can = ""
-            for each_dup_can in split_prot_list:
-              if each_dup_can == uniprot_protid:
-                is_retained_dup_can = each_dup_can
-                retain_dup_can.append(each_dup_can)
-              else:
-                get_list_dup_can.append(each_dup_can)
-                input_failure_comment(uniprot_query, merged_out_dict, each_dup_can, "Multiple input IDs map to a single Uniprot ID")
-            each_prot = is_retained_dup_can
-            duplicate_canonical.append((uniprot_protid, get_list_dup_can))
+          each_prot = split_prot_list[0]      
+
+        if each_prot in duplicate_mapping_ids:
+          if each_prot in seen_duplicate_mapping_ids:
+            seen_duplicate_mapping_ids[each_prot].append({"protein": uniprot_protid, "gene": uniprot_list[1]})
+            each_prot = ""
           else:
-            remaining_isoforms = []
-            get_each_picked = ""
-            for each_iso in split_prot_list:
-              if "-" not in each_iso:
-                get_each_picked = each_iso
-              else:
-                remaining_isoforms.append(each_iso)
+            seen_duplicate_mapping_ids[each_prot] = [{"protein": uniprot_protid, "gene": uniprot_list[1]}]
+            input_failure_comment(uniprot_query, merged_out_dict, each_prot, "Input ID maps to multiple Uniprot IDs")
+            each_prot = ""
 
-            if not get_each_picked:
-              remaining_isoforms = split_prot_list[1:]
-              get_each_picked = split_prot_list[0]
-            each_prot = get_each_picked
-            count_iso += len(remaining_isoforms)
-            for spl in remaining_isoforms:
-              input_failure_comment(uniprot_query, merged_out_dict, spl, "Isoform")
-            isoform_warning += "(" + ','.join([each_prot] + remaining_isoforms) + "),"
-            all_isoforms.extend(remaining_isoforms)
-      else:
-        each_prot = split_prot_list[0]      
-
-      if each_prot in duplicate_mapping_ids:
-        if each_prot in seen_duplicate_mapping_ids:
-          seen_duplicate_mapping_ids[each_prot].append({"protein": uniprot_protid, "gene": uniprot_list[1]})
-          each_prot = ""
-        else:
-          seen_duplicate_mapping_ids[each_prot] = [{"protein": uniprot_protid, "gene": uniprot_list[1]}]
-          input_failure_comment(uniprot_query, merged_out_dict, each_prot, "Input ID maps to multiple Uniprot IDs")
-          each_prot = ""
-
-      if each_prot == "":
-        continue
+        if each_prot == "":
+          continue
       
-      primary_gene = uniprot_list[1]
-      if each_prot and each_prot not in merged_out_dict:
-        merged_out_dict[each_prot] = {}
+        primary_gene = uniprot_list[1]
+        if each_prot and each_prot not in merged_out_dict:
+          merged_out_dict[each_prot] = {}
       
-      # Pick first gene in case of multiple primary genes for single uniprot ids    
-      if ";" in primary_gene:
-        prot_with_mult_primgene.append(each_prot + "(" + primary_gene + ") ")
-        is_mult_prim_gene_bool = True
-        if not exclude_ambi:
-          primary_gene = primary_gene.split(";")[0]
+        # Pick first gene in case of multiple primary genes for single uniprot ids    
+        if ";" in primary_gene:
+          prot_with_mult_primgene.append(each_prot + "(" + primary_gene + ") ")
+          is_mult_prim_gene_bool = True
+          if not exclude_ambi:
+            primary_gene = primary_gene.split(";")[0]
          
-        if primary_gene and primary_gene not in ambigious_gene:
-          ambigious_gene.append(primary_gene)
+          if primary_gene and primary_gene not in ambigious_gene:
+            ambigious_gene.append(primary_gene)
           
-      if remaining_isoforms:
-        if primary_gene not in ambigious_gene:
-          ambigious_gene.append(primary_gene) 
+        if remaining_isoforms:
+          if primary_gene not in ambigious_gene:
+            ambigious_gene.append(primary_gene) 
           
-      synonym_gene = uniprot_list[2]
-      synonym_gene = synonym_gene.split(" ")
-      organism_name = uniprot_list[3]
-      uniprot_query[each_prot] = {}
-      uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name,'Reviewed':uniprot_list[4],'Date_modified':uniprot_list[5]})
-      # Do not add empty primary gene to list
-      if primary_gene and ";" not in primary_gene:
-        each_primgene_list.append(primary_gene)
-      elif not primary_gene:
-        no_primgene_val.append(each_prot)
-        comment_merged = "Primary gene unavailable;"
-      elif ";" in primary_gene and exclude_ambi:
-        comment_merged = "Multiple primary genes;"
-      if uniprot_protid:
-        each_protid_list.append(uniprot_protid)
+        synonym_gene = uniprot_list[2]
+        synonym_gene = synonym_gene.split(" ")
+        organism_name = uniprot_list[3]
+        uniprot_query[each_prot] = {}
+        uniprot_query[each_prot].update({'Uniprot':uniprot_protid,'Primary':primary_gene,'Synonym':synonym_gene,'Organism':organism_name,'Reviewed':uniprot_list[4],'Date_modified':uniprot_list[5]})
+        # Do not add empty primary gene to list
+        if primary_gene and ";" not in primary_gene:
+          each_primgene_list.append(primary_gene)
+        elif not primary_gene:
+          no_primgene_val.append(each_prot)
+          comment_merged = "Primary gene unavailable;"
+        elif ";" in primary_gene and exclude_ambi:
+          comment_merged = "Multiple primary genes;"
+        if uniprot_protid:
+          each_protid_list.append(uniprot_protid)
       
-      if not exclude_ambi and is_isoform_gene_bool and primary_gene:
-        store_prim_gene = primary_gene + "**"       
-      elif not exclude_ambi and is_mult_prim_gene_bool:
-        store_prim_gene = primary_gene + "**"
-      else:
-        store_prim_gene = primary_gene
+        if not exclude_ambi and is_isoform_gene_bool and primary_gene:
+          store_prim_gene = primary_gene + "**"       
+        elif not exclude_ambi and is_mult_prim_gene_bool:
+          store_prim_gene = primary_gene + "**"
+        else:
+          store_prim_gene = primary_gene
                  
-      merged_out_dict[each_prot].update({'Primary':store_prim_gene, 'String':'', 'Genemania':'', 'ClueGO':''})
-      if 'CommentGene' in merged_out_dict[each_prot]:
-        merged_out_dict[each_prot]['CommentGene'] += comment_merged
-      else:
-        merged_out_dict[each_prot].update({'CommentGene':comment_merged})
+        merged_out_dict[each_prot].update({'Primary':store_prim_gene, 'String':'', 'Genemania':'', 'ClueGO':''})
+        if 'CommentGene' in merged_out_dict[each_prot]:
+          merged_out_dict[each_prot]['CommentGene'] += comment_merged
+        else:
+          merged_out_dict[each_prot].update({'CommentGene':comment_merged})
       
   should_exit = False
   for each_prot_in_input in each_protein_list:
@@ -3676,10 +3691,10 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     domain_labels.append(str(val_term_FC))
     if collect_fcs:
       if not value_labels:
-        value_labels = [ [str(collect_fcs[i])] for i in range(0, len(collect_fcs)) ]
+        value_labels = [ [str(round(collect_fcs[i],2))] for i in range(0, len(collect_fcs)) ]
       else:
         for i in range(0, len(collect_fcs)):
-          value_labels[i].append(str(collect_fcs[i])) 
+          value_labels[i].append(str(round(collect_fcs[i],2))) 
     G.vs[val_term_FC] = all_fcs[term_FC] + all_other_fcs
     G.vs[val_term_pval] = all_pval[term_pval] + all_other_pval
   
@@ -3813,10 +3828,10 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     domain_labels.append(str(val_term_FC))
     if collect_fcs:
       if not value_labels:
-        value_labels = [ [str(collect_fcs[i])] for i in range(0, len(collect_fcs)) ]
+        value_labels = [ [str(round(collect_fcs[i],2))] for i in range(0, len(collect_fcs)) ]
       else:
         for i in range(0, len(collect_fcs)):
-          value_labels[i].append(str(collect_fcs[i]))
+          value_labels[i].append(str(round(collect_fcs[i],2)))
     G.vs[val_term_FC] = uniprot_list[term_FC]
     G.vs[val_term_pval] = uniprot_list[term_pval]
   
@@ -4537,10 +4552,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     domain_labels.append(str(val_term_FC))
     if add_term_FC:
       if not value_labels:
-        value_labels = [ [str(add_term_FC[i])] for i in range(0, len(add_term_FC)) ]
+        value_labels = [ [str(round(add_term_FC[i],2))] for i in range(0, len(add_term_FC)) ]
       else:
         for i in range(0, len(add_term_FC)):
-          value_labels[i].append(str(add_term_FC[i]))       
+          value_labels[i].append(str(round(add_term_FC[i],2)))       
     add_term_FC = []
     add_term_pval = []
     significant_val = []
@@ -4589,10 +4604,10 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     
   if add_term_FC:
     if not value_labels:
-      value_labels = [ [str(add_term_FC[i])] for i in range(0, len(add_term_FC)) ]
+      value_labels = [ [str(round(add_term_FC[i],2))] for i in range(0, len(add_term_FC)) ]
     else:
       for i in range(0, len(add_term_FC)):
-        value_labels[i].append(str(add_term_FC[i]))  
+        value_labels[i].append(str(round(add_term_FC[i],2)))  
         
   if max_FC_len > 1:
     tot = len(query)
@@ -5344,7 +5359,12 @@ def main(argv):
         remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
         sys.exit(1)
         
-    if not cy_cluego_inp_file:  
+    if not cy_cluego_inp_file:
+      if ver_cluego == "2.5.7":
+        eprint("Error: ClueGO version 2.5.7 not supported due to a bug in the version with pathway files. Please install any other ClueGO version above 2.5.0")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
+      
       check_cluego_ver = re.match('^([0-9]{1,}\.[0-9]{1,})', ver_cluego)
       if float(check_cluego_ver.group(1)) < 2.5:
         eprint("Error: Cytoscape app ClueGO v2.5.0 or above not installed or not responding properly")
