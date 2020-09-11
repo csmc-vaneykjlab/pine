@@ -3289,13 +3289,51 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
     
   df = pd.DataFrame.from_dict(cluego_dict)
   return(df)        
-                  
+
+def calc_nr_genes_category(df, uniprot_list, each_category):
+  cluego_dict = df.to_dict()
+  add_col_to_end = {}
+  gene_col = {}
+  no_gene_col = {}
+  for each_term in cluego_dict:
+    if "associated genes found" in each_term.lower():
+      for each_col in cluego_dict[each_term]:
+        for get_category in each_category:
+          list_of_genes = cluego_dict[each_term][each_col].strip('][').split(', ') 
+          get_gene_list = []
+          no_of_gene = 0
+          total_no_of_gene = 0
+          for each_gene in list_of_genes: 
+            total_no_of_gene += 1          
+            if each_gene.lower() in uniprot_list["name"]:
+              indexOf = uniprot_list["name"].index(each_gene.lower())
+              if uniprot_list[get_category][indexOf] == 1.0:
+                no_of_gene += 1
+                get_gene_list.append(each_gene)
+          
+          if get_category not in gene_col:
+            gene_col[get_category] = {}
+            gene_col[get_category][each_col] = ','.join(get_gene_list)
+            no_gene_col[get_category] = {}
+            no_gene_col[get_category][each_col] = round(no_of_gene/total_no_of_gene*100,3)
+          else:
+            gene_col[get_category][each_col] = ','.join(get_gene_list)
+            no_gene_col[get_category][each_col] = round(no_of_gene/total_no_of_gene*100,3)
+  
+  for each_col in gene_col:
+    label = "Associated genes found:"+str(each_col)
+    percent = "% Nr. Genes:"+str(each_col)    
+    cluego_dict.update({label:gene_col[each_col], percent:no_gene_col[each_col]})
+  
+  df = pd.DataFrame.from_dict(cluego_dict)
+  return(df)   
+        
 SEP = "/"
 HEADERS = {'Content-Type': 'application/json'}
 
 CLUEGO_BASE_PATH = "/v1/apps/cluego/cluego-manager"
 
-def writeLines(lines, out_file, type, uniprot_list, max_FC_len, unique_labels):
+def writeLines(lines, out_file, type, uniprot_list, max_FC_len, unique_labels, each_category):
   ''' Write the lines to a file, removing duplicates of specific columns '''
   df = pd.read_csv(StringIO(lines), sep='\t')
   df = df.drop_duplicates(subset=['GOTerm','Ontology Source', 'Nr. Genes', 'Associated Genes Found'])
@@ -3303,7 +3341,8 @@ def writeLines(lines, out_file, type, uniprot_list, max_FC_len, unique_labels):
     df = calc_protein_change_sf(df, uniprot_list, type)
   if type == "2" or type == "6":
     df = calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels)
-    
+  if type == "4":
+    df = calc_nr_genes_category(df, uniprot_list, each_category)
   df.to_csv(out_file, header=True, index=False, sep='\t', mode='w')
  
 def writeBin(raw,out_file):
@@ -3318,7 +3357,7 @@ def writeLog(lines,out_file):
         file.write(line)
     file.close()
     
-def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, type, uniprot_list, max_FC_len, unique_labels):
+def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, leading_term_selection, reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, type, uniprot_list, max_FC_len, unique_labels, each_category):
   '''
   Obtain ClueGO annotations based on user settings for the list of genes via a Cytoscape App request call. Output is a list of annotation terms along with associated genes and corresponding term p-value
   ''' 
@@ -3459,8 +3498,9 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     try:
       response.raise_for_status()
       table_file_name = output_cluego
-      writeLines(response.text,table_file_name,type,uniprot_list,max_FC_len,unique_labels)
+      writeLines(response.text,table_file_name,type,uniprot_list,max_FC_len,unique_labels, each_category)
     except:
+      traceback.print_exc()
       eprint("Error: No pathways found for input list")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)  
@@ -5617,7 +5657,7 @@ def main(argv):
       final_length = len([i for i in filtered_unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])
       coverage = final_length/initial_length *100
       
-      cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels)
+      cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels, each_category)
    
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
