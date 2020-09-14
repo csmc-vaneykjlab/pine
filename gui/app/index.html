@@ -503,18 +503,21 @@
                       <i v-on:click="cluego_pathways_sort('Term PValue Corrected with Bonferroni step down', 'Adj. p-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
                     <th>
-                      # of genes
-                      <i v-on:click="cluego_pathways_sort('Nr. Genes', '# of genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      # genes
+                      <i v-on:click="cluego_pathways_sort('Nr. Genes', '# genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
                     <th v-show="should_show_percent_genes()">
-                      % genes
-                      <i v-on:click="cluego_pathways_sort('percent_genes', '% Genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      <span class="tooltip-parent">
+                        % genes
+                        <i v-on:click="cluego_pathways_sort('percent_genes', '% Genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip tooltip-right" v-show="should_show_labels_tooltip()">{{ cluego_pathways_filtered.picked_label }}</span>
+                      </span>
                     </th>
                     <th v-show="should_show_labels()">
                       <span class="tooltip-parent">
-                        % genes changed
-                        <i v-on:click="cluego_pathways_sort('label', '% Genes changed')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
-                        <!--<span class="tooltip">{{ cluego_pathways_filtered.picked_label }}</span>-->
+                        % changed
+                        <i v-on:click="cluego_pathways_sort('label', '% changed')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip tooltip-right" v-show="should_show_labels_tooltip()">{{ cluego_pathways_filtered.picked_label }}</span>
                       </span>
                     </th>
                   </tr>

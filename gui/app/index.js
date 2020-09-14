@@ -854,7 +854,7 @@ let vm = new Vue({
                     let record = {"data": {}, "selected": false, "line": line, "labels": {}, "percent_genes": {}};
                     for(let i = 0; i < that.cluego_pathways.header.length; i++) {
                         const header = that.cluego_pathways.header[i];
-                        if(header.startsWith("% change")) {
+                        if(header.startsWith("% Nr. Genes Changed")) {
                             const header_res = parse_label(header, fields[i], "Status");
                             record["labels"][header_res.label] = header_res.value;
                         }
@@ -1323,6 +1323,11 @@ let vm = new Vue({
         should_show_labels: function() {
             return this.input.type === "singleFC" ||
                 this.input.type === "singleFC-ptm" ||
+                this.input.type === "multiFC" ||
+                this.input.type === "multiFC-ptm";
+        },
+        should_show_labels_tooltip: function() {
+            return this.input.type === "category" ||
                 this.input.type === "multiFC" ||
                 this.input.type === "multiFC-ptm";
         },
