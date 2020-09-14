@@ -228,6 +228,7 @@ Uncheck and recheck the 'Automatic Range' option to reset minimum and maximum va
 Note: 
 1. Changing the minimum and maximum values too much from the minimum and maximum values of the dataset could impact the height of the bars and hamper your ability to differentite between values represented by the bar.
 2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
+3. Addition/Deletion of columns from the bar chart comparison is possible by moving the columns of interest to/from 'Selected Columns' tab. In this case, minimum and maximum values may automatically gets set to -100 and +100 respectively and must be reset appropriately to view the bar chart.
 
 ## Handling Ambiguity and PTMs
 ### Ambiguity Resolution
