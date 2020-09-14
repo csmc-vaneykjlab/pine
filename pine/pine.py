@@ -3573,10 +3573,10 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
         header = row
         # Get header
         for i in range(len(row)):
-          if "goterm" in row[i].lower():
+          if row[i].lower() == "goterm":
             goterm = i
             is_go_term = True 
-          elif "associated genes found" in row[i].lower():
+          elif row[i].lower() == "associated genes found":
             genes = i
             is_genes_found = True    
             
@@ -3586,7 +3586,7 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
           sys.exit(1)
       
       else:
-        if row:  
+        if row:       
           if "[" in row[genes] and "]" in row[genes]:
             each_gene_list = (row[genes])[1:-1]
           each_gene_list = each_gene_list.split(', ')
@@ -3605,11 +3605,10 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
       line_count+=1
   return(top_annotations, unique_gene)
 
-def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int):
+def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels, mult_mods_of_int):
   ''' Styling + visualization for the gene list interaction network & its modification sites '''
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   G = igraph.Graph()
-  
   site_interactions = []
   sig_na = []
   fc_na = []
@@ -3623,7 +3622,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   all_other_fcs = []
   all_other_pval = []
   all_length = []
-  
+  get_prot = []
   for each_name,each_site_gene,each_ambi_site in zip(uniprot_list['name'],uniprot_list['site'],uniprot_list['ambigious_site']):
     if each_site_gene != "NA":
       each_gene = (each_site_gene.split("-"))[1]
@@ -3655,6 +3654,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
             all_pval[term_pval].append(uniprot_list[term_pval][indexOf])
           else:
             all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
+        get_prot.append(each_ambi_site)
         all_names.append(each_ambi_site)
         combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
         without_unimod = re.sub(combined_pat, '', each_ambi_site)
@@ -3674,6 +3674,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
         query_val.append("EI")
         G.add_vertex(each_name)
         all_length.append(len(each_name))
+        get_prot.append(each_name)
         for i in range(1,max_FC_len+1):
           term_FC = 'FC' + str(i)
           term_pval = 'pval' + str(i)
@@ -3690,6 +3691,8 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       
   for each_vertex in merged_vertex:
     if each_vertex in uniprot_list['query']:
+      corresponding_prot = get_query_from_list(uniprot_query, [each_vertex])
+      get_prot.append(list(corresponding_prot.keys())[0])
       indexOf = uniprot_list['query'].index(each_vertex)
       all_names.append(uniprot_list['ambigious_genes'][indexOf])
       all_names_without_unimod.append(uniprot_list['ambigious_genes'][indexOf])      
@@ -3714,6 +3717,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     
   G.vs
   G.vs["name"] = all_names
+  G.vs["protein name"] = get_prot
   G.vs["substitute name"] = all_names_without_unimod
   #G.vs["SNP"] = is_snp
   domain_labels = [] 
@@ -3831,10 +3835,10 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   
   cy.style.apply(my_style, g_cy)
     
-def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels):
+def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels, uniprot_query):
   ''' Styling + visualization for the gene list interaction network '''
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
-
+  get_prot = []
   G = igraph.Graph()
   for each in merged_vertex:
     G.add_vertex(each)
@@ -3850,6 +3854,14 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   G.vs 
   G.vs["name"] = uniprot_list['name']
   G.vs["shared name"] = uniprot_list['ambigious_genes']
+  
+  for each_name in uniprot_list['name']:
+    corresponding_prot = get_query_from_list(uniprot_query, [each_name])
+    if corresponding_prot:
+      get_prot.append(list(corresponding_prot.keys())[0])
+    else:
+      get_prot.append(each_name)
+  G.vs["protein name"] = get_prot
   
   domain_labels = []
   value_labels = []
@@ -3966,7 +3978,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   
   cy.style.apply(my_style, g_cy)
   
-def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_category):
+def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_category, uniprot_query):
   ''' Styling specific to category case '''
   color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
   G = igraph.Graph()
@@ -3980,6 +3992,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
   breadth_of = []
   all_names = []
   category_values = {}
+  get_prot = []
   
   for each in merged_vertex:
     indexOf = uniprot_list['name'].index(each)
@@ -3988,6 +4001,11 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
     G.add_vertex(each)
     additional_query.append("Gene")
     all_names.append(each)
+    corresponding_prot = get_query_from_list(uniprot_query, [each])
+    if corresponding_prot:
+      get_prot.append(list(corresponding_prot.keys())[0])
+    else:
+      get_prot.append(each)
     val_length_of_val = len(each) #* 15
     length_of.append(val_length_of_val)
     val_breadth_of_val = 30
@@ -4011,6 +4029,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
     breadth_of.append(val_breadth_of_val)
    
     additional_query.append("Function")
+    get_prot.append(each)
     additional_each.append(0.0)
     category_true.append(0.0)
   
@@ -4021,7 +4040,7 @@ def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_cat
         G.add_edge(each_node,each_cat,name=each_node + " " + each_cat,interaction="with")
   G.vs
   G.vs["name"] = all_names
-  
+  G.vs["protein name"] = get_prot
   
   for each in each_category:
     G.vs[each] = category_values.get(each,[]) + additional_each
@@ -4389,7 +4408,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   query = []
   length_of = []
   breadth_of = []
-   
+  get_prot = []
   merged_vertex = []
   merged_vertex_sites_only = []
   merged_vertex_unimod_only = []
@@ -4422,6 +4441,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
         up_or_down_to_append = []
         gene_list_per_interaction = []
         is_snp.append(0.0)
+        get_prot.append(each)
         query.append('Function')
         if max_FC_len == 0 and not category_present:
           query_val_noFC.append('Function')
@@ -4445,8 +4465,11 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
           indexOf = uniprot_list['name'].index(each_gene.lower())
           if uniprot_list['query'][indexOf] != "NA":
             query.append('Gene')
+            corresponding_prot = get_query_from_list(uniprot_query, [each_gene])
+            get_prot.append(list(corresponding_prot.keys())[0])
           else:
             query.append("EI")
+            get_prot.append(each_gene)
             if type == "5":
               total_genes += 1
           merged_vertex_sites_only.append(uniprot_list['ambigious_genes'][indexOf])
@@ -4465,6 +4488,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
               if uniprot_list['site'][each_index] != "NA":
                 G.add_vertex(uniprot_list['site'][each_index])
                 merged_vertex.append(uniprot_list['site'][each_index])
+                get_prot.append(uniprot_list['ambigious_site'][each_index])
                 merged_vertex_sites_only.append(uniprot_list['ambigious_site'][each_index])
                 combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
                 without_unimod = re.sub(combined_pat, '', uniprot_list['ambigious_site'][each_index])
@@ -4538,6 +4562,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   
   G.vs
   G.vs["name"] = merged_vertex
+  G.vs["protein name"] = get_prot
   G.vs["shared name"] = merged_vertex_sites_only
   G.vs["substitute name"] = merged_vertex_unimod_only
   is_category_present = []
@@ -5626,14 +5651,14 @@ def main(argv):
     #Interactors styling   
     if not interaction_skip: 
       if not (cy_type_num == "5" or cy_type_num == "6"):         
-        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels)
+        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query)
         
       else:    
         cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
     
     #Category styling   
     if cy_type_num == "4":    
-      cy_category_style(unique_nodes, unique_merged_interactions, uniprot_list, each_category)
+      cy_category_style(unique_nodes, unique_merged_interactions, uniprot_list, each_category, uniprot_query)
     
     coverage = 0.0
     
