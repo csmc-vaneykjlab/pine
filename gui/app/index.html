@@ -503,16 +503,22 @@
                       <i v-on:click="cluego_pathways_sort('Term PValue Corrected with Bonferroni step down', 'Adj. p-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
                     <th>
-                      % genes
-                      <i v-on:click="cluego_pathways_sort('% Associated Genes', '% genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      # genes
+                      <i v-on:click="cluego_pathways_sort('Nr. Genes', '# genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
-                    <th>
-                      # of genes
-                      <i v-on:click="cluego_pathways_sort('Nr. Genes', '# of genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    <th v-show="should_show_percent_genes()">
+                      <span class="tooltip-parent">
+                        % genes
+                        <i v-on:click="cluego_pathways_sort('percent_genes', '% Genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip tooltip-right" v-show="should_show_labels_tooltip()">{{ cluego_pathways_filtered.picked_label }}</span>
+                      </span>
                     </th>
-                    <th v-show="cluego_pathways_filtered.labels.length > 0">
-                      {{ cluego_pathways_filtered.picked_label | longname(7, false) }}
-                      <i v-on:click="cluego_pathways_sort('label', cluego_pathways_filtered.picked_label)" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                    <th v-show="should_show_labels()">
+                      <span class="tooltip-parent">
+                        % changed
+                        <i v-on:click="cluego_pathways_sort('label', '% changed')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip tooltip-right" v-show="should_show_labels_tooltip()">{{ cluego_pathways_filtered.picked_label }}</span>
+                      </span>
                     </th>
                   </tr>
                 </thead>
@@ -533,16 +539,17 @@
                     </td>
                     <td class="align-right">{{ pathway.data['Term PValue'] | roundString(4) }}</td>
                     <td class="align-right">{{ pathway.data['Term PValue Corrected with Bonferroni step down'] | roundString(4) }}</td>
-                    <td class="align-right">{{ pathway.data['% Associated Genes'] | roundString(2) }}%</td>
                     <td class="align-right">{{ pathway.data['Nr. Genes'] }}</td>
-                    <td class="align-right" v-show="cluego_pathways_filtered.labels.length > 0">
+                    <td class="align-right" v-show="should_show_percent_genes()">
+                      <span v-html="percent_genes_label(pathway, cluego_pathways_filtered.picked_label)"></span>
+                    </td>
+                    <td class="align-right" v-show="should_show_labels()">
                       <span v-html="pathway_data_label(pathway, cluego_pathways_filtered.picked_label)"></span>
                     </td>
                   </tr>
                   <tr v-for="(i,ix) in cluego_pathways_filtered.n_empty_rows">
                     <!-- empty rows to so there is always the same number per page -->
-                    <td v-if="cluego_pathways_filtered.labels.length === 0" v-for="(j,jx) in 6"></td>
-                    <td v-if="cluego_pathways_filtered.labels.length > 0" v-for="(j,jx) in 7"></td>
+                    <td v-for="(j,jx) in n_pathway_columns()"></td>
                   </tr>
                 </tbody>
               </table>

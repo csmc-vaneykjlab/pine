@@ -66,6 +66,27 @@ function get_directory_from_user() {
     return res[0];
 }
 
+function parse_label(field, raw_val, default_label) {
+    let res = {
+        label: null,
+        value: null,
+    };
+
+    if(field.includes(":")) {
+        res.label = field.split(":").slice(1).join(":");
+    } else {
+        res.label = default_label;
+    }
+    let val = parseFloat(raw_val);
+    if(isNaN(val)) {
+        res.value = 0.0;
+    } else {
+        res.value = val;
+    }
+
+    return res;
+}
+
 let vm = new Vue({
     el: "#app",
     data: {
@@ -550,14 +571,12 @@ let vm = new Vue({
             }
             if(!is_dir(new_dir)) {
                 error_popup("Invalid path", "Path provided is not a directory");
-                e.target.value = "";
                 return;
             }
             let old_dir = this.session_dir;
             this.session_dir = new_dir;
             if(!is_file(this.session_cluego_file) || !is_file(this.session_settings_file) || !is_file(this.session_timestamp_file)) {
                 this.session_dir = old_dir;
-                e.target.value = "";
                 error_popup("Invalid session", "The session directory you provided is not valid");
                 return;
             }
@@ -570,7 +589,6 @@ let vm = new Vue({
             if(file_check["success"]) {
                 this.switchTab(TABS.PATHWAY_SELECTION);
             }
-            e.target.value = "";
         },
         pine_args: function() {
             let args = [
@@ -833,22 +851,16 @@ let vm = new Vue({
                     if(fields.length !== that.cluego_pathways.header.length) {
                         return; // invalid line
                     }
-                    let record = {"data": {}, "selected": false, "line": line, "labels": {}};
+                    let record = {"data": {}, "selected": false, "line": line, "labels": {}, "percent_genes": {}};
                     for(let i = 0; i < that.cluego_pathways.header.length; i++) {
                         const header = that.cluego_pathways.header[i];
-                        if(header.startsWith("% change")) {
-                            let label;
-                            if(header.includes(":")) {
-                                label = header.split(":").slice(1).join(":");
-                            } else {
-                                label = "Status";
-                            }
-                            const val = parseFloat(fields[i]);
-                            if(isNaN(val)) {
-                                record["labels"][label] = 0.0;
-                            } else {
-                                record["labels"][label] = val;
-                            }
+                        if(header.startsWith("% Nr. Genes Changed:") || header === "% Nr. Genes Changed") {
+                            const header_res = parse_label(header, fields[i], "Status");
+                            record["labels"][header_res.label] = header_res.value;
+                        }
+                        if(header.startsWith("% Nr. Genes:") || header === "% Nr. Genes") {
+                            const header_res = parse_label(header, fields[i], "Status");
+                            record["percent_genes"][header_res.label] = header_res.value;
                         }
                         record["data"][header] = fields[i];
                     }
@@ -873,12 +885,10 @@ let vm = new Vue({
                 /* get labels */
                 let labels = new Set();
                 for(const record of this.cluego_pathways.data) {
-                    for(const label in record.labels) {
-                        labels.add(label);
-                    }
+                    Object.keys(record.labels).forEach(x => labels.add(x));
+                    Object.keys(record.percent_genes).forEach(x => labels.add(x));
                 }
-                this.cluego_pathways.labels = Array.from(labels);
-                this.cluego_pathways.labels.sort((x, y) => x.localeCompare(y));
+                this.cluego_pathways.labels = Array.from(labels).sort((x, y) => x.localeCompare(y));
                 this.cluego_pathways.picked_label = this.cluego_pathways.labels.length > 0 ? this.cluego_pathways.labels[0] : "";
             });
         },
@@ -1247,12 +1257,12 @@ let vm = new Vue({
             if(percent > 0) {
                 icon = {
                     "classes": "fas fa-arrow-up color-up-reg",
-                    "tooltip": "% genes upregulated",
+                    "tooltip": "Upregulated",
                 };
             } else if(percent < 0) {
                 icon = {
                     "classes": "fas fa-arrow-down color-down-reg",
-                    "tooltip": "% genes downregulated",
+                    "tooltip": "Downregulated",
                 };
             } else {
                 icon = {
@@ -1277,6 +1287,9 @@ let vm = new Vue({
                 ${display}
             `;
         },
+        percent_genes_label: function(datum, label) {
+            return datum["percent_genes"][label];
+        },
         get_genemania_species: function(species_name) {
             for(const species_key in this.species_map) {
                 const species = this.species_map[species_key];
@@ -1290,6 +1303,31 @@ let vm = new Vue({
             if(this.get_genemania_species(species_name) == null) {
                 this.input.run = "string";
             }
+        },
+        n_pathway_columns: function() {
+            if(this.input.type === "category") {
+                return 7;
+            }
+            if(this.input.type === "multiFC" || this.input.type === "multiFC-ptm") {
+                return 8;
+            }
+            return 6;
+        },
+        should_show_percent_genes: function() {
+            return this.input.type === "category" ||
+                this.input.type === "multiFC" ||
+                this.input.type === "multiFC-ptm";
+        },
+        should_show_labels: function() {
+            return this.input.type === "singleFC" ||
+                this.input.type === "singleFC-ptm" ||
+                this.input.type === "multiFC" ||
+                this.input.type === "multiFC-ptm";
+        },
+        should_show_labels_tooltip: function() {
+            return this.input.type === "category" ||
+                this.input.type === "multiFC" ||
+                this.input.type === "multiFC-ptm";
         },
     },
     mounted: function() {
@@ -1412,6 +1450,16 @@ let vm = new Vue({
                         if(a.labels[that.cluego_pathways.picked_label] < b.labels[that.cluego_pathways.picked_label]) {
                             return lower;
                         } else if(a.labels[that.cluego_pathways.picked_label] > b.labels[that.cluego_pathways.picked_label]) {
+                            return higher;
+                        } else {
+                            return 0;
+                        }
+                    });
+                } else if(col === "percent_genes") {
+                    filtered.sort(function(a, b) {
+                        if(a.percent_genes[that.cluego_pathways.picked_label] < b.percent_genes[that.cluego_pathways.picked_label]) {
+                            return lower;
+                        } else if(a.percent_genes[that.cluego_pathways.picked_label] > b.percent_genes[that.cluego_pathways.picked_label]) {
                             return higher;
                         } else {
                             return 0;
