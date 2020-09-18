@@ -3200,13 +3200,21 @@ def calc_protein_change_sf(df, uniprot_list, type):
           if type == "5":
             if each_gene.lower() in uniprot_list['name']:
               indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
+              calc_up_site = 0
+              calc_down_site = 0
               for each_index in indices:
                 total_genes += 1                  
                 FC_val_each_gene = (uniprot_list['FC1'])[each_index]
                 if FC_val_each_gene > 0:
-                  calc_up += 1
+                  calc_up_site += 1
                 elif FC_val_each_gene < 0:
-                  calc_down -= 1
+                  calc_down_site -= 1
+              calc_site = calc_up_site - calc_down_site
+              if calc_site > 0:
+                calc_up +=1
+              else:
+                calc_down -=1
+                
             else:
               total_genes+=1         
               
@@ -3263,14 +3271,18 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
           term_gene = 'Gene' + str(i)
           val_term_FC = unique_labels[i-1]
           no_of_genes_per_term = 0
+          no_of_genes_multifcptm = 0
           genes_per_category = []
           total_genes = 0
           calc_up = 0
           calc_down = 0
           for each_gene in list_of_genes:           
-            if type == "6":   
+            if type == "6": 
+              no_of_genes_multifcptm += 1            
               if each_gene.lower() in uniprot_list['name']:
                 indices = [i for i, x in enumerate(uniprot_list['name']) if x == each_gene.lower()]
+                calc_up_site = 0
+                calc_down_site = 0
                 for each_index in indices:
                   gene_val_each_gene = (uniprot_list[term_gene])[each_index]
                   if gene_val_each_gene and each_gene not in genes_per_category:
@@ -3279,9 +3291,14 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                   no_of_genes_per_term += 1                  
                   FC_val_each_gene = (uniprot_list[term_FC])[each_index]
                   if FC_val_each_gene > 0:
-                    calc_up += 1
+                    calc_up_site += 1
                   elif FC_val_each_gene < 0:
-                    calc_down -= 1
+                    calc_down_site -= 1
+                total_calc_site = calc_up_site - calc_down_site
+                if total_calc_site > 0:
+                  calc_up += 1
+                elif total_calc_site < 0:
+                  calc_down -=1
               else:
                 no_of_genes_per_term += 1
                 
@@ -3312,8 +3329,11 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
           else:
             percent_val = "NA"
             status_val = "No change"
-            
-          each_percent_gene_val = round(total_genes/no_of_genes_per_term*100,3)
+          
+          if type == "2":
+            each_percent_gene_val = round(total_genes/no_of_genes_per_term*100,3)
+          else:
+            each_percent_gene_val = round(total_genes/no_of_genes_multifcptm*100,3)
           up_or_down.update({val_term_FC:percent_val})
           status_per_col.update({val_term_FC:status_val})
           percent_of_genes.update({val_term_FC:each_percent_gene_val})
