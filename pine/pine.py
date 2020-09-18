@@ -5073,7 +5073,7 @@ def main(argv):
     print("Argument(opt): -u [--run]: interaction databases [Allowed: string, genemania, both; Default: both]")
     print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
     print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
-    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, cellular component, molecular function, pathways, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki.")
+    print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, cellular component, molecular function, pathways, go terms, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki.")
     print("Argument(opt): -g [--grouping]: network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium]")
     print("Argument(opt): -y [--cluegopval]: pvalue cutoff for enrichment analysis [Default: 0.05]")
     print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
