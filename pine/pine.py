@@ -3297,7 +3297,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 total_calc_site = calc_up_site - calc_down_site
                 if total_calc_site > 0:
                   calc_up += 1
-                elif total_calc_site < 0:
+                elif total_calc _site < 0:
                   calc_down -=1
               else:
                 no_of_genes_per_term += 1
@@ -3500,16 +3500,16 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
     m = re.search(r"name=([A-Za-z\-\.0-9]+)\,",get_each)
     if m:
       ontologies = m.group(1)
-      if select_terms.lower() == "biological process" or select_terms.lower() == "all":
+      if select_terms.lower() == "biological process" or select_terms.lower() == "all" or select_terms.lower() == "go terms":
         if "BiologicalProcess" in ontologies:
           list_ontology.append(each_ontology+";"+"Ellipse")
-      if select_terms.lower() == "cellular component" or select_terms.lower() == "all":
+      if select_terms.lower() == "cellular component" or select_terms.lower() == "all" or select_terms.lower() == "go terms":
         if "CellularComponent" in ontologies:
           list_ontology.append(each_ontology+";"+"Ellipse")
-      if select_terms.lower() == "molecular function" or select_terms.lower() == "all":
+      if select_terms.lower() == "molecular function" or select_terms.lower() == "all" or select_terms.lower() == "go terms":
         if "MolecularFunction" in ontologies:
           list_ontology.append(each_ontology+";"+"Ellipse")
-      if select_terms.lower() == "all":
+      if select_terms.lower() == "all" or select_terms.lower() == "go terms":
         if "ImmuneSystemProcess" in ontologies:
           list_ontology.append(each_ontology+";"+"Ellipse")
       if select_terms.lower() == "pathways" or select_terms.lower() == "all":
@@ -5275,7 +5275,7 @@ def main(argv):
   elif cy_type.lower() == "multifc-ptm":
     cy_type_num = "6"
     
-  allowed_selections = ["biological process","cellular component","molecular function","pathways","all"]
+  allowed_selections = ["biological process","cellular component","molecular function","pathways","go terms", "all"]
   if select_terms.lower() not in allowed_selections:
     eprint("Error: The visualization type must be one of the following: " + (',').join(allowed_selections))
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
