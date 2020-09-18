@@ -3297,7 +3297,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 total_calc_site = calc_up_site - calc_down_site
                 if total_calc_site > 0:
                   calc_up += 1
-                elif total_calc _site < 0:
+                elif total_calc_site < 0:
                   calc_down -=1
               else:
                 no_of_genes_per_term += 1
