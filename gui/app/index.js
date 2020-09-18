@@ -1288,7 +1288,11 @@ let vm = new Vue({
             `;
         },
         percent_genes_label: function(datum, label) {
-            return datum["percent_genes"][label];
+            let final = datum["percent_genes"][label];
+            if(final != null) {
+                final = final.toFixed(0).toString() + "%";
+            }
+            return final;
         },
         get_genemania_species: function(species_name) {
             for(const species_key in this.species_map) {
