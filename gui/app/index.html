@@ -491,33 +491,45 @@
                       <i v-on:click="cluego_pathways_sort('selected', 'Selected')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
                     </th>
                     <th style="width: 20rem">
-                      GO term
-                      <i v-on:click="cluego_pathways_sort('GOTerm', 'GO term')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      <span class="tooltip-parent">
+                        GO term
+                        <i v-on:click="cluego_pathways_sort('GOTerm', 'GO term')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip">Associated GO term</span>
+                      </span>
                     </th>
                     <th>
-                      P-value
-                      <i v-on:click="cluego_pathways_sort('Term PValue', 'P-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      <span class="tooltip-parent">
+                        P-value
+                        <i v-on:click="cluego_pathways_sort('Term PValue', 'P-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip">P-value</span>
+                      </span>
                     </th>
                     <th>
-                      Adj. p-value
-                      <i v-on:click="cluego_pathways_sort('Term PValue Corrected with Bonferroni step down', 'Adj. p-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      <span class="tooltip-parent">
+                        Adj. p-value
+                        <i v-on:click="cluego_pathways_sort('Term PValue Corrected with Bonferroni step down', 'Adj. p-value')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip">Bonferroni corrected p-value</span>
+                      </span>
                     </th>
                     <th>
-                      # genes
-                      <i v-on:click="cluego_pathways_sort('Nr. Genes', '# genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                      <span class="tooltip-parent">
+                        # genes
+                        <i v-on:click="cluego_pathways_sort('Nr. Genes', '# genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
+                        <span class="tooltip tooltip-right">Genes associated with term</span>
+                      </span>
                     </th>
                     <th v-show="should_show_percent_genes()">
                       <span class="tooltip-parent">
                         % genes
                         <i v-on:click="cluego_pathways_sort('percent_genes', '% Genes')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
-                        <span class="tooltip tooltip-right" v-show="should_show_labels_tooltip()">{{ cluego_pathways_filtered.picked_label }}</span>
+                        <span class="tooltip tooltip-right">Percent of genes in the ontology or pathway that are in your query</span>
                       </span>
                     </th>
                     <th v-show="should_show_labels()">
                       <span class="tooltip-parent">
                         % changed
                         <i v-on:click="cluego_pathways_sort('label', '% changed')" class="fas fa-sort-amount-down-alt clickable color-1"></i>
-                        <span class="tooltip tooltip-right" v-show="should_show_labels_tooltip()">{{ cluego_pathways_filtered.picked_label }}</span>
+                        <span class="tooltip tooltip-right">Percent of genes from your query that are upregulated or downregulated</span>
                       </span>
                     </th>
                   </tr>
