@@ -115,7 +115,7 @@ let vm = new Vue({
             "ovis aries": {name: "sheep", genemania: null},
             "canis lupus familiaris": {name: "dog", genemania: null},
         },
-        allowed_visualize: ["biological process","cellular component","molecular function","pathways","all"],
+        allowed_visualize: ["biological process","cellular component","molecular function","pathways","go terms","all"],
         allowed_grouping: ["global", "medium", "detailed"],
         allowed_enzymes: {
             "trypsin": "Trypsin",
