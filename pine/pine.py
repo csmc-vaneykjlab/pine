@@ -2039,10 +2039,16 @@ def uniprot_api_call(each_protein_list, prot_list, type, cy_debug, logging, merg
       id_counts = Counter(req_ids)
       duplicate_mapping_ids = set([x for x in id_counts if id_counts[x] > 1])
       seen_duplicate_mapping_ids = {}
-    except:
-      eprint("Error: Uniprot not responding. Please try again later")
-      remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
-      sys.exit(1)
+    except Exception as e:
+      cert_error = "certificate verify failed"
+      if cert_error in str(e):
+        eprint("Error: Certficate verification failed. To resolve, please contact us at GroupHeartBioinformaticsSupport@cshs.org")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
+      else:
+        eprint("Error: Uniprot not responding. Please try again later")
+        remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+        sys.exit(1)
     isoform_warning = ""
     for each_list1 in list1:
       remaining_isoforms = []
@@ -3591,7 +3597,6 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       table_file_name = output_cluego
       writeLines(response.text,table_file_name,type,uniprot_list,max_FC_len,unique_labels, each_category)
     except:
-      traceback.print_exc()
       eprint("Error: No pathways found for input list")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)  
