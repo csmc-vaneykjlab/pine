@@ -494,7 +494,15 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
             else:
               get_pval = row[pval]
             get_fc_val = row[FC]
-                        
+            try:
+              float(get_fc_val)
+              if math.isinf(float(get_fc_val)):
+                pass 
+              else:
+                get_fc_val = round(float(get_fc_val),2) 
+            except ValueError:
+              pass 
+             
           if type == "1" or type == "2":
             initial_query_pep_count += 1
             skip_val = False
@@ -1165,8 +1173,7 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
                     else:
                       dropped_invalid_fc_pval[each_protid]["PeptideandLabel"].append(each_key_pep)
                       dropped_invalid_fc_pval[each_protid]["Site"].append(each_site)
-                else:
-                  new_each_site_info[0][i] = round(float(new_each_site_info[0][i],2))  
+ 
                 i += 1
 
               if not (cy_fc_cutoff == 0.0 and cy_pval_cutoff == 1.0):
@@ -3210,11 +3217,11 @@ def calc_protein_change_sf(df, uniprot_list, type):
                 if FC_val_each_gene > 0:
                   calc_up_site += 1
                 elif FC_val_each_gene < 0:
-                  calc_down_site -= 1
+                  calc_down_site += 1
               calc_site = calc_up_site - calc_down_site
               if calc_site > 0:
                 calc_up +=1
-              else:
+              elif calc_site < 0 :
                 calc_down -=1
                 
             else:
@@ -3247,7 +3254,7 @@ def calc_protein_change_sf(df, uniprot_list, type):
         add_new_status_col = status_per_col["Status"]
         status_col[each_col] = add_new_status_col
         
-  cluego_dict.update({'Term Status':status_col, '% Nr. Genes Changed':percent_col})
+  cluego_dict.update({'% Nr. Genes Changed':percent_col, 'Term Status':status_col})
   df = pd.DataFrame.from_dict(cluego_dict)
   return(df)
 
@@ -3292,10 +3299,12 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                     total_genes += 1
                   no_of_genes_per_term += 1                  
                   FC_val_each_gene = (uniprot_list[term_FC])[each_index]
+                  
                   if FC_val_each_gene > 0:
                     calc_up_site += 1
                   elif FC_val_each_gene < 0:
-                    calc_down_site -= 1
+                    calc_down_site += 1
+                 
                 total_calc_site = calc_up_site - calc_down_site
                 if total_calc_site > 0:
                   calc_up += 1
@@ -3318,12 +3327,17 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 elif FC_val_each_gene < 0:
                   calc_down -= 1   
           
-          if no_of_genes_per_term > 0:      
-            if (round(calc_up/no_of_genes_per_term*100)) >= 60: 
-              percent_val = str(round((calc_up/no_of_genes_per_term*100)))
+          if type == 2:
+            val_to_divide = no_of_genes_per_term
+          else:
+            val_to_divide = no_of_genes_multifcptm
+            
+          if val_to_divide > 0:      
+            if (round(calc_up/val_to_divide*100)) >= 60: 
+              percent_val = str(round((calc_up/val_to_divide*100)))
               status_val = "Upregulation"
-            elif (round(abs(calc_down)/no_of_genes_per_term*100)) >= 60:
-              percent_val = str(round((calc_down/no_of_genes_per_term*100)))
+            elif (round(abs(calc_down)/val_to_divide*100)) >= 60:
+              percent_val = str(round((calc_down/val_to_divide*100)))
               status_val = "Downregulation"
             else: 
               percent_val = "NA"
@@ -3332,10 +3346,8 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
             percent_val = "NA"
             status_val = "No change"
           
-          if type == "2":
-            each_percent_gene_val = round(total_genes/no_of_genes_per_term*100,3)
-          else:
-            each_percent_gene_val = round(total_genes/no_of_genes_multifcptm*100,3)
+          each_percent_gene_val = round(total_genes/val_to_divide*100,3)
+
           up_or_down.update({val_term_FC:percent_val})
           status_per_col.update({val_term_FC:status_val})
           percent_of_genes.update({val_term_FC:each_percent_gene_val})
@@ -3363,7 +3375,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
     percent = "% Nr. Genes Changed:"+str(each_col)
     gene_col = "Associated Genes Found:"+str(each_col)
     percent_gene_col = "% Nr. Genes:"+str(each_col)   
-    cluego_dict.update({label:status_col[each_col], percent:percent_col[each_col], gene_col:list_of_percent_of_genes_col[each_col], percent_gene_col:percent_of_genes_col[each_col]})
+    cluego_dict.update({percent_gene_col:percent_of_genes_col[each_col], gene_col:list_of_percent_of_genes_col[each_col], percent:percent_col[each_col], label:status_col[each_col]})
     
   df = pd.DataFrame.from_dict(cluego_dict)
   return(df)        
@@ -3402,7 +3414,7 @@ def calc_nr_genes_category(df, uniprot_list, each_category):
   for each_col in gene_col:
     label = "Associated genes found:"+str(each_col)
     percent = "% Nr. Genes:"+str(each_col)    
-    cluego_dict.update({label:gene_col[each_col], percent:no_gene_col[each_col]})
+    cluego_dict.update({percent:no_gene_col[each_col], label:gene_col[each_col]})
   
   df = pd.DataFrame.from_dict(cluego_dict)
   return(df)   
