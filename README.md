@@ -392,6 +392,9 @@ Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, J
 If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
 
 ## Release notes
+### Version 2.1.0
+- Added association between labels and related genes.
+- Fixed percent genes changed per pathway term.
 ### Version 2.0.2
 - Fixed directory selection for new Electron version.
 - Show version number on setup tab in the GUI.
