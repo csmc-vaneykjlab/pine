@@ -472,8 +472,12 @@ def preprocessing(inp, type, cy_debug, logging, merged_out_dict, cy_out, cy_sess
               eprint("Error: Invalid proteinID: " + row[protein] + " in line " + str(line_count+1))
               remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
               sys.exit(1)
-          #elif is_gene_col:              
-          
+          elif is_gene_col:              
+            check_match = re.match('^[A-Za-z0-9\-\.]+$', row[gene_col])
+            if not check_match:
+              eprint("Error: Invalid gene name: " + row[gene_col] + " in line " + str(line_count+1))
+              remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+              sys.exit(1)
           # Check if column marked as peptide in the input has valid peptide terms. Must only include peptide sequences with modifications and its corresponding unimod number enclosed in brackets. Ex: SEDVLAQS[+80]PLPK
           if type == "5" or type == "6":            
             check_match = re.match('^[A-Za-z]{1,}([\[\(\{]{1}[^\[\(\{\)\]\}]{1,}[\]\}\)]{1}){0,}[A-Z]{0,}', row[peptide_col])
@@ -2892,7 +2896,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
       is_FC_true = 0.0
       if not_in_list == 0:
         count_FC_uniprot = 1
-        for each_FC,each_pval,each_fc_gene in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal'],uniprot_query[prot_val]['Gene']):
+        for each_FC,each_pval,each_fc_gene in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal'],uniprot_query[prot_val]['Primary']):
           if float(each_pval) < 0.05:
             is_significant = 1
             each_pval = float(each_pval)
@@ -2907,7 +2911,7 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
         not_in_list +=1
       else:
         count_FC_uniprot = 1
-        for each_FC,each_pval,each_fc_gene in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal'],uniprot_query[prot_val]['Gene']):    
+        for each_FC,each_pval,each_fc_gene in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal'],uniprot_query[prot_val]['Primary']):    
           if float(each_pval) < 0.05:
             is_significant = 1
             each_pval = float(each_pval)
@@ -3291,7 +3295,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
           total_genes = 0
           calc_up = 0
           calc_down = 0
-          for each_gene in list_of_genes:           
+          for each_gene in list_of_genes:         
             if type == "6": 
               no_of_genes_multifcptm += 1            
               if each_gene.lower() in uniprot_list['name']:
@@ -3320,7 +3324,7 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 no_of_genes_per_term += 1
                 
             elif type == "2":
-              no_of_genes_per_term += 1            
+              no_of_genes_per_term += 1               
               if each_gene.lower() in uniprot_list["name"]:
                 indexOf = uniprot_list["name"].index(each_gene.lower())
                 FC_val_each_gene = (uniprot_list[term_FC])[indexOf]
@@ -3333,11 +3337,11 @@ def calc_protein_change_mf(df, uniprot_list, type, max_FC_len, unique_labels):
                 elif FC_val_each_gene < 0:
                   calc_down -= 1   
           
-          if type == 2:
+          if type == "2":
             val_to_divide = no_of_genes_per_term
           else:
             val_to_divide = no_of_genes_multifcptm
-            
+          
           if val_to_divide > 0:      
             if (round(calc_up/val_to_divide*100)) >= 60: 
               percent_val = str(round((calc_up/val_to_divide*100)))
@@ -3597,6 +3601,7 @@ def cluego_run(organism_name,output_cluego,merged_vertex,group,select_terms, lea
       table_file_name = output_cluego
       writeLines(response.text,table_file_name,type,uniprot_list,max_FC_len,unique_labels, each_category)
     except:
+      traceback.print_exc()
       eprint("Error: No pathways found for input list")
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
       sys.exit(1)  
@@ -4220,26 +4225,57 @@ def singleFC(my_style, uniprot_list, type):
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   if min(uniprot_list['FC1']) != 0 and max(uniprot_list['FC1']) != 0:
-    points1 =  [
-      {
-        "value": min(uniprot_list['FC1']),
-        "lesser": "#FFFF99" ,
-        "equal": "#3399FF", 
-        "greater": "#3399FF"
-      },
-      {
-        "value": 0,
-        "lesser": "#FFFFFF",
-        "equal": "#FFFFFF",
-        "greater": "#FFFFFF"
-      },
-      {
-        "value": max(uniprot_list['FC1']),
-        "lesser": "#FF0000",
-        "equal": "#FF0000", 
-        "greater": "#E2E2E2" 
-      }
-    ]
+    if min(uniprot_list['FC1']) < 0 and max(uniprot_list['FC1']) > 0:
+      points1 =  [
+        {
+          "value": min(uniprot_list['FC1']),
+          "lesser": "#FFFF99" ,
+          "equal": "#3399FF", 
+          "greater": "#3399FF"
+        },
+        {
+          "value": 0,
+          "lesser": "#FFFFFF",
+          "equal": "#FFFFFF",
+          "greater": "#FFFFFF"
+        },
+        {
+          "value": max(uniprot_list['FC1']),
+          "lesser": "#FF0000",
+          "equal": "#FF0000", 
+          "greater": "#E2E2E2" 
+        }
+      ]
+    elif min(uniprot_list['FC1']) < 0 and max(uniprot_list['FC1']) < 0:   
+      points1 =  [
+        {
+          "value": min(uniprot_list['FC1']),
+          "lesser": "#FFFF99" ,
+          "equal": "#3399FF", 
+          "greater": "#3399FF"
+        },
+        {
+          "value": 0,
+          "lesser": "#FFFFFF",
+          "equal": "#FFFFFF",
+          "greater": "#FFFFFF"
+        }
+      ]
+    else:
+      points1 =  [
+        {
+          "value": 0,
+          "lesser": "#FFFFFF",
+          "equal": "#FFFFFF",
+          "greater": "#FFFFFF"
+        },
+        {
+          "value": max(uniprot_list['FC1']),
+          "lesser": "#FF0000",
+          "equal": "#FF0000", 
+          "greater": "#E2E2E2" 
+        }
+      ]
   elif min(uniprot_list['FC1']) == 0:
     points1 =  [
       {
@@ -4789,7 +4825,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     G.vs["pine_query_val"] = query_val_noFC
   
   cy = CyRestClient(port=CYREST_PORT)
-
+  
   g_cy = cy.network.create_from_igraph(G, name="Ontology Network")
   
   cy.layout.apply(name='cose', network=g_cy)
@@ -5636,7 +5672,7 @@ def main(argv):
       uniprot_query = {}
       for each_gene in unique_each_protein_list:
         uniprot_query[each_gene] = {}      
-        uniprot_query[each_gene].update({'Uniprot':"NA",'Primary':each_gene,'Synonym':"NA",'Organism':organism_name,'Reviewed':"NA",'Date_modified':"NA"})   
+        uniprot_query[each_gene].update({'Uniprot':"NA",'Primary':each_gene,'Synonym':"NA",'Organism':organism_name,'Reviewed':"NA",'Date_modified':"NA", 'Gene':each_gene})   
         if each_gene not in merged_out_dict:
           merged_out_dict[each_gene] = {}
           merged_out_dict[each_gene].update({'Primary':each_gene, 'String': '', 'Genemania': '', 'ClueGO': '', 'CommentGene': ''})
@@ -5648,6 +5684,7 @@ def main(argv):
           if each_in_list in uniprot_query:
             uniprot_query[each_in_list].update({"FC":prot_list[each_in_list][0]})
             uniprot_query[each_in_list].update({"PVal":prot_list[each_in_list][1]})
+            uniprot_query[each_in_list].update({"Gene":each_in_list})
   
       elif cy_type_num == "4":
         for each_in_list in prot_list:
@@ -5782,7 +5819,7 @@ def main(argv):
     
     if leading_term_cluster:
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
-    
+      
     if cy_debug:
       if not cy_cluego_inp_file:
         logging.debug("\nQuery coverage = " + str(round(coverage, 2)) + "%")
