@@ -393,6 +393,9 @@ If you encounter any bugs or issues, please help us improve PINE by creating a n
 For any other queries, email us at GroupHeartBioinformaticsSupport@cshs.org.
 
 ## Release notes
+### Version 2.1.2
+- Link updates on setup page.
+- Fixed credits buttons.
 ### Version 2.1.1
 - Bug fixes.
 ### Version 2.1.0
