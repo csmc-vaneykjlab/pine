@@ -389,7 +389,8 @@ A directory is created in the specified output directory after the analysis comp
 Niveda Sundararaman, James Go, Aaron E. Robinson, José M. Mato, Shelly C. Lu, Jennifer E. Van Eyk, Vidya Venkatraman. "PINE: An Automation Tool to Extract & Visualize Protein-Centric Functional Networks". Journal of the American Society for Mass Spectrometry. (2020) https://pubs.acs.org/doi/pdf/10.1021/jasms.0c00032
 
 ## Support
-If you have any questions about PINE, please contact us at GroupHeartBioinformaticsSupport@cshs.org.
+If you encounter any bugs or issues, please help us improve PINE by creating a new issue at: https://github.com/csmc-vaneykjlab/pine/issues
+For any other queries, email us at GroupHeartBioinformaticsSupport@cshs.org.
 
 ## Release notes
 ### Version 2.1.1

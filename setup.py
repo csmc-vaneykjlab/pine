@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup (
   name="pine",
-  version="2.1.1",
+  version="2.1.2",
   description="Protein Interaction Network Extractor",
   license="Apache License 2.0",
   author_email="GroupHeartBioinformaticsSupport@cshs.org",

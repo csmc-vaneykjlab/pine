@@ -49,7 +49,12 @@ function is_file(filename) {
     return fs.existsSync(filename) && fs.statSync(filename).isFile();
 }
 
-const LICENSE_DIRECTORY = "app/assets/licenses";
+let LICENSE_DIRECTORY = "";
+if(process.env.NODE_ENV === "dev") {
+    LICENSE_DIRECTORY = "app/assets/licenses";
+} else {
+    LICENSE_DIRECTORY = path.join(__dirname, "../../extra-resources/licenses");
+}
 
 function error_popup(title, message, warning) {
     let type = "error";
