@@ -3706,9 +3706,9 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
       line_count+=1
   return(top_annotations, unique_gene)
 
-def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels, mult_mods_of_int):
+def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels, mult_mods_of_int, chart_type):
   ''' Styling + visualization for the gene list interaction network & its modification sites '''
-  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
   G = igraph.Graph()
   site_interactions = []
   sig_na = []
@@ -3857,7 +3857,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
   
   cy.layout.apply(name='cose', network=g_cy)
-  my_style = cy.style.create('Initial Network Style')
+  my_style = cy.style.create(chart_type + ' Style')
   basic_settings = {
     'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
     'EDGE_TRANSPARENCY':"150",
@@ -3920,7 +3920,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style, fc_na,query_val,"-1",all_names,max_FC_len, uniprot_list, unique_labels)
+    my_style = multipleFC(my_style, fc_na,query_val,"-1",all_names,max_FC_len, uniprot_list, unique_labels, chart_type)
     if pval_style:
       pval_sig = 1
     
@@ -3936,9 +3936,9 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   
   cy.style.apply(my_style, g_cy)
     
-def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels, uniprot_query):
+def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels, uniprot_query, chart_type):
   ''' Styling + visualization for the gene list interaction network '''
-  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"] 
   get_prot = []
   G = igraph.Graph()
   for each in merged_vertex:
@@ -4013,7 +4013,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
   
   cy.layout.apply(name='cose', network=g_cy)
-  my_style = cy.style.create('Initial Network Style')
+  my_style = cy.style.create(chart_type + ' Style')
   basic_settings = {
     'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
     'EDGE_TRANSPARENCY':"150",
@@ -4059,7 +4059,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list, unique_labels)
+    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list, unique_labels, chart_type)
     if pval_style:
       pval_sig = 1
     
@@ -4081,7 +4081,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   
 def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_category, uniprot_query):
   ''' Styling specific to category case '''
-  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
   G = igraph.Graph()
   
   additional_nodes = []
@@ -4230,8 +4230,14 @@ def singleFC(my_style, uniprot_list, type):
         {
           "value": min(uniprot_list['FC1']),
           "lesser": "#FFFF99" ,
-          "equal": "#3399FF", 
-          "greater": "#3399FF"
+          "equal": "#1F78B4", 
+          "greater": "#1F78B4"
+        },
+        {
+          "value": min(uniprot_list['FC1'])/2,
+          "lesser": "#A6CEE3" ,
+          "equal": "#A6CEE3", 
+          "greater": "#A6CEE3"
         },
         {
           "value": 0,
@@ -4240,9 +4246,15 @@ def singleFC(my_style, uniprot_list, type):
           "greater": "#FFFFFF"
         },
         {
+          "value": max(uniprot_list['FC1'])/2,
+          "lesser": "#FC9272",
+          "equal": "#FC9272", 
+          "greater": "#FC9272" 
+        },
+        {
           "value": max(uniprot_list['FC1']),
-          "lesser": "#FF0000",
-          "equal": "#FF0000", 
+          "lesser": "#CB181D",
+          "equal": "#CB181D", 
           "greater": "#E2E2E2" 
         }
       ]
@@ -4251,8 +4263,14 @@ def singleFC(my_style, uniprot_list, type):
         {
           "value": min(uniprot_list['FC1']),
           "lesser": "#FFFF99" ,
-          "equal": "#3399FF", 
-          "greater": "#3399FF"
+          "equal": "#1F78B4", 
+          "greater": "#1F78B4"
+        },
+        {
+          "value": min(uniprot_list['FC1'])/2,
+          "lesser": "#A6CEE3" ,
+          "equal": "#A6CEE3", 
+          "greater": "#A6CEE3"
         },
         {
           "value": 0,
@@ -4270,9 +4288,15 @@ def singleFC(my_style, uniprot_list, type):
           "greater": "#FFFFFF"
         },
         {
+          "value": max(uniprot_list['FC1'])/2,
+          "lesser": "#FC9272",
+          "equal": "#FC9272", 
+          "greater": "#FC9272" 
+        },
+        {
           "value": max(uniprot_list['FC1']),
-          "lesser": "#FF0000",
-          "equal": "#FF0000", 
+          "lesser": "#CB181D",
+          "equal": "#CB181D", 
           "greater": "#E2E2E2" 
         }
       ]
@@ -4285,19 +4309,31 @@ def singleFC(my_style, uniprot_list, type):
         "greater": "#FFFFFF"
       },
       {
+        "value": max(uniprot_list['FC1'])/2,
+        "lesser": "#FC9272",
+        "equal": "#FC9272", 
+        "greater": "#FC9272" 
+      },
+      {
         "value": max(uniprot_list['FC1']),
-        "lesser": "#3399FF",
-        "equal": "#3399FF",
-        "greater": "#E2E2E2"
+        "lesser": "#CB181D",
+        "equal": "#CB181D", 
+        "greater": "#E2E2E2" 
       }
     ]
   else:
     points1 =  [
       {
         "value": min(uniprot_list['FC1']),
-        "lesser": "#FFFF99",
-        "equal": "#FF0000",
-        "greater": "#FF0000"
+        "lesser": "#FFFF99" ,
+        "equal": "#1F78B4", 
+        "greater": "#1F78B4"
+      },
+      {
+        "value": min(uniprot_list['FC1'])/2,
+        "lesser": "#A6CEE3" ,
+        "equal": "#A6CEE3", 
+        "greater": "#A6CEE3"
       },
       {
         "value": 0,
@@ -4352,9 +4388,9 @@ def singleFC(my_style, uniprot_list, type):
   
   return(my_style)
   
-def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, unique_labels):
+def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, unique_labels, chart_type):
   ''' Styling specific to multipleFC case '''
-  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"] 
   bar_columns = ""
   color_columns = ""
   min_fc = 0
@@ -4374,8 +4410,13 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
     color_columns = color_columns + '\"' + color_code[i-1] + '\"' + ","
   bar_columns = bar_columns[:-1]
   color_columns = color_columns[:-1]
- 
-  value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
+
+  if chart_type == "bar":
+    value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
+  else:
+    color_columns = "\"#FF6600\",\"#FFFFFF\",\"#3366FF\",\"#CCCCCC\""
+    value = "org.cytoscape.HeatMapChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' +  "cy_orientation" + '\"' + ":\"HORIZONTAL\"," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]"  +  "}"
+  
   kv_pair = {
     "1":value
   }
@@ -4432,7 +4473,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
-  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
 
   bar_columns = ""
   color_columns = ""
@@ -4528,10 +4569,10 @@ def color(my_style, uniprot_list):
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
-def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int):
+def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, chart_type):
   ''' Based on top annotations picked, construct function interaction network + visualization and styling '''
   G = igraph.Graph()
-  color_code = ["#FF9933", "#00FFFF", "#00FF00", "#FF66FF", "#FFFF66", "#9999FF"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
   
   cluster_list = cluster
   
@@ -4826,11 +4867,15 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   
   cy = CyRestClient(port=CYREST_PORT)
   
-  g_cy = cy.network.create_from_igraph(G, name="Ontology Network")
+  if type == "2" or type == "5":
+    network_name = "Ontology Network" + chart_type
+  else:
+    network_name = "Ontology Network"
+  g_cy = cy.network.create_from_igraph(G, name=network_name)
   
   cy.layout.apply(name='cose', network=g_cy)
   
-  my_style = cy.style.create('GAL_Style3')
+  my_style = cy.style.create(chart_type+" Ontology Style")
   
   basic_settings = {
     'EDGE_TRANSPARENCY':"150",
@@ -4939,7 +4984,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
       pval_sig = 1
   
   if max_FC_len > 1:
-    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len, uniprot_list, unique_labels)
+    my_style = multipleFC(my_style,FC_exists,query,"2",merged_vertex, max_FC_len, uniprot_list, unique_labels, chart_type)
 
     if pval_style:
       pval_sig = 1
@@ -5784,10 +5829,14 @@ def main(argv):
     #Interactors styling   
     if not interaction_skip: 
       if not (cy_type_num == "5" or cy_type_num == "6"):         
-        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query)
+        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "bar")
+        if cy_type_num == "2":
+          cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "heatmap")
         
       else:    
-        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
+        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "bar")
+        if cy_type_num == "6":
+          cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "heatmap")
     
     #Category styling   
     if cy_type_num == "4":    
@@ -5818,7 +5867,9 @@ def main(argv):
       cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels, each_category)
     
     if leading_term_cluster:
-      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int)
+      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"bar")
+      if cy_type_num == "2" or cy_type_num == "6":
+        cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"heatmap")
       
     if cy_debug:
       if not cy_cluego_inp_file:
