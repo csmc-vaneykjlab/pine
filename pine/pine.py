@@ -4875,7 +4875,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   
   cy.layout.apply(name='cose', network=g_cy)
   
-  my_style = cy.style.create(chart_type+" Ontology Style")
+  my_style = cy.style.create(network_name)
   
   basic_settings = {
     'EDGE_TRANSPARENCY':"150",
@@ -5024,7 +5024,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     "enabled": False
     }
   ]
-  response = request_retry(f"{CYREST_URL}/v1/styles/GAL_Style3/dependencies", 'PUT', json=data)
+  response = request_retry(f"{CYREST_URL}/v1/styles/" + network_name + "/dependencies", 'PUT', json=data)
   
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, settings_file):
   ''' In case of errors, remove all output files and close Cytoscape '''
