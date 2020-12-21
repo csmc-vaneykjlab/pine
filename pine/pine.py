@@ -2864,7 +2864,7 @@ def get_merged_interactions(filtered_dict, unique_merged_interactions, unique_no
   return(list(unique_merged_interactions), list(unique_nodes))
   
 def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_category, type, site_dict, ambigious_sites, ambigious_genes):
-  ''' For genes in merged interaction list, append other info: FC, pval, category etc '''  
+  ''' For genes in merged interaction list, append other info: FC, pval, category etc '''   
   not_in_list = 1
   if not uniprot_list:
     uniprot_list.update({'name':[each]})
@@ -2896,7 +2896,8 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
       is_FC_true = 0.0
       if not_in_list == 0:
         count_FC_uniprot = 1
-        for each_FC,each_pval,each_fc_gene in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal'],uniprot_query[prot_val]['Primary']):
+        for each_FC,each_pval in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal']):
+          each_fc_gene = uniprot_query[prot_val]['Primary'].lower()
           if float(each_pval) < 0.05:
             is_significant = 1
             each_pval = float(each_pval)
@@ -2911,7 +2912,8 @@ def get_everything_together(each,uniprot_query, uniprot_list, max_FC_len, each_c
         not_in_list +=1
       else:
         count_FC_uniprot = 1
-        for each_FC,each_pval,each_fc_gene in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal'],uniprot_query[prot_val]['Primary']):    
+        for each_FC,each_pval, in zip(uniprot_query[prot_val]['FC'],uniprot_query[prot_val]['PVal']):    
+          each_fc_gene = uniprot_query[prot_val]['Primary'].lower()
           if float(each_pval) < 0.05:
             is_significant = 1
             each_pval = float(each_pval)
@@ -3854,7 +3856,11 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     G.vs["pine_domain_labels"] = [domain_labels]*tot
     G.vs["pine_value_labels"] = value_labels
   cy = CyRestClient(port=CYREST_PORT)
-  g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
+  if type == "2" or type == "6":
+    network_name = "Interaction Network " + chart_type
+  else:
+    network_name = "Interaction Network"
+  g_cy = cy.network.create_from_igraph(G, name=network_name)
   
   cy.layout.apply(name='cose', network=g_cy)
   my_style = cy.style.create(chart_type + ' Style')
@@ -3894,13 +3900,20 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   just_color = 0
   pval_sig = 0
   slash_delim = chr(92)
-  
-  shape_kv_pair = {
-    "Function":"OCTAGON",
-    "Site":"ELLIPSE",
-    "Gene":"ROUND_RECTANGLE",
-    "EI":"ROUND_RECTANGLE"
-  }
+  if type == "5":
+    shape_kv_pair = {
+      "Function":"OCTAGON",
+      "Site":"ELLIPSE",
+      "Gene":"ROUND_RECTANGLE",
+      "EI":"ROUND_RECTANGLE"
+    }
+  else:
+    shape_kv_pair = {
+      "Function":"OCTAGON",
+      "Site":"ROUND_RECTANGLE",
+      "Gene":"ROUND_RECTANGLE",
+      "EI":"ROUND_RECTANGLE"
+    }
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
 
   label_color_kv_pair = {
@@ -4010,7 +4023,11 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     G.vs['pine_category_true'] = uniprot_list['category_true']
   
   cy = CyRestClient(port=CYREST_PORT)
-  g_cy = cy.network.create_from_igraph(G, name="Interaction Network")
+  if max_FC_len > 1:
+    network_name = "Interaction Network " + chart_type
+  else:
+    network_name = "Interaction Network"
+  g_cy = cy.network.create_from_igraph(G, name=network_name)
   
   cy.layout.apply(name='cose', network=g_cy)
   my_style = cy.style.create(chart_type + ' Style')
@@ -4392,6 +4409,7 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   ''' Styling specific to multipleFC case '''
   color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"] 
   bar_columns = ""
+  heatmap_columns = ""
   color_columns = ""
   min_fc = 0
   max_fc = 0
@@ -4407,15 +4425,17 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
       if max(uniprot_list[term_FC]) > max_fc:
         max_fc = max(uniprot_list[term_FC])
     bar_columns = bar_columns + '\"' + term_val_FC + '\"' + ","
+    heatmap_columns = '\"' + term_val_FC + '\"' + "," + heatmap_columns
     color_columns = color_columns + '\"' + color_code[i-1] + '\"' + ","
   bar_columns = bar_columns[:-1]
+  heatmap_columns = heatmap_columns[:-1]
   color_columns = color_columns[:-1]
 
-  if chart_type == "bar":
+  if chart_type == "BarChart":
     value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
   else:
     color_columns = "\"#FF6600\",\"#FFFFFF\",\"#3366FF\",\"#CCCCCC\""
-    value = "org.cytoscape.HeatMapChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' +  "cy_orientation" + '\"' + ":\"HORIZONTAL\"," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]"  +  "}"
+    value = "org.cytoscape.HeatMapChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' +  "cy_orientation" + '\"' + ":\"HORIZONTAL\"," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + heatmap_columns + "]"  +  "}"
   
   kv_pair = {
     "1":value
@@ -4867,8 +4887,8 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
   
   cy = CyRestClient(port=CYREST_PORT)
   
-  if type == "2" or type == "5":
-    network_name = "Ontology Network" + chart_type
+  if type == "2" or type == "6":
+    network_name = "Ontology Network " + chart_type
   else:
     network_name = "Ontology Network"
   g_cy = cy.network.create_from_igraph(G, name=network_name)
@@ -4888,12 +4908,19 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     my_style.create_passthrough_mapping(column='substitute name', vp='NODE_LABEL', col_type='String')
   else:
     my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
-  if type == "5" or type == "6":
+  if type == "5":
     shape_kv_pair = {
       "Function":"OCTAGON",
       "Gene":"ROUND_RECTANGLE",
       "EI":"ROUND_RECTANGLE",
       "Site":"ELLIPSE"
+    }
+  elif type == "6":
+    shape_kv_pair = {
+      "Function":"OCTAGON",
+      "Gene":"ROUND_RECTANGLE",
+      "EI":"ROUND_RECTANGLE",
+      "Site":"ROUND_RECTANGLE"
     }
   else:
     shape_kv_pair = {
@@ -5829,14 +5856,14 @@ def main(argv):
     #Interactors styling   
     if not interaction_skip: 
       if not (cy_type_num == "5" or cy_type_num == "6"):         
-        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "bar")
+        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "BarChart")
         if cy_type_num == "2":
-          cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "heatmap")
+          cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "Heatmap")
         
       else:    
-        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "bar")
+        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "BarChart")
         if cy_type_num == "6":
-          cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "heatmap")
+          cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "Heatmap")
     
     #Category styling   
     if cy_type_num == "4":    
@@ -5867,9 +5894,9 @@ def main(argv):
       cluego_run(organism_cluego,cy_cluego_out,filtered_unique_nodes,cy_cluego_grouping,select_terms, leading_term_selection,cluego_reference_file,cluego_pval, cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, cy_cluego_log_out, cy_type_num, uniprot_list, max_FC_len, unique_labels, each_category)
     
     if leading_term_cluster:
-      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"bar")
+      cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"BarChart")
       if cy_type_num == "2" or cy_type_num == "6":
-        cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"heatmap")
+        cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"Heatmap")
       
     if cy_debug:
       if not cy_cluego_inp_file:
