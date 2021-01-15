@@ -5,7 +5,6 @@ const path = require("path");
 const fs = require("fs");
 const process = require("process");
 const os = require("os");
-const readline = require("readline");
 const shell = require("electron").shell;
 const http = require("http");
 const pjson = require("../package.json");
@@ -561,7 +560,10 @@ let vm = new Vue({
                 this.session_dir = null;
             }
             this.save_settings(this.session_settings_file);
-            this.read_cluego_pathways();
+            const bad_row_count = this.read_cluego_pathways();
+            if(bad_row_count > 0) {
+                error_popup("Bad ClueGO file", `The ClueGO file could not be parsed correctly.  ${bad_row_count} ClueGO pathways were skipped.`, true);
+            }
         },
         reset_session: function() {
             this.session_dir = null;
@@ -599,7 +601,11 @@ let vm = new Vue({
             if(!file_check["success"]) {
                 error_popup("Invalid session", `Input file ${file_check["filename"]} has been moved or deleted.  Please restore this file to original location or start a new session.`);
             }
-            this.read_cluego_pathways();
+            if(this.read_cluego_pathways() > 0) {
+                this.session_dir = old_dir;
+                error_popup("Invalid session", `The cluego file in your session directory could not be read.  Please redo your analysis.`);
+                return;
+            }
             if(file_check["success"]) {
                 this.switchTab(TABS.PATHWAY_SELECTION);
             }
@@ -847,22 +853,28 @@ let vm = new Vue({
             this.reset_cluego_pathways();
 
             if(!this.session_exists() || !is_file(this.session_cluego_file)) {
-                return;
+                return 0;
             }
 
             let counter = 0;
             let cluego_pathways = [];
-            let line_reader =  readline.createInterface({
-                input: fs.createReadStream(this.session_cluego_file),
-            });
-            line_reader.on("line", function(line) {
-                line = line.replace(/^\s+|\s+$/g, '');
+            let file_contents_str = fs.readFileSync(this.session_cluego_file, {encoding: "UTF-8"});
+            let file_rows = file_contents_str.split("\n");
+            let bad_row_count = 0;
+            file_rows.forEach(function(line) {
+                line = line.replace(/^\n+|\n+$/g, '').replace(/^\r+|\r+$/g, '');
+                if(line.length == 0) {
+                    // skip empty lines
+                    return;
+                }
+
                 let fields = line.split("\t");
 
                 if(counter === 0) {
                     that.cluego_pathways.header = fields;
                 } else {
                     if(fields.length !== that.cluego_pathways.header.length) {
+                        bad_row_count += 1;
                         return; // invalid line
                     }
                     let record = {"data": {}, "selected": false, "line": line, "labels": {}, "percent_genes": {}};
@@ -893,18 +905,18 @@ let vm = new Vue({
                 counter += 1;
             });
 
-            line_reader.on("close", () => {
-                this.cluego_pathways.data = cluego_pathways;
+            that.cluego_pathways.data = cluego_pathways;
 
-                /* get labels */
-                let labels = new Set();
-                for(const record of this.cluego_pathways.data) {
-                    Object.keys(record.labels).forEach(x => labels.add(x));
-                    Object.keys(record.percent_genes).forEach(x => labels.add(x));
-                }
-                this.cluego_pathways.labels = Array.from(labels).sort((x, y) => x.localeCompare(y));
-                this.cluego_pathways.picked_label = this.cluego_pathways.labels.length > 0 ? this.cluego_pathways.labels[0] : "";
-            });
+            /* get labels */
+            let labels = new Set();
+            for(const record of that.cluego_pathways.data) {
+                Object.keys(record.labels).forEach(x => labels.add(x));
+                Object.keys(record.percent_genes).forEach(x => labels.add(x));
+            }
+            that.cluego_pathways.labels = Array.from(labels).sort((x, y) => x.localeCompare(y));
+            that.cluego_pathways.picked_label = that.cluego_pathways.labels.length > 0 ? that.cluego_pathways.labels[0] : "";
+
+            return bad_row_count;
         },
         get_cluego_mapping: function() {
             if(!this.cluego_picked_version) {
