@@ -2538,7 +2538,7 @@ def drop_ei_if_query(interaction,unique_vertex,genes_before_initial_drop,each_in
  
   return(remaining_interactions,remaining_nodes)
   
-def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, cy_debug, logging, merged_out_dict, genes_before_initial_drop, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file):
+def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, cy_debug, logging, merged_out_dict, genes_before_initial_drop, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, singletons):
   ''' 
   Obtain gene-gene interactions from String database:
     1. Get mapping table and categorize genes as primary, secondary, external synonym or external interactor.
@@ -2550,6 +2550,7 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
   string_interaction = {}
   string_unique_vertex = {}
   string_list_input = "\n".join(each_inp_list)
+  singletons_gene_string = []
   
   data = {
   'identifiers': string_list_input,
@@ -2585,11 +2586,14 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
  
     no_mapping = [i for i in each_inp_list if i.lower() not in [x.lower() for x in string_mapping]]
     no_mapping_prots =  get_query_from_list(uniprot_query, no_mapping)
-
+    
     string_interaction,string_unique_vertex,string_dupe_preferred,merged_out_dict,dup_pref_warning = check_dup_preferred_gene(string_mapping,string_interaction,string_unique_vertex,"String", uniprot_query, cy_debug, logging, merged_out_dict)
     
     no_interactions = [i for i in list(string_mapping.keys()) if string_mapping[i].lower() not in [x.lower() for x in string_unique_vertex] and string_mapping[i].lower() not in [y.lower() for y in string_dupe_preferred]]
     no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
+    # Singletons = Unmapped Proteins + Proteins with no interactions
+    if singletons:
+      singletons_gene_string = no_mapping + no_interactions
     
     if overwrite_preferred:
       string_interaction,string_unique_vertex,string_mapping,merged_out_dict = overwrite_values(overwrite_preferred, string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
@@ -2619,8 +2623,8 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
     sys.exit(1)
   except:
-    return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
-  return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict)
+    return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict, singletons_gene_string)
+  return(string_interaction, string_unique_vertex, string_mapping, merged_out_dict, singletons_gene_string)
   
 def remove_duplicates_within(node1,node2):
   ''' Remove duplicate interactions ''' 
@@ -2639,7 +2643,7 @@ def remove_duplicates_within(node1,node2):
   
   return(unique_interaction_list,unique_vertex_list)
 
-def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_limit,cy_debug,logging,merged_out_dict,cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file):
+def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_limit,cy_debug,logging,merged_out_dict,cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file, singletons):
   '''
   Obtain gene-gene interactions from Genemania database via Cytoscape App request call:
     1. Get mapping table and categorize genes as primary, secondary, external synonym or external interactor.
@@ -2651,7 +2655,7 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   genemania_mapping = {}
   genemania_node = {}
   overwrite_preferred = {}
-  
+  singletons_gene_genemania = []
   join_genes = '|'.join(each_inp_list)
   #body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species)
   body = dict(attrLimit=str(att_limit), geneLimit=str(limit), genes=join_genes, organism=species, offline=True)
@@ -2704,6 +2708,10 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
   no_interactions = [i for i in list(genemania_mapping.keys()) if genemania_mapping[i].lower() not in [x.lower() for x in genemania_unique_vertex] ]
   no_interactions_prots = get_query_from_list(uniprot_query, no_interactions)
   
+  # Singletons = Unmapped Proteins + Proteins with no interactions
+  if singletons:
+    singletons_gene_genemania = no_mapping + no_interactions
+      
   #genemania_interaction,genemania_unique_vertex,genemania_dupe_preferred,merged_out_dict = check_dup_preferred_gene(genemania_mapping,genemania_interaction,genemania_unique_vertex,"Genemania", uniprot_query, cy_debug, logging, merged_out_dict)
   if overwrite_preferred:
     genemania_interaction,genemania_unique_vertex,genemania_mapping,merged_out_dict = overwrite_values(overwrite_preferred, genemania_interaction,genemania_unique_vertex,genemania_mapping,merged_out_dict)
@@ -2726,7 +2734,7 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
         warning.append(each + "(" + no_interactions_prots[each] + ") ")
       logging.debug("Dropping queries: " + ','.join(warning))
   
-  return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict)
+  return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict, singletons_gene_genemania)
 
 def categorize_gene(unique_vertex, mapping, uniprot_query):
     ''' 
@@ -3708,9 +3716,9 @@ def cluego_input_file(cluego_inp_file, cy_debug, logging, cy_session, cy_out, cy
       line_count+=1
   return(top_annotations, unique_gene)
 
-def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels, mult_mods_of_int, chart_type):
+def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, type, all_prot_site_snps, uniprot_query, unique_labels, mult_mods_of_int, chart_type, cluster, path_to_cluego):
   ''' Styling + visualization for the gene list interaction network & its modification sites '''
-  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"]  
   G = igraph.Graph()
   site_interactions = []
   sig_na = []
@@ -3860,19 +3868,18 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     network_name = "Interaction Network " + chart_type
   else:
     network_name = "Interaction Network"
-  g_cy = cy.network.create_from_igraph(G, name=network_name)
   
-  cy.layout.apply(name='cose', network=g_cy)
+  if chart_type == "Donut":
+    network_name = "Ontology Distribution Network"
+  
   my_style = cy.style.create(chart_type + ' Style')
-  basic_settings = {
-    'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
-    'EDGE_TRANSPARENCY':"150",
-    'NODE_BORDER_PAINT':"#999999",
-    'NODE_SIZE':"30",
-    'EDGE_WIDTH':"1",
-    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
-  }
-  my_style.update_defaults(basic_settings)
+  
+  if cluster:
+    G, my_style = cy_donut_style(cluster, G, my_style, all_names, path_to_cluego)
+  
+  g_cy = cy.network.create_from_igraph(G, name=network_name)
+  cy.layout.apply(name='cose', network=g_cy)
+    
   if not mult_mods_of_int:
     my_style.create_passthrough_mapping(column='substitute name', vp='NODE_LABEL', col_type='String')
   else:
@@ -3900,58 +3907,87 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
   just_color = 0
   pval_sig = 0
   slash_delim = chr(92)
-  if type == "5":
-    shape_kv_pair = {
-      "Function":"OCTAGON",
-      "Site":"ELLIPSE",
-      "Gene":"ROUND_RECTANGLE",
-      "EI":"ROUND_RECTANGLE"
-    }
-  else:
-    shape_kv_pair = {
-      "Function":"OCTAGON",
-      "Site":"ROUND_RECTANGLE",
-      "Gene":"ROUND_RECTANGLE",
-      "EI":"ROUND_RECTANGLE"
-    }
-  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
-
-  label_color_kv_pair = {
-        "Function":"#FFFFFF",
-        "Gene":"#000000",
-        "Site":"#000000",
-        "EI":"#000000"
-  }
-  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
   
-  width_kv_pair = {
-    "Function":"210",
-    "Gene":"70",
-    "EI":"70",
-    "Site":"60"
-  }
-  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
-  
-  if max_FC_len > 1:
-    my_style = multipleFC(my_style, fc_na,query_val,"-1",all_names,max_FC_len, uniprot_list, unique_labels, chart_type)
-    if pval_style:
-      pval_sig = 1
+  if not cluster:
+    basic_settings = {
+    'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
+    'EDGE_TRANSPARENCY':"150",
+    'NODE_BORDER_PAINT':"#999999",
+    'NODE_SIZE':"30",
+    'EDGE_WIDTH':"1",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
+    }
+    my_style.update_defaults(basic_settings)
     
-  elif max_FC_len == 1:
-    my_style = singleFC(my_style, uniprot_list, type)
-    if pval_style:
-      pval_sig = 1
-   
-  if pval_sig == 1:
-    my_style = pval(my_style)
+    if type == "5":
+      shape_kv_pair = {
+        "Function":"OCTAGON",
+        "Site":"ELLIPSE",
+        "Gene":"ROUND_RECTANGLE",
+        "EI":"ROUND_RECTANGLE"
+      }
+    else:
+      shape_kv_pair = {
+        "Function":"OCTAGON",
+        "Site":"ROUND_RECTANGLE",
+        "Gene":"ROUND_RECTANGLE",
+        "EI":"ROUND_RECTANGLE"
+      }
+    my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_SHAPE', mappings=shape_kv_pair)
+
+    label_color_kv_pair = {
+      "Function":"#FFFFFF",
+      "Gene":"#000000",
+      "Site":"#000000",
+      "EI":"#000000"
+    }
+    my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_LABEL_COLOR', mappings=label_color_kv_pair)
   
-  my_style = snp_bold(my_style)
+    width_kv_pair = {
+      "Function":"210",
+      "Gene":"70",
+      "EI":"70",
+      "Site":"60"
+    }
+    my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=width_kv_pair)
+  
+    if max_FC_len > 1:
+      my_style = multipleFC(my_style, fc_na,query_val,"-1",all_names,max_FC_len, uniprot_list, unique_labels, chart_type)
+      if pval_style:
+        pval_sig = 1
+    
+    elif max_FC_len == 1:
+      my_style = singleFC(my_style, uniprot_list, type)
+      if pval_style:
+        pval_sig = 1
+   
+    if pval_sig == 1:
+      my_style = pval(my_style)
+   
+    my_style = snp_bold(my_style)
   
   cy.style.apply(my_style, g_cy)
+  
+  if cluster:
+    data = {
+      "bypass": "true",
+      "nodeList": "pine_query:Gene",
+      "propertyList": "Fill Color",
+      "valueList": "#FFFFFF"
+    }
+    response = request_retry(f"{CYREST_URL}/v1/commands/node/set properties", 'POST', json=data)
+  
+    data = [
+      {
+      "visualPropertyDependency": "nodeSizeLocked",
+      "enabled": False
+      }
+    ]
+    response = request_retry(f"{CYREST_URL}/v1/styles/"+ chart_type + ' Style' +"/dependencies", 'PUT', json=data)
     
-def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels, uniprot_query, chart_type):
+def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_FC_len, each_category, pval_style, unique_labels, uniprot_query, chart_type, cluster, path_to_cluego):
   ''' Styling + visualization for the gene list interaction network '''
-  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"] 
   get_prot = []
   G = igraph.Graph()
   for each in merged_vertex:
@@ -4027,21 +4063,18 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     network_name = "Interaction Network " + chart_type
   else:
     network_name = "Interaction Network"
-  g_cy = cy.network.create_from_igraph(G, name=network_name)
-  
-  cy.layout.apply(name='cose', network=g_cy)
+  if chart_type == "Donut":
+    network_name = "Ontology Distribution Network"
+    
   my_style = cy.style.create(chart_type + ' Style')
-  basic_settings = {
-    'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
-    'EDGE_TRANSPARENCY':"150",
-    'NODE_BORDER_PAINT':"#999999",
-    'NODE_SIZE':"30",
-    'EDGE_WIDTH':"1",
-    'NODE_SHAPE':"ROUND_RECTANGLE",
-    'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
-  }
-  my_style.update_defaults(basic_settings)
-  my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')
+  
+  if cluster:
+    G, my_style = cy_donut_style(cluster, G, my_style, uniprot_list['name'], path_to_cluego)
+  
+  g_cy = cy.network.create_from_igraph(G, name=network_name)
+  cy.layout.apply(name='cose', network=g_cy)
+  
+  my_style.create_passthrough_mapping(column='shared name', vp='NODE_LABEL', col_type='String')  
   #degree_to_label_size = StyleUtil.create_slope(min=min(degree),max=max(degree),values=(10, 20))
   node_label_size =  [
     {
@@ -4066,39 +4099,60 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   just_color = 0
   pval_sig = 0
   slash_delim = chr(92)
-  
-  if category_present == 1:
-    my_style = get_category(my_style,uniprot_list['category_true'],"1",uniprot_list["query"],uniprot_list['name'], each_category)
-    color_kv_pair = {
-      "1":"#FFFFFF",
-      "0":"#E2E2E2"
+          
+  if not cluster:
+    basic_settings = {
+      'NODE_CUSTOMGRAPHICS_1':"org.cytoscape.BarChart",
+      'EDGE_TRANSPARENCY':"150",
+      'NODE_BORDER_PAINT':"#999999",
+      'NODE_SIZE':"30",
+      'EDGE_WIDTH':"1",
+      'NODE_SHAPE':"ROUND_RECTANGLE",
+      'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
     }
-    my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
+    my_style.update_defaults(basic_settings)
   
-  if max_FC_len > 1:
-    my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list, unique_labels, chart_type)
-    if pval_style:
-      pval_sig = 1
+    if category_present == 1:
+      my_style = get_category(my_style,uniprot_list['category_true'],"1",uniprot_list["query"],uniprot_list['name'], each_category)
+      color_kv_pair = {
+        "1":"#FFFFFF",
+        "0":"#E2E2E2"
+      }
+      my_style.create_discrete_mapping(column='pine_category_true', col_type='Double', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
+ 
+    if max_FC_len > 1:
+      my_style = multipleFC(my_style,uniprot_list['FC_exists'],uniprot_list["query"],"1",uniprot_list['name'],max_FC_len, uniprot_list, unique_labels, chart_type)
+      if pval_style:
+        pval_sig = 1
     
-  elif (max_FC_len == 0 and category_present == 0):
-    just_color = 1
+    elif (max_FC_len == 0 and category_present == 0):
+      just_color = 1
     
-  elif max_FC_len == 1:
-    my_style = singleFC(my_style, uniprot_list, "1")
-    if pval_style:
-      pval_sig = 1
+    elif max_FC_len == 1:
+      my_style = singleFC(my_style, uniprot_list, "1")
+      if pval_style:
+        pval_sig = 1
   
-  if just_color == 1:
-    my_style = color(my_style, uniprot_list)
+    if just_color == 1:
+      my_style = color(my_style, uniprot_list)
   
-  if pval_sig == 1:
-    my_style = pval(my_style)
+    if pval_sig == 1:
+      my_style = pval(my_style)
   
   cy.style.apply(my_style, g_cy)
   
+  if cluster:
+    data = [
+      {
+      "visualPropertyDependency": "nodeSizeLocked",
+      "enabled": False
+      }
+    ]
+    response = request_retry(f"{CYREST_URL}/v1/styles/"+chart_type + ' Style'+"/dependencies", 'PUT', json=data)
+  
 def cy_category_style(merged_vertex, merged_interactions, uniprot_list, each_category, uniprot_query):
   ''' Styling specific to category case '''
-  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"]  
   G = igraph.Graph()
   
   additional_nodes = []
@@ -4407,7 +4461,7 @@ def singleFC(my_style, uniprot_list, type):
   
 def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, unique_labels, chart_type):
   ''' Styling specific to multipleFC case '''
-  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"] 
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"] 
   bar_columns = ""
   heatmap_columns = ""
   color_columns = ""
@@ -4430,12 +4484,12 @@ def multipleFC(my_style,FC_exists,query,func,name,max_FC_len,uniprot_list, uniqu
   bar_columns = bar_columns[:-1]
   heatmap_columns = heatmap_columns[:-1]
   color_columns = color_columns[:-1]
-
-  if chart_type == "BarChart":
-    value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
-  else:
+ 
+  if chart_type == "Heatmap":
     color_columns = "\"#FF6600\",\"#FFFFFF\",\"#3366FF\",\"#CCCCCC\""
     value = "org.cytoscape.HeatMapChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' +  "cy_orientation" + '\"' + ":\"HORIZONTAL\"," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + heatmap_columns + "]"  +  "}"
+  else:
+    value = "org.cytoscape.BarChart:{" +'\"' + "cy_range" + '\"' + ":[" + str(min_fc) + "," + str(max_fc) + "]," + '\"' + "cy_globalRange" + '\"' + ":true," + '\"' + "cy_colors" + '\"' + ":[" + color_columns + "]," + '\"' + "cy_dataColumns" + '\"' + ":[" + bar_columns + "]," + '\"' + "cy_domainLabelPosition" + '\"' + ":" + '\"' + "UP_90" + '\",' + '\"' + "cy_borderWidth" + '\"' + ':3.0,' + '\"' + "cy_separation" + '\"' + ':0.3,' + '\"' + "cy_axisWidth" + '\"' + ':5' +  "}"
   
   kv_pair = {
     "1":value
@@ -4493,7 +4547,7 @@ def get_category(my_style,is_category_present,cat_val,query,name,each_category):
     'EDGE_STROKE_UNSELECTED_PAINT':"#000000"
   }
   my_style.update_defaults(basic_settings)
-  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"]  
 
   bar_columns = ""
   color_columns = ""
@@ -4589,10 +4643,74 @@ def color(my_style, uniprot_list):
   my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_FILL_COLOR', mappings=color_kv_pair)
   return(my_style)
 
+def cy_donut_style(cluster, G, my_style, gene_list, path_to_cluego):
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"]  
+  # Keep only first 6 terms in cluster
+  limit = 6
+  gene_to_term = {}
+  map_colors = {}
+  donut_col = []
+  # circoschart: firstarc=.6 arcwidth=.4 colorlist="#52EFEF" showlabels=false valuelist="[1]"
+  df = pd.read_csv(path_to_cluego, sep='\t')
+  cluego_dict = df.to_dict()
+  for each_gene_dict in cluego_dict["Associated Genes Found"]:
+    if each_gene_dict > 5:
+      break
+    map_colors[each_gene_dict] = color_code[each_gene_dict-1]  
+   
+    if "[" in cluego_dict["Associated Genes Found"][each_gene_dict] and "]" in cluego_dict["Associated Genes Found"][each_gene_dict]:
+      each_gene_list = (cluego_dict["Associated Genes Found"][each_gene_dict])[1:-1]
+    each_gene_list = each_gene_list.split(', ')
+    
+    for each_gene in each_gene_list:
+      if each_gene.lower() not in gene_to_term:
+        gene_to_term.update({each_gene.lower():[color_code[each_gene_dict-1]]})
+      else:
+        gene_to_term[each_gene.lower()].append(color_code[each_gene_dict-1])
+        
+  cluego_dict.update({'Color Code':map_colors})
+  df = pd.DataFrame.from_dict(cluego_dict)
+  df.to_csv(path_to_cluego, header=True, index=False, sep='\t', mode='w')
+   
+  for each_gene in gene_list:
+    donut_chart = "circoschart: firstarc=.6 arcwidth=.4 showlabels=false"
+    if each_gene in gene_to_term:
+      valuelist = ["1"] * len(gene_to_term[each_gene])
+      donut_chart += " colorlist=\"" + ",".join(gene_to_term[each_gene]) + "\" valuelist=\"[" + ",".join(valuelist) + "]\""
+    else:
+      donut_chart += " colorlist=\"\" valuelist=\"[]\"" 
+    donut_col.append(donut_chart)
+  
+  G.vs["donut chart"] = donut_col
+  basic_settings = {
+    'EDGE_TRANSPARENCY':"150",
+    'NODE_BORDER_PAINT':"#EDE7EB",
+    'EDGE_WIDTH':"1",
+    'NODE_WIDTH':"60",
+    'NODE_HEIGHT':"60",
+    'NODE_SHAPE':"ELLIPSE",
+    'EDGE_STROKE_UNSELECTED_PAINT':"#000000",
+    'NODE_FILL_COLOR':"#FFFFFF"
+  }
+  my_style.update_defaults(basic_settings)
+  shape_kv_pair = {
+        "Site":"40",
+        "Gene":"60"
+  }
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_WIDTH', mappings=shape_kv_pair)
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_HEIGHT', mappings=shape_kv_pair)
+  color_kv_pair = {
+        "Site":"#FFFFFF",
+        "Gene":"#EDE7EB"
+  }
+  my_style.create_discrete_mapping(column='pine_query', col_type='String', vp='NODE_BORDER_PAINT', mappings=color_kv_pair)
+  my_style.create_passthrough_mapping(column='donut chart', vp='NODE_CUSTOMGRAPHICS_1', col_type='String')
+  return(G, my_style)
+
 def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_list, type, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, chart_type):
   ''' Based on top annotations picked, construct function interaction network + visualization and styling '''
   G = igraph.Graph()
-  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#SAF07F", "#3785EB", "#F0E93F"]  
+  color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"]  
   
   cluster_list = cluster
   
@@ -5052,7 +5170,7 @@ def cy_pathways_style(cluster, each_category, max_FC_len, pval_style, uniprot_li
     }
   ]
   response = request_retry(f"{CYREST_URL}/v1/styles/" + network_name + "/dependencies", 'PUT', json=data)
-  
+    
 def remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, settings_file):
   ''' In case of errors, remove all output files and close Cytoscape '''
   try:
@@ -5121,9 +5239,10 @@ def main(argv):
   cy_exe = None
   cy_ambi = False
   count_args = 0
+  singletons = False
   
   try:
-    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:j:ng:f:p:z:h:a:y:u:d:b:x:e:c:k",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file=","exclude-ambiguity", "output-name="])
+    opts, args = getopt.getopt(argv, "i:s:l:t:r:m:o:j:ng:f:p:z:h:a:y:u:d:b:x:e:c:k",["in=","species=","limit=","type=","score=","mapping=","output=","significant","grouping=","fccutoff=","pvalcutoff=","visualize=","reference-path=","input_cluego=","cluego-pval=","run=","mods=","fasta-file=","enzyme=","gui","cytoscape-executable=","cytoscape-session-file=","exclude-ambiguity", "output-name=","keep-singletons"])
     for opt, arg in opts:
       count_args += 1
       if opt in ("-i","--in"):
@@ -5172,6 +5291,8 @@ def main(argv):
         cy_ambi = True
       elif opt in ("-j", "--output-name"):
         cy_out_name = arg
+      elif opt in ("--keep-singletons"):
+        singletons = True
       else:
         help = True      
   except getopt.GetoptError as e:
@@ -5201,6 +5322,7 @@ def main(argv):
     print("Argument(opt): -r [--score]: interaction confidence score for string [Default:0.4, Range 0-1]")
     print("Argument(opt): -l [--limit]: maximum number of external interactors [Default:0, Range:0-100]")
     print("Argument(opt): -z [--visualize]: ontology type [Allowed: biological process, cellular component,  molecular function, immune system process, pathways, go terms, all; Default: pathways].  Pathways include REACTOME, KEGG, CLINVAR, CORUM and Wiki.")
+    print("Argument(opt): --keep-singletons: Keep singletons (proteins unmapped or having no interactions) in the interaction network")
     print("Argument(opt): -g [--grouping]: network specificity indicating general, representative and specific pathways [Allowed: global, medium, detailed; Default: medium]")
     print("Argument(opt): -y [--cluegopval]: pvalue cutoff for enrichment analysis [Default: 0.05]")
     print("Argument(opt): -h [--referencepath]: path to background reference file for enrichment")
@@ -5604,10 +5726,11 @@ def main(argv):
     app_reactome = False
     app_genemania = False
     app_cluego = False
+    app_enhancedgraphics = False
     ver_reactome = ""
     ver_genemania = ""
     ver_cluego = ""
-    
+
     for each_app in apps_installed['data']:
       app_name = each_app['appName']
       app_version = each_app['version']
@@ -5620,6 +5743,8 @@ def main(argv):
       elif app_name == "ReactomeFIPlugIn":
         app_reactome = True
         ver_reactome = app_version
+      elif app_name == "enhancedGraphics":
+        app_enhancedgraphics = True
     
     if cy_run.lower() == "genemania" or cy_run.lower() == "both":
       check_genemania_ver = re.match('^([0-9]{1,}\.[0-9]{1,})', ver_genemania)
@@ -5779,6 +5904,8 @@ def main(argv):
     
     string_filtered_dict = {}
     genemania_filtered_dict = {}
+    singletons_gene_string = []
+    singletons_gene_genemania = []
     
     if cy_run.lower() == "string" or cy_run.lower() == "both":
       if cy_debug:
@@ -5786,7 +5913,7 @@ def main(argv):
         logging.debug("String query: " + str(len(unique_each_primgene_list)))
  
       #Send gene list to string, get mapping & interactions
-      string_interaction, string_unique_vertex, string_mapping, merged_out_dict = create_string_cytoscape(uniprot_query,unique_each_primgene_list, tax_id, cy_lim, cy_score, cy_debug, logging, merged_out_dict, genes_before_initial_drop, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      string_interaction, string_unique_vertex, string_mapping, merged_out_dict, singletons_gene_string = create_string_cytoscape(uniprot_query,unique_each_primgene_list, tax_id, cy_lim, cy_score, cy_debug, logging, merged_out_dict, genes_before_initial_drop, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file, singletons)
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       string_category = categorize_gene(string_unique_vertex, string_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
@@ -5800,7 +5927,7 @@ def main(argv):
         logging.debug("Genemania query: " + str(len(unique_each_primgene_list)))
     
       #Send gene list to string, get mapping & interactions
-      genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict = create_genemania_interactions(uniprot_query,unique_each_primgene_list,genemania_species,cy_lim,"10",cy_debug,logging, merged_out_dict, cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file)
+      genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict, singletons_gene_genemania = create_genemania_interactions(uniprot_query,unique_each_primgene_list,genemania_species,cy_lim,"10",cy_debug,logging, merged_out_dict, cy_session, cy_out, cy_cluego_out, genes_before_initial_drop, path_to_new_dir, logging_file, cy_settings_file, singletons)
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       genemania_category = categorize_gene(genemania_unique_vertex, genemania_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
@@ -5845,8 +5972,16 @@ def main(argv):
     #Get uniprot query, primary gene and FC values together
     uniprot_list = {}
     
+    # Remove redundancy in singletons 
+    singletons_gene = []
+    if singletons:
+      singletons_gene = list(set(singletons_gene_string + singletons_gene_genemania))
+      singletons_gene = [i.lower() for i in singletons_gene if i.lower() not in [x.lower() for x in unique_nodes]]
+
+    all_nodes = unique_nodes + singletons_gene  
+    
     if not cy_cluego_inp_file:
-      for each_node in unique_nodes:
+      for each_node in all_nodes:
         uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)    
     else:
       lower_unique_each_primgene_list = [x.lower() for x in unique_each_primgene_list]
@@ -5854,20 +5989,20 @@ def main(argv):
         uniprot_list = get_everything_together(each_node, uniprot_query, uniprot_list, max_FC_len, each_category, cy_type_num, site_info_dict, ambigious_sites, ambigious_genes)
     
     #Interactors styling   
-    if not interaction_skip: 
-      if not (cy_type_num == "5" or cy_type_num == "6"):         
-        cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "BarChart")
+    if not interaction_skip:  
+      if not (cy_type_num == "5" or cy_type_num == "6"):                    
+        cy_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "BarChart",{}, "")
         if cy_type_num == "2":
-          cy_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "Heatmap")
+          cy_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "Heatmap",{}, "")
         
       else:    
-        cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "BarChart")
+        cy_sites_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "BarChart", {}, "")
         if cy_type_num == "6":
-          cy_sites_interactors_style(unique_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "Heatmap")
+          cy_sites_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "Heatmap", {}, "")
     
     #Category styling   
     if cy_type_num == "4":    
-      cy_category_style(unique_nodes, unique_merged_interactions, uniprot_list, each_category, uniprot_query)
+      cy_category_style(all_nodes, unique_merged_interactions, uniprot_list, each_category, uniprot_query)
     
     coverage = 0.0
     
@@ -5880,9 +6015,9 @@ def main(argv):
 
       if cy_debug:
         # Number of ClueGO query + EI = x + y
-        logging.debug("ClueGO query + External Interactor: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in unique_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))  
+        logging.debug("ClueGO query + External Interactor: " + str(len([i for i in all_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len([i for i in all_nodes if i.lower() not in [y.lower() for y in unique_each_primgene_list] ])))  
 
-      filtered_unique_nodes, merged_out_dict = cluego_filtering(unique_nodes, cy_map, uniprot_query, cy_debug, logging, merged_out_dict, unique_each_primgene_list, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
+      filtered_unique_nodes, merged_out_dict = cluego_filtering(all_nodes, cy_map, uniprot_query, cy_debug, logging, merged_out_dict, unique_each_primgene_list, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
 
       if cy_debug:
         #Number of ClueGO query + EI = x + y
@@ -5897,7 +6032,11 @@ def main(argv):
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"BarChart")
       if cy_type_num == "2" or cy_type_num == "6":
         cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"Heatmap")
-      
+      if cy_type_num != "5" and cy_type_num != "6":
+        cy_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "Donut",leading_term_cluster, path_to_cluego)
+      else:
+        cy_sites_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "Donut", leading_term_cluster, path_to_cluego)  
+        
     if cy_debug:
       if not cy_cluego_inp_file:
         logging.debug("\nQuery coverage = " + str(round(coverage, 2)) + "%")
