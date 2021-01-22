@@ -2603,22 +2603,27 @@ def create_string_cytoscape(uniprot_query,each_inp_list, species, limit, score, 
       string_interaction,string_unique_vertex = drop_ei_if_query(string_interaction,string_unique_vertex,genes_before_initial_drop,each_inp_list)
     
     if cy_debug: 
-      if len(no_mapping) != 0:
-        logging.debug("DISCARD WARNING - String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
-        warning = []
-        for each in no_mapping_prots:
-          warning.append(each + "(" + no_mapping_prots[each] + ") ")
-        if dup_pref_warning:
-          logging.debug("Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
-        else:
-          logging.debug("Dropping queries: " + ','.join(warning))
+      if not singletons:
+        if len(no_mapping) != 0:
+          logging.debug("DISCARD WARNING - String queries not mapped: " + str(len(no_mapping) + len(dup_pref_warning)))
+          warning = []
+          for each in no_mapping_prots:
+            warning.append(each + "(" + no_mapping_prots[each] + ") ")
+          if dup_pref_warning:
+            logging.debug("Dropping queries: " + ','.join(warning) + "," + ','.join(dup_pref_warning))
+          else:
+            logging.debug("Dropping queries: " + ','.join(warning))
     
-      if len(no_interactions) != 0:
-        logging.debug("DISCARD WARNING - String queries with no interactions: " + str(len(no_interactions)))
-        warning = []
-        for each in no_interactions_prots:
-          warning.append(each + "(" + no_interactions_prots[each] + ") ")
-        logging.debug("Dropping queries: " + ','.join(warning))
+        if len(no_interactions) != 0:
+          logging.debug("DISCARD WARNING - String queries with no interactions: " + str(len(no_interactions)))
+          warning = []
+          for each in no_interactions_prots:
+            warning.append(each + "(" + no_interactions_prots[each] + ") ")
+          logging.debug("Dropping queries: " + ','.join(warning))
+      else:
+        if len(singletons_gene_string) != 0:
+          logging.debug("Singletons (queries not mapped or with no interactions): " + str(len(singletons_gene_string)))
+        
   except requests.exceptions.HTTPError:
     eprint("Error: String is not responding. Please try again later")
     remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -2721,19 +2726,23 @@ def create_genemania_interactions(uniprot_query,each_inp_list,species,limit,att_
     genemania_interaction,genemania_unique_vertex = drop_ei_if_query(genemania_interaction,genemania_unique_vertex,genes_before_initial_drop,each_inp_list)  
     
   if cy_debug:
-    if len(no_mapping) != 0:  
-      logging.debug("DISCARD WARNING - Genemania queries not mapped: " + str(len(no_mapping)))
-      warning = []
-      for each in no_mapping_prots:
-        warning.append(each + "(" + no_mapping_prots[each] + ") ")
-      logging.debug("Dropping queries: " + ','.join(warning))
+    if not singletons:
+      if len(no_mapping) != 0:  
+        logging.debug("DISCARD WARNING - Genemania queries not mapped: " + str(len(no_mapping)))
+        warning = []
+        for each in no_mapping_prots:
+          warning.append(each + "(" + no_mapping_prots[each] + ") ")
+        logging.debug("Dropping queries: " + ','.join(warning))
     
-    if len(no_interactions) != 0:
-      logging.debug("DISCARD WARNING - Genemania queries with no interactions: " + str(len(no_interactions)))
-      warning = []
-      for each in no_interactions_prots:
-        warning.append(each + "(" + no_interactions_prots[each] + ") ")
-      logging.debug("Dropping queries: " + ','.join(warning))
+      if len(no_interactions) != 0:
+        logging.debug("DISCARD WARNING - Genemania queries with no interactions: " + str(len(no_interactions)))
+        warning = []
+        for each in no_interactions_prots:
+          warning.append(each + "(" + no_interactions_prots[each] + ") ")
+        logging.debug("Dropping queries: " + ','.join(warning))
+    else:
+      if len(singletons_gene_genemania) != 0:
+        logging.debug("Singletons (queries not mapped or with no interactions): " + str(len(singletons_gene_genemania)))
   
   return(genemania_interaction, genemania_unique_vertex, genemania_mapping, merged_out_dict, singletons_gene_genemania)
 
@@ -2781,7 +2790,7 @@ def categorize_gene(unique_vertex, mapping, uniprot_query):
 
     return(categories)
 
-def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, mapping, merged_out_dict, search):
+def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, mapping, merged_out_dict, search, singleton_gene):
   ''' For list of interactions from interaction databases, retain only interactions categorized as primary gene-primary gene & primary gene-external interactors '''
   search_dict = {}
   categorized_interactions = {}
@@ -2848,7 +2857,7 @@ def get_search_dicts(interaction, categories, logging, cy_debug, uniprot_query, 
       for each in filtered_dropped_nodes_prot:
         warning.append(each + "(" + filtered_dropped_nodes_prot[each] + "->" + get_dropped_query_primgenes[filtered_dropped_nodes_prot[each]] + ") ")
       logging.debug("Dropping queries: " + ','.join(warning))
-    logging.debug(str(search) + " Total query nodes: " + str(len(primary_nodes)))
+    logging.debug(str(search) + " Total query nodes + singletons: " + str(len(primary_nodes)) + " + " + str(len(singleton_gene)))
     logging.debug(str(search) + " Total interactions: " + str(count_retained_interactions))
     
   return(search_dict, merged_out_dict)  
@@ -5897,10 +5906,10 @@ def main(argv):
       cy_lim = 0
       if cy_debug:
         logging.debug("Limiting query to re-analyze terms: " + str(len(unique_each_primgene_list)) )
-        if len(leading_term_cluster) > MAX_DONUT_PLOT:
-          eprint("Warning: Ontology Distibution Network (donut chart) will only visualize the first six GO Terms")
         if not app_enhancedgraphics:
           eprint("Warning: enhancedGraphics should be installed to generate Ontology Distibution Network (donut chart)")
+        elif len(leading_term_cluster) > MAX_DONUT_PLOT:
+          eprint("Warning: Ontology Distibution Network (donut chart) will only visualize the first six GO Terms")
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)
@@ -5922,7 +5931,7 @@ def main(argv):
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       string_category = categorize_gene(string_unique_vertex, string_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
-      string_filtered_dict, merged_out_dict = get_search_dicts(string_interaction, string_category, logging, cy_debug, uniprot_query, string_mapping, merged_out_dict, "String")
+      string_filtered_dict, merged_out_dict = get_search_dicts(string_interaction, string_category, logging, cy_debug, uniprot_query, string_mapping, merged_out_dict, "String", singletons_gene_string)
       # Update merged_out_dict
       merged_out_dict = get_interactions_dict(string_filtered_dict, 'String', merged_out_dict)
 
@@ -5936,7 +5945,7 @@ def main(argv):
       #Categorize interaction nodes as primary gene, secondary gene, external synonym and external interactor
       genemania_category = categorize_gene(genemania_unique_vertex, genemania_mapping, uniprot_query)
       #Get a filtered dictionary of interactions(primary-primary; primary-external interactor; external interactor-external interactor)
-      genemania_filtered_dict, merged_out_dict = get_search_dicts(genemania_interaction, genemania_category, logging, cy_debug, uniprot_query, genemania_mapping, merged_out_dict, "Genemania")
+      genemania_filtered_dict, merged_out_dict = get_search_dicts(genemania_interaction, genemania_category, logging, cy_debug, uniprot_query, genemania_mapping, merged_out_dict, "Genemania", singletons_gene_genemania)
       # Update merged_out_dict
       merged_out_dict = get_interactions_dict(genemania_filtered_dict, 'Genemania', merged_out_dict)
     
@@ -5961,22 +5970,6 @@ def main(argv):
     if (cy_run.lower() == "genemania" or cy_run.lower() == "both") and not interaction_skip:
       unique_merged_interactions,unique_nodes = get_merged_interactions(genemania_filtered_dict, unique_merged_interactions, unique_nodes, max_FC_len, each_category, uniprot_query, cy_type_num)
     
-    for each_merged_dict_node in merged_out_dict:
-      if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
-        if ((merged_out_dict[each_merged_dict_node]['Primary'].lower()).replace("**","")) not in unique_nodes:
-          if 'CommentGene' in merged_out_dict[each_merged_dict_node]:
-            if not merged_out_dict[each_merged_dict_node]['CommentGene']:
-              merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found;'
-          else:
-            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
-          
-    if cy_debug:
-      logging.debug("Total merged query nodes: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])))
-      logging.debug("Total merged interactions: " + str(len(unique_merged_interactions)))
-    
-    #Get uniprot query, primary gene and FC values together
-    uniprot_list = {}
-    
     # Remove redundancy in singletons 
     singletons_gene = []
     if singletons:
@@ -5984,6 +5977,23 @@ def main(argv):
       singletons_gene = [i.lower() for i in singletons_gene if i.lower() not in [x.lower() for x in unique_nodes]]
 
     all_nodes = unique_nodes + singletons_gene  
+    
+    # Update log
+    for each_merged_dict_node in merged_out_dict:
+      if 'Primary' in merged_out_dict[each_merged_dict_node] and merged_out_dict[each_merged_dict_node]['Primary']:
+        if ((merged_out_dict[each_merged_dict_node]['Primary'].lower()).replace("**","")) not in all_nodes:
+          if 'CommentGene' in merged_out_dict[each_merged_dict_node]:
+            if not merged_out_dict[each_merged_dict_node]['CommentGene']:
+              merged_out_dict[each_merged_dict_node]['CommentGene'] += 'No interactions found;'
+          else:
+            merged_out_dict[each_merged_dict_node].update({'CommentGene':'No interactions found;'})
+          
+    if cy_debug:
+      logging.debug("Total merged query nodes + singletons: " + str(len([i for i in unique_nodes if i.lower() in [x.lower() for x in unique_each_primgene_list] ])) + " + " + str(len(singletons_gene)))
+      logging.debug("Total merged interactions: " + str(len(unique_merged_interactions)))
+    
+    #Get uniprot query, primary gene and FC values together
+    uniprot_list = {}
     
     if not cy_cluego_inp_file:
       for each_node in all_nodes:
@@ -6037,10 +6047,11 @@ def main(argv):
       cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"BarChart")
       if cy_type_num == "2" or cy_type_num == "6":
         cy_pathways_style(leading_term_cluster, each_category, max_FC_len, cy_pval, uniprot_list, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int,"Heatmap")
-      if cy_type_num != "5" and cy_type_num != "6":
-        cy_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "Donut",leading_term_cluster, path_to_cluego)
-      else:
-        cy_sites_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "Donut", leading_term_cluster, path_to_cluego)  
+      if app_enhancedgraphics:
+        if cy_type_num != "5" and cy_type_num != "6":
+          cy_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, unique_labels, uniprot_query, "Donut",leading_term_cluster, path_to_cluego)
+        else:
+          cy_sites_interactors_style(all_nodes, unique_merged_interactions, uniprot_list, max_FC_len, each_category, cy_pval, cy_type_num, all_prot_site_snps, uniprot_query, unique_labels,mult_mods_of_int, "Donut", leading_term_cluster, path_to_cluego)  
         
     if cy_debug:
       if not cy_cluego_inp_file:
