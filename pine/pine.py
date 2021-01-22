@@ -12,6 +12,7 @@ import sys
 def eprint(*args, **kwargs):
   ''' Print to stderr instead of stdout '''
   print(*args, file=sys.stderr, **kwargs)
+  sys.stderr.flush()
 
 from pinepy2cytoscape.data.cyrest_client import CyRestClient
 try:
