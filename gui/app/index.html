@@ -364,6 +364,16 @@
 
               <div class="align-right">
                 <span class="tooltip-parent">
+                  Keep singletons <i class="far fa-question-circle"></i>
+                  <div class="tooltip">Keep singletons (proteins unmapped or having no interactions) in the interaction network.</div>
+                </span>
+              </div>
+              <div>
+                <input type="checkbox" v-model="input.keep_singletons" />
+              </div>
+
+              <div class="align-right">
+                <span class="tooltip-parent">
                   ClueGO grouping <i class="far fa-question-circle"></i>
                   <div class="tooltip">Network specificity indicating general, representative and specific pathways.</div>
                 </span>
@@ -373,6 +383,8 @@
                   <option v-for="acg in allowed_grouping" v-bind:value="acg">{{ acg }}</option>
                 </select>
               </div>
+
+              <div></div>
 
               <div class="align-right relative">
                 <span class="tooltip-parent">
@@ -387,8 +399,6 @@
                   <div class="tooltip">Must be a number between 0.0 and 1.0</div>
                 </span>
               </div>
-
-              <div></div>
 
               <div class="align-right">
                 <span class="tooltip-parent">

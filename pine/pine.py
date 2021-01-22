@@ -58,6 +58,7 @@ __status__ = "Production"
 CYREST_PORTS = [1234]
 CYREST_URL = None
 CYREST_PORT = None
+MAX_DONUT_PLOT = 6
 
 class CytoscapeError(Exception):
   ''' Exception for errors when making requests to Cytoscape '''
@@ -5896,6 +5897,10 @@ def main(argv):
       cy_lim = 0
       if cy_debug:
         logging.debug("Limiting query to re-analyze terms: " + str(len(unique_each_primgene_list)) )
+        if len(leading_term_cluster) > MAX_DONUT_PLOT:
+          eprint("Warning: Ontology Distibution Network (donut chart) will only visualize the first six GO Terms")
+        if not app_enhancedgraphics:
+          eprint("Warning: enhancedGraphics should be installed to generate Ontology Distibution Network (donut chart)")
   
     if not unique_each_primgene_list:
       remove_out(cy_debug, logging, cy_session, cy_out, cy_cluego_out, path_to_new_dir, logging_file, cy_settings_file)

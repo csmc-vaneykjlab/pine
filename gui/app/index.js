@@ -161,6 +161,7 @@ let vm = new Vue({
             fasta_file: null,
             mods: null,
             remove_ambiguous: null,
+            keep_singletons: null,
         },
         session_dir: null,
         missing_files: {
@@ -309,7 +310,6 @@ let vm = new Vue({
             this.switchTab(TABS.PROGRESS);
             this.stdout = "";
             this.stderr = "";
-            let stderr = "";
 
             this.save_settings(this.get_settings_file());
 
@@ -344,7 +344,7 @@ let vm = new Vue({
             });
 
             this.pine.stderr.on("data", function(d) {
-                stderr += d + "\n";
+                that.stderr += d + "\n";
             });
 
             let pr = new Promise(function(resolve, _reject) {
@@ -363,7 +363,6 @@ let vm = new Vue({
                         resolve(true);
                     } else {
                         that.stdout += "Run failed\n";
-                        that.stderr = stderr;
                         if(cyrest_port != null) {
                             http.get(`http://localhost:${cyrest_port}/v1/commands/command/quit`);
                         }
@@ -649,6 +648,9 @@ let vm = new Vue({
             if(this.input.remove_ambiguous) {
                 args.push("--exclude-ambiguity");
             }
+            if(this.input.keep_singletons) {
+                args.push("--keep-singletons");
+            }
 
             return args;
         },
@@ -838,6 +840,7 @@ let vm = new Vue({
             this.reset_input_file("output");
             this.input.output_name = "";
             this.input.remove_ambiguous = true;
+            this.input.keep_singletons = false;
         },
         reset_input_file: function(name) {
             const refs_name = "input_" + name;

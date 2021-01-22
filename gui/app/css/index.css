@@ -15,7 +15,7 @@
 }
 
 .full-section.wrapper {
-  height: 500px;
+  height: 550px;
   overflow-y: auto;
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -313,7 +313,7 @@ ul.tab-selector li + li {
 }
 
 .log-wrapper {
-  height: calc(500px - 95px);
+  height: calc(550px - 95px);
   overflow-x: auto;
 }
 
