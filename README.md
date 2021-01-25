@@ -7,7 +7,7 @@
 - [Using PINE GUI](#using-pine-gui)
 - [Ontology and Pathway Term Status](#ontology-and-pathway-term-status)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
-- [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
+- [Handling Ambiguity, Singletons and PTMs](#handling-ambiguity-singletons-and-ptms)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
@@ -231,7 +231,7 @@ Note:
 2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
 3. Addition/Deletion of columns from the bar chart comparison is possible by moving the columns of interest to/from 'Selected Columns' tab. In this case, minimum and maximum values may automatically gets set to -100 and +100 respectively and must be reset appropriately to view the bar chart.
 
-## Handling Ambiguity and PTMs
+## Handling Ambiguity, Singletons and PTMs
 ### Ambiguity Resolution
 | Case |	Category |	Step |	Level |	Description |	Resolution |
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
