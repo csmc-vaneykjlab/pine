@@ -277,7 +277,8 @@ NOTE: Ensure that the 'Mapping Type' of the node label remains Passthrough Mappi
 
 ### Singletons
 Checking the include singletons button allows presence of singletons (i.e. proteins/genes that are unmapped or having no interactions in STRING and Genemania). This indicates that the query not only present in the interaction network created, but also that the query will be included during annotation using ClueGO. 
-Therefore, any reanalysis will include the singleton (if they are annotated). Below is an example where PINE analysis was done including singletons. The reanalysis then included the singletons in all its networks.
+Therefore, any reanalysis will include the singleton (if they are annotated). Below is an example where PINE analysis was done including singletons. The reanalysis then included the singletons in all its networks.  
+
 **Reanlaysis interaction network**  
 
 ![interaction-singletons](Image/interaction-singletons.png)  
