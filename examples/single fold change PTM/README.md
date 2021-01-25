@@ -46,4 +46,8 @@ After the PINE reanalysis completes, you will have two networks in your Cytoscap
 **Ontology network:**
 ![results 3](images/OntologyNetwork.png)
 
+**Ontology network:**
+![distribution](images/Ontology-Distribution-Network.jpg)
+
 To create a similar network arrangement, install the [yFiles Layout Algorithms plugin](http://apps.cytoscape.org/apps/yfileslayoutalgorithms) then select **Layouts** -> **yFiles Hierarchic Layout**.
+
