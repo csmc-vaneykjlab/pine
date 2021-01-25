@@ -273,7 +273,24 @@ PTM sites are represented in the interaction and ontology network by Amino acid 
 ![substitute-name](Image/substitute-name.png)  
 
 NOTE: Ensure that the 'Mapping Type' of the node label remains Passthrough Mapping:
-![passthrough](Image/passthrough.png)
+![passthrough](Image/passthrough.png)  
+
+### Singletons
+Checking the include singletons button allows presence of singletons (i.e. proteins/genes that are unmapped or having no interactions in STRING and Genemania). This indicates that the query not only present in the interaction network created, but also that the query will be included during annotation using ClueGO. 
+Therefore, any reanalysis will include the singleton (if they are annotated). Below is an example where PINE analysis was done including singletons. The reanalysis then included the singletons in all its networks.
+**Reanlaysis interaction network**  
+
+![interaction-singletons](Image/interaction-singletons.png)  
+
+**Ontology network**  
+
+![ontology-singletons](Image/ontology-singletons.png)  
+
+**Ontology Distribution network**  
+
+![ontology-distribution-singletons](Image/ontology-distribution-singletons.png)  
+
+In the above cases, genes hsd17b4, osbp, osbpl9 and tnks1bp1 are all singletons. The nodes are included in all the networks, and in the case of interaction network, they show no interaction with any of the other query nodes.
 
 ## Using PINE command line
 ### Requirements
