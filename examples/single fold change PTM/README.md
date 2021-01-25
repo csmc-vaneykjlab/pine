@@ -43,11 +43,15 @@ After the PINE reanalysis completes, you will have two networks in your Cytoscap
 **New interaction network:**  
 ![results 2](images/ReanalysisInteractionNetwork.png)
 
-**Ontology network:**
+**Ontology network:**  
 ![results 3](images/OntologyNetwork.png)
 
-**Ontology network:**
+**Ontology distribution network:**  
 ![distribution](images/Ontology-Distribution-Network.jpg)
+This network combines the interaction and ontology network to show interactions between genes from the term selected, with donut charts around each node to represent GO terms associated with that node. 
+NOTE:
+1) The legend does not get created in cytoscape. To corrlate each color with the corresponding GO term, the reanalysis cluego file must be used. It contains hexadecimal color code for genes of interest mapped on the Ontology distribution network.
+2) Only the first six terms are selected for creating Ontology disribution network. If more than six terms are selected for the reanalysis, the terms beyond the first six will not be considered for this network.
 
 To create a similar network arrangement, install the [yFiles Layout Algorithms plugin](http://apps.cytoscape.org/apps/yfileslayoutalgorithms) then select **Layouts** -> **yFiles Hierarchic Layout**.
 
