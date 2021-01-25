@@ -7,7 +7,7 @@
 - [Using PINE GUI](#using-pine-gui)
 - [Ontology and Pathway Term Status](#ontology-and-pathway-term-status)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
-- [Handling Ambiguity, PTMs and Singletons(#handling-ambiguity-ptms-and-singletons)
+- [Handling Ambiguity, PTMs and Singletons](#handling-ambiguity-ptms-and-singletons)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
