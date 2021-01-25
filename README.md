@@ -412,8 +412,10 @@ If you encounter any bugs or issues, please help us improve PINE by creating a n
 For any other queries, email us at GroupHeartBioinformaticsSupport@cshs.org.
 
 ## Release notes
-### Version 2.2.1
+### Version 2.3.0
 - Fixed bug with parsing ClueGO text files that caused some pathways to be dropped
+- Added ontology distribution chart for all run types
+- Added the option to include singletons in the network
 ### Version 2.2.0
 - Add heatmap to multifc networks
 - Bug fixes
