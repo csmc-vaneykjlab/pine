@@ -129,6 +129,7 @@ The following are the options that can be set to run an analysis.
 - **Confidence score**: Interaction confidence score for STRING. Highest = 0.9, high = 0.7, medium = 0.4, low = 0.15
 - **# of interactors**: Maximum number of external interactors.
 - **Visualize**: Ontology type. Pathways include REACTOME, KEGG, CLINVAR and Wiki. GO terms for molecular function, biological process and cellular component.
+- **Include singletons**: Include singletons (proteins unmapped or having no interactions) in the interaction network.
 - **ClueGO grouping**: Network specificity indicating general, representative and specific pathways.
 - **ClueGO p-value**: P-value cutoff for enrichment analysis.
 - **Reference file**: Background reference file containing a list of protein or gene IDs for enrichment analysis in text format.
