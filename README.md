@@ -7,7 +7,7 @@
 - [Using PINE GUI](#using-pine-gui)
 - [Ontology and Pathway Term Status](#ontology-and-pathway-term-status)
 - [Customized Styling in Cytoscape](#customized-styling-in-cytoscape)
-- [Handling Ambiguity and PTMs](#handling-ambiguity-and-ptms)
+- [Handling Ambiguity, PTMs and Singletons](#handling-ambiguity-ptms-and-singletons)
 - [Using PINE command line](#using-pine-command-line)
 - [Input file description](#input-file-description)
 - [Output directory description](#output-directory-description)
@@ -24,6 +24,7 @@ The following tools and dependencies are required to run PINE:
 - [Cytoscape](https://cytoscape.org/download.html) (version 3.7 and above)
 - [Genemania](http://apps.cytoscape.org/apps/genemania) (version 3.5 and above)
 - [ClueGO](http://apps.cytoscape.org/apps/cluego) (version 2.5 and above)
+- [EnhancedGraphics](http://apps.cytoscape.org/apps/enhancedgraphics) (version 1.5 and above) - Optional
 
 PINE has been tested on Windows 10 and is only available for Windows OS.  We recommend at least 8GB of memory to run PINE with Cytoscape.
 
@@ -40,6 +41,8 @@ ClueGO requires license for usage. Once installation is complete, opening the ap
 ![ClueGO installation](Image/cluego.jpg)
 
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
+#### [EnhancedGraphics](http://apps.cytoscape.org/apps/enhancedgraphics)
+
 
 ### Species installation within apps
 PINE currently supports human, mouse, rat, arabidopsis thaliana, bovine, dog, zebrafish, e.coli, chicken, rabbit, sheep, yeast and pig analysis. These species datasets must be installed within the following apps:
@@ -129,6 +132,7 @@ The following are the options that can be set to run an analysis.
 - **Confidence score**: Interaction confidence score for STRING. Highest = 0.9, high = 0.7, medium = 0.4, low = 0.15
 - **# of interactors**: Maximum number of external interactors.
 - **Visualize**: Ontology type. Pathways include REACTOME, KEGG, CLINVAR and Wiki. GO terms for molecular function, biological process and cellular component.
+- **Include singletons**: Include singletons (proteins unmapped or having no interactions) in the interaction network.
 - **ClueGO grouping**: Network specificity indicating general, representative and specific pathways.
 - **ClueGO p-value**: P-value cutoff for enrichment analysis.
 - **Reference file**: Background reference file containing a list of protein or gene IDs for enrichment analysis in text format.
@@ -230,7 +234,7 @@ Note:
 2. Care must be taken in case of repeated checking and unchecking of the 'Automatic Range' option as the minimum and maximum values automatically gets set to -100 and +100 respectively.
 3. Addition/Deletion of columns from the bar chart comparison is possible by moving the columns of interest to/from 'Selected Columns' tab. In this case, minimum and maximum values may automatically gets set to -100 and +100 respectively and must be reset appropriately to view the bar chart.
 
-## Handling Ambiguity and PTMs
+## Handling Ambiguity, PTMs and Singletons
 ### Ambiguity Resolution
 | Case |	Category |	Step |	Level |	Description |	Resolution |
 | ------ | ------ | ------ | ------ | ---------------- | ---------------- |
@@ -272,7 +276,25 @@ PTM sites are represented in the interaction and ontology network by Amino acid 
 ![substitute-name](Image/substitute-name.png)  
 
 NOTE: Ensure that the 'Mapping Type' of the node label remains Passthrough Mapping:
-![passthrough](Image/passthrough.png)
+![passthrough](Image/passthrough.png)  
+
+### Singletons
+Checking the include singletons button allows presence of singletons (i.e. proteins/genes that are unmapped or having no interactions in STRING and Genemania). This indicates that the query not only present in the interaction network created, but also that the query will be included during annotation using ClueGO. 
+Therefore, any reanalysis will include the singleton (if they are annotated). Below is an example where PINE analysis was done including singletons. The reanalysis then included the singletons in all its networks.  
+
+**Reanlaysis interaction network**  
+
+![interaction-singletons](Image/interaction-singletons.png)  
+
+**Ontology network**  
+
+![ontology-singletons](Image/ontology-singletons.png)  
+
+**Ontology Distribution network**  
+
+![ontology-distribution-singletons](Image/ontology-distribution-singletons.png)  
+
+In the above cases, genes hsd17b4, osbp, osbpl9 and tnks1bp1 are all singletons. The nodes are included in all the networks, and in the case of interaction network, they show no interaction with any of the other query nodes.
 
 ## Using PINE command line
 ### Requirements
@@ -393,8 +415,10 @@ If you encounter any bugs or issues, please help us improve PINE by creating a n
 For any other queries, email us at GroupHeartBioinformaticsSupport@cshs.org.
 
 ## Release notes
-### Version 2.2.1
+### Version 2.3.0
 - Fixed bug with parsing ClueGO text files that caused some pathways to be dropped
+- Added ontology distribution chart for all run types
+- Added the option to include singletons in the network
 ### Version 2.2.0
 - Add heatmap to multifc networks
 - Bug fixes
