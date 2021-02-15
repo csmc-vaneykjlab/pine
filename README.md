@@ -24,6 +24,7 @@ The following tools and dependencies are required to run PINE:
 - [Cytoscape](https://cytoscape.org/download.html) (version 3.7 and above)
 - [Genemania](http://apps.cytoscape.org/apps/genemania) (version 3.5 and above)
 - [ClueGO](http://apps.cytoscape.org/apps/cluego) (version 2.5 and above)
+- [EnhancedGraphics](http://apps.cytoscape.org/apps/enhancedgraphics) (version 1.5 and above) - Optional
 
 PINE has been tested on Windows 10 and is only available for Windows OS.  We recommend at least 8GB of memory to run PINE with Cytoscape.
 
@@ -40,6 +41,8 @@ ClueGO requires license for usage. Once installation is complete, opening the ap
 ![ClueGO installation](Image/cluego.jpg)
 
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
+#### [EnhancedGraphics](http://apps.cytoscape.org/apps/enhancedgraphics)
+
 
 ### Species installation within apps
 PINE currently supports human, mouse, rat, arabidopsis thaliana, bovine, dog, zebrafish, e.coli, chicken, rabbit, sheep, yeast and pig analysis. These species datasets must be installed within the following apps:
