@@ -3776,6 +3776,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
             all_pval[term_pval].append(uniprot_list[term_pval][indexOf])
           else:
             all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
+          print(uniprot_list[term_pval][indexOf])
         get_prot.append(each_ambi_site)
         all_names.append(each_ambi_site)
         combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
@@ -3808,6 +3809,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
             all_pval[term_pval].append(1.0)
           else:
             all_pval.update({term_pval:[1.0]})
+          print("1")
         fc_na.append(0.0)
         sig_na.append(0)
       
@@ -3826,7 +3828,7 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       G.add_vertex(each_vertex)  
       sig_na.append(0)
       all_length.append(len(each_vertex))
-  
+      print("1")
   count_each = 0
   for each in merged_interactions:
     each_interaction_name = each.split(" ")
@@ -3857,13 +3859,14 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
     domain_labels.append(str(val_term_FC))
     if collect_fcs:
       if not value_labels:
-        value_labels = [ [str(round(collect_fcs[i],2))] for i in range(0, len(collect_fcs)) ]
+        value_labels = [ [str(round(collect_fcs[j],2))] for j in range(0, len(collect_fcs)) ]
       else:
-        for i in range(0, len(collect_fcs)):
-          value_labels[i].append(str(round(collect_fcs[i],2))) 
+        for j in range(0, len(collect_fcs)):
+          value_labels[j].append(str(round(collect_fcs[j],2))) 
+
     G.vs[val_term_FC] = all_fcs[term_FC] + all_other_fcs
     G.vs[val_term_pval] = all_pval[term_pval] + all_other_pval
-  
+    
   G.vs["pine_query"] = query_val
   G.vs["pine_length"] = all_length  
   G.vs["pine_outline"] = sig_na
@@ -4001,15 +4004,18 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"] 
   get_prot = []
   G = igraph.Graph()
-  for each in merged_vertex:
-    G.add_vertex(each)
-  
+
+  for each in uniprot_list['name']:
+    if each in merged_vertex:
+      G.add_vertex(each)
+
   count_each = 0
   edges = []
   for each in merged_interactions:
     each_interaction_name = each.split(" ")
     edges.append((each_interaction_name[0], each_interaction_name[1]))
     count_each +=1
+
   G.add_edges(edges)
 
   G.vs 
