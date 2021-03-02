@@ -4004,10 +4004,20 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   color_code = ["#52EFEF", "#FFA912", "#EB3F62", "#19DB4F", "#3785EB", "#F0E93F"] 
   get_prot = []
   G = igraph.Graph()
+  gene_list = []
+  ambi_list = []
+  query_list = []
+  length_list = []
+  i = 0
 
   for each in uniprot_list['name']:
     if each in merged_vertex:
       G.add_vertex(each)
+      gene_list.append(each)
+      ambi_list.append(uniprot_list['ambigious_genes'][i])
+      query_list.append(uniprot_list["query"][i])
+      length_list.append(uniprot_list['length'][i])
+    i+=1
 
   count_each = 0
   edges = []
@@ -4019,21 +4029,25 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   G.add_edges(edges)
 
   G.vs 
-  G.vs["name"] = uniprot_list['name']
-  G.vs["shared name"] = uniprot_list['ambigious_genes']
-  
+  G.vs["name"] = gene_list
+  G.vs["shared name"] = ambi_list
+
   for each_name in uniprot_list['name']:
-    corresponding_prot = get_query_from_list(uniprot_query, [each_name])
-    if corresponding_prot:
-      get_prot.append(list(corresponding_prot.keys())[0])
-    else:
-      get_prot.append(each_name)
+    if each_name in merged_vertex:
+      corresponding_prot = get_query_from_list(uniprot_query, [each_name])
+      if corresponding_prot:
+        get_prot.append(list(corresponding_prot.keys())[0])
+      else:
+        get_prot.append(each_name)
   G.vs["protein name"] = get_prot
   
   domain_labels = []
   value_labels = []
-  
   for i in range(1,max_FC_len+1):
+    
+    collect_fcs = []
+    collect_pval = []
+    
     term_FC = 'FC' + str(i)
     term_pval = 'pval' + str(i)
     if unique_labels:
@@ -4042,26 +4056,42 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
     else:
       val_term_FC = term_FC
       val_term_pval = term_pval
-      
-    collect_fcs = uniprot_list[term_FC] 
+    
+    j = 0
+    for each in uniprot_list['name']:
+      if each in merged_vertex:
+        collect_fcs.append(uniprot_list[term_FC][j])
+        collect_pval.append(uniprot_list[term_pval][j])
+      j += 1 
+    
     domain_labels.append(str(val_term_FC))
+
     if collect_fcs:
       if not value_labels:
-        value_labels = [ [str(round(collect_fcs[i],2))] for i in range(0, len(collect_fcs)) ]
+        value_labels = [ [str(round(collect_fcs[k],2))] for k in range(0, len(collect_fcs)) ]
       else:
-        for i in range(0, len(collect_fcs)):
-          value_labels[i].append(str(round(collect_fcs[i],2)))
-    G.vs[val_term_FC] = uniprot_list[term_FC]
-    G.vs[val_term_pval] = uniprot_list[term_pval]
+        for k in range(0, len(collect_fcs)):
+          value_labels[k].append(str(round(collect_fcs[k],2)))
+    G.vs[val_term_FC] = collect_fcs
+    G.vs[val_term_pval] = collect_pval
   
-  G.vs["pine_query"] = uniprot_list["query"]
-  G.vs["pine_length"] = uniprot_list['length']
+  G.vs["pine_query"] = query_list
+  G.vs["pine_length"] = length_list
   
   if max_FC_len >= 1:
-    G.vs["pine_outline"] = uniprot_list["significant"]
-    G.vs["pine_FC_exists"] = uniprot_list["FC_exists"]
+    i = 0
+    sign_list = []
+    fc_exists_list = []
+    for each in uniprot_list['name']:
+      if each in merged_vertex:
+        sign_list.append(uniprot_list["significant"][i])
+        fc_exists_list.append(uniprot_list["FC_exists"][i])
+      i += 1
+    G.vs["pine_outline"] = sign_list
+    G.vs["pine_FC_exists"] = fc_exists_list
+    
   if max_FC_len > 1:
-    tot = len(uniprot_list["query"])
+    tot = len(query_list)
     G.vs["pine_domain_labels"] = [domain_labels]*tot
     G.vs["pine_value_labels"] = value_labels
     
@@ -4071,9 +4101,23 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   
   for each in each_category:
     category_present = 1
-    G.vs[each] = uniprot_list[each]
+    each_cat = []
+    i = 0
+    for each_name in uniprot_list['name']:
+      if each_name in merged_vertex:
+        each_cat.append(uniprot_list[each][i])
+      i += 1
+    G.vs[each] = each_cat
+  
+  each_cat = []
   if category_present == 1:
-    G.vs['pine_category_true'] = uniprot_list['category_true']
+    i = 0
+    
+    for each_name in uniprot_list['name']:
+      if each_name in merged_vertex:
+        each_cat.append(uniprot_list['category_true'][i])
+      i += 1
+    G.vs['pine_category_true'] = each_cat
   
   cy = CyRestClient(port=CYREST_PORT)
   if max_FC_len > 1:
@@ -4086,7 +4130,7 @@ def cy_interactors_style(merged_vertex, merged_interactions, uniprot_list, max_F
   my_style = cy.style.create(chart_type + ' Style')
   
   if cluster:
-    G, my_style = cy_donut_style(cluster, G, my_style, uniprot_list['name'], path_to_cluego)
+    G, my_style = cy_donut_style(cluster, G, my_style, gene_list, path_to_cluego)
   
   g_cy = cy.network.create_from_igraph(G, name=network_name)
   cy.layout.apply(name='cose', network=g_cy)
