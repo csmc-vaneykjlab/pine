@@ -42,8 +42,8 @@ ClueGO requires license for usage. Once installation is complete, opening the ap
 
 Once installed apps can be opened by navigating to Apps-> [App Name] on the tab at the top of the Cytoscape screen.
 #### [EnhancedGraphics](http://apps.cytoscape.org/apps/enhancedgraphics)
-
-
+Optional app required for generation of ontology distribution network for all run types (see Example for more details). If this app is not installed, then ontology distribution network will not be generated.
+![enhancedGraphics](Image/enhancedGraphics.PNG)
 ### Species installation within apps
 PINE currently supports human, mouse, rat, arabidopsis thaliana, bovine, dog, zebrafish, e.coli, chicken, rabbit, sheep, yeast and pig analysis. These species datasets must be installed within the following apps:
 #### Genemania
