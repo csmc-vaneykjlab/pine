@@ -3458,7 +3458,11 @@ CLUEGO_BASE_PATH = "/v1/apps/cluego/cluego-manager"
 def writeLines(lines, out_file, type, uniprot_list, max_FC_len, unique_labels, each_category):
   ''' Write the lines to a file, removing duplicates of specific columns '''
   df = pd.read_csv(StringIO(lines), sep='\t')
-  df = df.drop_duplicates(subset=['GOTerm','Ontology Source', 'Nr. Genes', 'Associated Genes Found'])
+  if 'Term' in df.columns:
+    df = df.rename(columns={'Term': 'GOTerm'})
+  
+  list_of_cols = ['GOTerm', 'Ontology Source', 'Nr. Genes', 'Associated Genes Found']
+  df = df.drop_duplicates(subset=list_of_cols)
   if type == "1" or type == "5":
     df = calc_protein_change_sf(df, uniprot_list, type)
   if type == "2" or type == "6":
@@ -3776,7 +3780,6 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
             all_pval[term_pval].append(uniprot_list[term_pval][indexOf])
           else:
             all_pval.update({term_pval:[uniprot_list[term_pval][indexOf]]})
-          print(uniprot_list[term_pval][indexOf])
         get_prot.append(each_ambi_site)
         all_names.append(each_ambi_site)
         combined_pat = r'|'.join(('\[.*?\]', '\(.*?\)','\{.*?\}'))
@@ -3809,7 +3812,6 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
             all_pval[term_pval].append(1.0)
           else:
             all_pval.update({term_pval:[1.0]})
-          print("1")
         fc_na.append(0.0)
         sig_na.append(0)
       
@@ -3828,7 +3830,6 @@ def cy_sites_interactors_style(merged_vertex, merged_interactions, uniprot_list,
       G.add_vertex(each_vertex)  
       sig_na.append(0)
       all_length.append(len(each_vertex))
-      print("1")
   count_each = 0
   for each in merged_interactions:
     each_interaction_name = each.split(" ")
