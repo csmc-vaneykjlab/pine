@@ -56,7 +56,7 @@ Then select the latest dataset
 
 ![Genemania species installation](Image/genemania-initial-install-2.png)
 
-Then select which species you would like to install
+Then select which species you would like to install. NOTE: This process is slow and download may be throttled by your network leading to incomplete/partial download. To prevent this, please download one species at a time.
 
 ![Genemania species installation](Image/genemania-initial-install-3.png)
 
