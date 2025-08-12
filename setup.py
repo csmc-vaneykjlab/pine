@@ -13,7 +13,6 @@ setup (
     "idna==2.8",
     "networkx==2.4",
     "numpy==1.17.3",
-    "pandas==0.25.2",
     "pinepy2cytoscape @ git+https://github.com/fivebillionmph/pinepy2cytoscape.git@pine",
     "pydot==1.4.1",
     "pydotplus==2.0.2",
@@ -25,6 +24,8 @@ setup (
     "setuptools==44.1.0",
     "six==1.12.0",
     "urllib3==1.25.6",
+    "pandas==0.25.2",
   ],
   packages=["pine"],
 )
+
