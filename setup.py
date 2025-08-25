@@ -18,7 +18,7 @@ setup (
     "pydotplus==2.0.2",
     "pyparsing==2.4.2",
     "python-dateutil==2.8.0",
-    "python-igraph==0.7.1.post6",
+    #"python-igraph==0.7.1.post6",
     "pytz==2019.3",
     "requests==2.22.0",
     "setuptools==44.1.0",
@@ -28,5 +28,6 @@ setup (
   ],
   packages=["pine"],
 )
+
 
 
