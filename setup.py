@@ -12,7 +12,7 @@ setup (
     "decorator==4.4.1",
     "idna==2.8",
     "networkx==2.4",
-    "numpy==1.17.3",
+    #"numpy==1.17.3",
     "pinepy2cytoscape @ git+https://github.com/fivebillionmph/pinepy2cytoscape.git@pine",
     "pydot==1.4.1",
     "pydotplus==2.0.2",
@@ -28,4 +28,5 @@ setup (
   ],
   packages=["pine"],
 )
+
 
